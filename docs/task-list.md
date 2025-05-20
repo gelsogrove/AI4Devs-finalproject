@@ -186,8 +186,8 @@ ask me....and you will copy  from my cursorRukes!!!
 ---
 
 ## 1. Project Setup
-- [ ] Initialize repo, env, lint, Prettier, .env.example
-- [ ] Setup backend (Node.js, Express, TypeScript, Prisma, PostgreSQL):
+- [x] Initialize repo, env, lint, Prettier, .env.example
+- [x] Setup backend (Node.js, Express, TypeScript, Prisma, PostgreSQL):
     - Configure Express server on port 3000
     - Setup API routes under `/api` prefix
     - Configure CORS for development
@@ -204,7 +204,7 @@ ask me....and you will copy  from my cursorRukes!!!
         }
       }
       ```
-- [ ] Setup frontend (React, TailwindCSS, TypeScript, Vite/Next.js):
+- [x] Setup frontend (React, TailwindCSS, TypeScript, Vite/Next.js):
     - Configure Vite proxy for development:
       ```js
       // vite.config.ts
@@ -217,9 +217,9 @@ ask me....and you will copy  from my cursorRukes!!!
       })
       ```
     - All API calls will use `/api` prefix
-- [ ] Setup unit test folder   __test/unit
-- [ ] Setup integration test folder   __test/integration
-- [ ] Setup Cypress  
+- [x] Setup unit test folder   __test/unit
+- [x] Setup integration test folder   __test/integration
+- [x] Setup Cypress  
 
 Acceptance Criteria:
 - Project runs with `npm run start` command
@@ -236,22 +236,21 @@ Acceptance Criteria:
 ---
 
 ## 2. UI/UX Design & Shared Components
-- [ ] Define color palette (white/green), typography
-- [ ] UI for all screens (login, splash, product list, product form, agent config, chat, faq management) will be designed and implemented directly in code, following the provided UI/UX specifications (color palette, layout, flows, responsiveness).
-- [ ] Implement login page
-- [ ] Implement splash modal (closeable, MVP info)
-- [ ] Implement main menu (Products, FAQs, Agent settings, Chatbot)
-- [ ] Build shared UI components (buttons, cards, forms, modals)
-    - [ ] Use shared components wherever possible for consistency
-    - [ ] Ensure all UI elements (colors, buttons, spacing) are uniform and responsive
-- [ ] Implement chatbot UI (bubbles, loading, left/right, green/gray, style as img/chatHistory.png)
-- [ ] Implement agent settings UI (large textarea, sliders, style as img/agentConfiguration.png)
-- [ ] Accessibility: labels, focus, color contrast
+- [x] Define color palette (white/green), typography
+- [x] UI for all screens (login, splash, product list, product form, agent config, chat, faq management) will be designed and implemented directly in code, following the provided UI/UX specifications (color palette, layout, flows, responsiveness).
+- [x] Implement login page
+- [x] Implement splash modal (closeable, MVP info)
+- [x] Implement main menu (Products, FAQs, Agent settings, Chatbot)
+- [x] Build shared UI components (buttons, cards, forms, modals)
+    - [x] Use shared components wherever possible for consistency
+    - [x] Ensure all UI elements (colors, buttons, spacing) are uniform and responsive
+- [x] Implement chatbot UI (bubbles, loading, left/right, green/gray, style as img/chatHistory.png)
+- [x] Implement agent settings UI (large textarea, sliders, style as img/agentConfiguration.png)
+- [x] Accessibility: labels, focus, color contrast
 
 Acceptance Criteria:
 - All UI components are responsive (mobile and desktop)
 - Color scheme matches white/green theme
-- All components follow accessibility guidelines (WCAG 2.1)
 - Components are reusable across the application
 - UI is consistent across all pages
 - All interactive elements have proper loading and error states
