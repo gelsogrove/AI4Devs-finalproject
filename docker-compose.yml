@@ -1,0 +1,60 @@
+name: Ai4Dev-ShopMe
+version: '3.8'
+services:
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: shopme
+      POSTGRES_PASSWORD: shopme
+      POSTGRES_DB: shopme
+    ports:
+      - '5432:5432'
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shopme"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    command: sh -c "npx prisma generate && npx prisma migrate deploy && npm run start"
+    environment:
+      DATABASE_URL: postgres://shopme:shopme@db:5432/shopme
+      JWT_SECRET: devsecret
+      JWT_EXPIRATION: 24h
+      OPENAI_API_KEY: dummy
+      PORT: 3001
+      NODE_ENV: development
+      API_PREFIX: /api
+      FRONTEND_URL: http://localhost:3000
+      CHAT_HISTORY_TTL: 1h
+    ports:
+      - '3001:3001'
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    working_dir: /app
+
+  frontend:
+    build: ./frontend
+    command: npm run dev -- --host --port 3000
+    environment:
+      VITE_API_URL: http://localhost:3001
+      VITE_API_PREFIX: /api
+      VITE_ENABLE_CHAT_PERSISTENCE: true
+      VITE_ENABLE_DEBUG_MODE: false
+    ports:
+      - '3000:3000'
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+    working_dir: /app
+
+volumes:
+  db_data: 
