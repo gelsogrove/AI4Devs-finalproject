@@ -5,16 +5,8 @@ export interface Product {
   price: number;
   imageUrl: string;
   category: string;
-  createdAt: string | Date;
-  updatedAt: string | Date;
-}
-
-export interface ProductFormData {
-  name: string;
-  description: string;
-  price: number;
-  imageUrl: string;
-  category: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface CreateProductDto {
@@ -38,4 +30,4 @@ export interface ProductFilters {
   minPrice?: number;
   maxPrice?: number;
   search?: string;
-}
+} 

@@ -1,157 +1,382 @@
+import { Edit, Plus, Search, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { faqApi } from "../api/faqApi";
+import { FAQForm } from "../components/faqs/FAQForm";
+import { SlidePanel } from "../components/ui/SlidePanel";
+import { FAQ, FAQFilters } from "../types/faq";
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Plus, Search } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+export default function FAQs() {
+  const [faqs, setFaqs] = useState<FAQ[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [totalPages, setTotalPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [filters, setFilters] = useState<FAQFilters>({});
+  const [selectedFAQId, setSelectedFAQId] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
-// Mock FAQ data
-const mockFAQs = [
-  {
-    id: '1',
-    question: 'How long does shipping take?',
-    answer: 'Standard shipping takes 3-5 business days within Europe and 7-10 business days for international orders. Express shipping options are available at checkout.',
-    category: 'Shipping',
-    isPublished: true,
-    createdAt: '2023-05-10T10:00:00Z',
-    updatedAt: '2023-05-10T10:00:00Z'
-  },
-  {
-    id: '2',
-    question: 'What is your return policy?',
-    answer: 'We accept returns within 30 days of delivery. The product must be unused, in its original packaging, and in the same condition you received it. Please contact our customer service to initiate a return.',
-    category: 'Returns',
-    isPublished: true,
-    createdAt: '2023-05-11T10:00:00Z',
-    updatedAt: '2023-05-11T10:00:00Z'
-  },
-  {
-    id: '3',
-    question: 'Do you ship internationally?',
-    answer: 'Yes, we ship to most countries worldwide. Shipping costs and delivery times vary by location. You can see the exact shipping cost at checkout before completing your purchase.',
-    category: 'Shipping',
-    isPublished: true,
-    createdAt: '2023-05-12T10:00:00Z',
-    updatedAt: '2023-05-12T10:00:00Z'
-  },
-  {
-    id: '4',
-    question: 'Are your products authentic Italian?',
-    answer: 'Yes, all our products are authentic and imported directly from Italy. We work directly with small producers and cooperatives to ensure the highest quality and authenticity.',
-    category: 'Products',
-    isPublished: true,
-    createdAt: '2023-05-13T10:00:00Z',
-    updatedAt: '2023-05-13T10:00:00Z'
-  },
-  {
-    id: '5',
-    question: 'How do I track my order?',
-    answer: 'Once your order is shipped, you will receive a confirmation email with a tracking number and link. You can use this to monitor the status of your delivery.',
-    category: 'Shipping',
-    isPublished: true,
-    createdAt: '2023-05-14T10:00:00Z',
-    updatedAt: '2023-05-14T10:00:00Z'
-  },
-  {
-    id: '6',
-    question: 'How can I contact customer service?',
-    answer: 'You can reach our customer service team via email at support@shopme.com or through WhatsApp at +39 123 456 7890. Our service hours are Monday to Friday, 9 AM to 6 PM CET.',
-    category: 'Support',
-    isPublished: false,
-    createdAt: '2023-05-15T10:00:00Z',
-    updatedAt: '2023-05-15T10:00:00Z'
-  }
-];
+  // Load FAQs when page loads or filters change
+  useEffect(() => {
+    async function loadFAQs() {
+      setLoading(true);
+      try {
+        const result = await faqApi.getFAQs(filters, currentPage, 10);
+        setFaqs(result.data);
+        setTotalPages(result.pagination.totalPages);
+      } catch (err) {
+        console.error("Failed to load FAQs", err);
+        setError("Failed to load FAQs. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    }
 
-// Category colors
-const categoryColors: Record<string, string> = {
-  'Shipping': 'bg-blue-100 text-blue-800',
-  'Returns': 'bg-amber-100 text-amber-800',
-  'Products': 'bg-green-100 text-green-800',
-  'Support': 'bg-purple-100 text-purple-800',
-  'default': 'bg-gray-100 text-gray-800'
-};
+    loadFAQs();
+  }, [filters, currentPage]);
 
-const FAQs: React.FC = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [faqs, setFaqs] = useState(mockFAQs);
+  // Handle search
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setFilters((prev) => ({ ...prev, search: searchTerm }));
+    setCurrentPage(1);
+  };
 
-  const filteredFAQs = faqs.filter(faq => 
-    faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    faq.answer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (faq.category && faq.category.toLowerCase().includes(searchQuery.toLowerCase()))
+  // Handle category filter
+  const handleCategoryFilter = (category: string | null) => {
+    setFilters((prev) => ({
+      ...prev,
+      category: category || undefined,
+    }));
+    setCurrentPage(1);
+  };
+
+  // Handle status filter
+  const handleStatusFilter = (status: string | null) => {
+    setFilters((prev) => ({
+      ...prev,
+      isPublished: status === null ? undefined : status === 'published',
+    }));
+    setCurrentPage(1);
+  };
+
+  // Handle FAQ edit
+  const handleEditFAQ = (faqId: string) => {
+    setSelectedFAQId(faqId);
+    setIsEditing(true);
+  };
+
+  // Handle FAQ create
+  const handleCreateFAQ = () => {
+    setIsCreating(true);
+  };
+
+  // Handle FAQ delete
+  const handleDeleteFAQ = async (faqId: string) => {
+    if (window.confirm("Are you sure you want to delete this FAQ?")) {
+      try {
+        await faqApi.deleteFAQ(faqId);
+        // Refresh FAQ list
+        const result = await faqApi.getFAQs(filters, currentPage, 10);
+        setFaqs(result.data);
+        setTotalPages(result.pagination.totalPages);
+      } catch (err) {
+        console.error("Failed to delete FAQ", err);
+        alert("Failed to delete FAQ. Please try again later.");
+      }
+    }
+  };
+
+  // Handle toggle FAQ publication status
+  const handleToggleStatus = async (faqId: string) => {
+    try {
+      await faqApi.toggleFAQStatus(faqId);
+      // Refresh FAQ list
+      const result = await faqApi.getFAQs(filters, currentPage, 10);
+      setFaqs(result.data);
+    } catch (err) {
+      console.error("Failed to toggle FAQ status", err);
+      alert("Failed to update FAQ status. Please try again later.");
+    }
+  };
+
+  // Handle save (create or edit)
+  const handleSave = () => {
+    // Close edit/create panel
+    setIsEditing(false);
+    setIsCreating(false);
+    setSelectedFAQId(null);
+
+    // Reload FAQs
+    faqApi.getFAQs(filters, currentPage, 10).then((result) => {
+      setFaqs(result.data);
+      setTotalPages(result.pagination.totalPages);
+    });
+  };
+
+  // Get unique categories from FAQs for the filter
+  const categories = Array.from(
+    new Set(faqs.filter(faq => faq.category).map((faq) => faq.category as string))
   );
 
   return (
-    <>
+    <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">FAQs</h1>
-          <p className="text-gray-600">Manage frequently asked questions</p>
-        </div>
-        <Button className="bg-shopme-500 hover:bg-shopme-600">
-          <Plus size={16} className="mr-2" />
-          Add FAQ
-        </Button>
+        <h1 className="text-2xl font-bold text-gray-900">FAQs</h1>
+        <button
+          onClick={handleCreateFAQ}
+          className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg flex items-center"
+        >
+          <Plus className="mr-2 h-4 w-4" /> Add FAQ
+        </button>
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-        <div className="flex gap-4 items-center">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Search FAQs..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
+      {/* Search and filters */}
+      <div className="mb-6">
+        <div className="flex flex-col md:flex-row gap-4">
+          <form onSubmit={handleSearch} className="flex-1">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search FAQs..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500"
+              />
+              <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+              <button
+                type="submit"
+                className="absolute right-2 top-2 text-green-600 hover:text-green-700"
+              >
+                Search
+              </button>
+            </div>
+          </form>
+
+          <div className="w-full md:w-64">
+            <select
+              value={filters.category || ""}
+              onChange={(e) =>
+                handleCategoryFilter(
+                  e.target.value === "" ? null : e.target.value
+                )
+              }
+              className="w-full border rounded-lg p-2 focus:ring-green-500 focus:border-green-500"
+            >
+              <option value="">All Categories</option>
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline">Filter</Button>
-            <Button variant="outline">Sort</Button>
+
+          <div className="w-full md:w-64">
+            <select
+              value={
+                filters.isPublished === undefined
+                  ? ""
+                  : filters.isPublished
+                  ? "published"
+                  : "unpublished"
+              }
+              onChange={(e) =>
+                handleStatusFilter(
+                  e.target.value === "" ? null : e.target.value
+                )
+              }
+              className="w-full border rounded-lg p-2 focus:ring-green-500 focus:border-green-500"
+            >
+              <option value="">All Status</option>
+              <option value="published">Published</option>
+              <option value="unpublished">Unpublished</option>
+            </select>
           </div>
         </div>
       </div>
 
-      {filteredFAQs.length > 0 ? (
-        <div className="grid grid-cols-1 gap-4">
-          {filteredFAQs.map(faq => (
-            <Card key={faq.id} className={`${!faq.isPublished ? 'opacity-70' : ''}`}>
-              <CardHeader className="pb-2 flex flex-row items-start justify-between">
-                <div>
-                  <CardTitle className="text-lg">{faq.question}</CardTitle>
-                  <div className="flex gap-2 mt-1">
-                    {faq.category && (
-                      <Badge className={categoryColors[faq.category] || categoryColors.default}>
-                        {faq.category}
-                      </Badge>
-                    )}
-                    {!faq.isPublished && (
-                      <Badge variant="outline" className="border-gray-300 text-gray-500">
-                        Draft
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm">Edit</Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">{faq.answer}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No FAQs found</h3>
-          <p className="text-gray-500">Try adjusting your search or filters.</p>
+      {/* Error message */}
+      {error && (
+        <div className="bg-red-50 p-4 mb-6 rounded-md">
+          <p className="text-red-700">{error}</p>
         </div>
       )}
-    </>
-  );
-};
 
-export default FAQs;
+      {/* FAQs table */}
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <p className="text-gray-500">Loading FAQs...</p>
+        </div>
+      ) : faqs.length === 0 ? (
+        <div className="bg-gray-50 p-6 text-center rounded-lg">
+          <p className="text-gray-500">No FAQs found</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Question
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Category
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Status
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {faqs.map((faq) => (
+                <tr key={faq.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4">
+                    <div className="text-sm font-medium text-gray-900">
+                      {faq.question}
+                    </div>
+                    <div className="text-sm text-gray-500 truncate max-w-md">
+                      {faq.answer}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {faq.category && (
+                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                        {faq.category}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        faq.isPublished
+                          ? "bg-green-100 text-green-800"
+                          : "bg-gray-100 text-gray-800"
+                      }`}
+                    >
+                      {faq.isPublished ? "Published" : "Unpublished"}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button
+                      onClick={() => handleEditFAQ(faq.id)}
+                      className="text-indigo-600 hover:text-indigo-900 mr-4"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleToggleStatus(faq.id)}
+                      className={`mr-4 ${
+                        faq.isPublished
+                          ? "text-yellow-600 hover:text-yellow-900"
+                          : "text-green-600 hover:text-green-900"
+                      }`}
+                      title={
+                        faq.isPublished ? "Unpublish FAQ" : "Publish FAQ"
+                      }
+                    >
+                      {faq.isPublished ? (
+                        <ToggleRight className="h-4 w-4" />
+                      ) : (
+                        <ToggleLeft className="h-4 w-4" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleDeleteFAQ(faq.id)}
+                      className="text-red-600 hover:text-red-900"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-center mt-6">
+          <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+            <button
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
+                currentPage === 1
+                  ? "text-gray-300 cursor-not-allowed"
+                  : "text-gray-500 hover:bg-gray-50"
+              }`}
+            >
+              Previous
+            </button>
+            {Array.from({ length: totalPages }).map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentPage(i + 1)}
+                className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                  currentPage === i + 1
+                    ? "z-10 bg-green-50 border-green-500 text-green-600"
+                    : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+            <button
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+              }
+              disabled={currentPage === totalPages}
+              className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
+                currentPage === totalPages
+                  ? "text-gray-300 cursor-not-allowed"
+                  : "text-gray-500 hover:bg-gray-50"
+              }`}
+            >
+              Next
+            </button>
+          </nav>
+        </div>
+      )}
+
+      {/* Edit/Create Panel */}
+      <SlidePanel
+        isOpen={isEditing || isCreating}
+        onClose={() => {
+          setIsEditing(false);
+          setIsCreating(false);
+          setSelectedFAQId(null);
+        }}
+        title={isEditing ? "Edit FAQ" : "Create New FAQ"}
+      >
+        <FAQForm
+          faqId={selectedFAQId || undefined}
+          isNew={isCreating}
+          onSave={handleSave}
+          onCancel={() => {
+            setIsEditing(false);
+            setIsCreating(false);
+            setSelectedFAQId(null);
+          }}
+        />
+      </SlidePanel>
+    </div>
+  );
+}

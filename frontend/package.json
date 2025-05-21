@@ -13,7 +13,8 @@
     "test:e2e": "cypress open",
     "test:e2e:headless": "cypress run",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "dev:e2e": "vite & CYPRESS_CONFIG_FILE=cypress.config.cjs cypress run"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -45,6 +46,7 @@
     "@radix-ui/react-toggle-group": "^1.1.0",
     "@radix-ui/react-tooltip": "^1.1.4",
     "@tanstack/react-query": "^5.56.2",
+    "axios": "^1.9.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",

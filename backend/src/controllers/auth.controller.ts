@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import userService from '../services/user.service';
+import logger from '../utils/logger';
 
 // Validation schemas
 const registerSchema = z.object({
@@ -32,7 +33,7 @@ class AuthController {
         user,
       });
     } catch (error) {
-      console.error('Registration error:', error);
+      logger.error('Registration error:', error);
       
       // Handle validation errors
       if (error instanceof z.ZodError) {
@@ -67,7 +68,7 @@ class AuthController {
         ...result,
       });
     } catch (error) {
-      console.error('Login error:', error);
+      logger.error('Login error:', error);
       
       // Handle validation errors
       if (error instanceof z.ZodError) {
@@ -104,7 +105,7 @@ class AuthController {
       
       return res.status(200).json({ user });
     } catch (error) {
-      console.error('Get profile error:', error);
+      logger.error('Get profile error:', error);
       
       if (error instanceof Error) {
         return res.status(400).json({ error: error.message });

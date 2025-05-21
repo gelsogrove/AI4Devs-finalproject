@@ -5,7 +5,7 @@ import { ProductForm } from "../components/products/ProductForm";
 import { SlidePanel } from "../components/ui/SlidePanel";
 import { Product, ProductFilters } from "../types/product";
 
-export default function Products() {
+export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -329,4 +329,4 @@ export default function Products() {
       </SlidePanel>
     </div>
   );
-}
+} 

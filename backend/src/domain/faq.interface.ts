@@ -4,15 +4,8 @@ export interface FAQ {
   answer: string;
   category?: string;
   isPublished: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface FAQFormData {
-  question: string;
-  answer: string;
-  category?: string;
-  isPublished: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface CreateFAQDto {
@@ -33,4 +26,4 @@ export interface FAQFilters {
   category?: string;
   isPublished?: boolean;
   search?: string;
-}
+} 

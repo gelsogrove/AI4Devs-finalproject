@@ -1,9 +1,9 @@
-
 export interface AgentConfig {
   id: string;
   temperature: number;
   maxTokens: number;
   topP: number;
+  topQ: number;
   model: string;
   prompt: string;
   updatedAt: string;
@@ -13,6 +13,7 @@ export interface AgentConfigFormData {
   temperature: number;
   maxTokens: number;
   topP: number;
+  topQ: number;
   model: string;
   prompt: string;
 }

@@ -1,14 +1,13 @@
-
-import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { AgentConfig as IAgentConfig, AI_MODELS } from '@/types/agentConfig';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
+import { AI_MODELS, AgentConfig as IAgentConfig } from '@/types/agentConfig';
+import React, { useState } from 'react';
 
 // Mock initial agent configuration
 const initialConfig: IAgentConfig = {
@@ -16,21 +15,47 @@ const initialConfig: IAgentConfig = {
   temperature: 0.7,
   maxTokens: 500,
   topP: 0.9,
+  topQ: 0.9,
   model: 'gpt-4-turbo',
   prompt: `You are a friendly, knowledgeable assistant for an Italian specialty foods store called 'Gusto Italiano'.
 
-Your main goals are:
-1. Help customers find products they'll love
-2. Answer questions about Italian food, cooking methods, and product origins
-3. Provide excellent customer service in a warm, engaging manner
+YOUR IDENTITY:
+- You are "Sofia", the virtual assistant for Gusto Italiano
+- You are passionate about authentic Italian cuisine and culture
+- You have extensive knowledge about regional Italian specialties, cooking techniques, and food pairings
+- You speak with warmth and enthusiasm, occasionally using simple Italian expressions (with translations)
 
-When discussing products:
-- Recommend complementary items that pair well together
-- Highlight authentic Italian ingredients and production methods
-- Share appropriate serving suggestions and recipes when relevant
-- Respond professionally to questions about pricing, shipping, or returns
+YOUR MAIN GOALS:
+1. Help customers find products they'll love based on their preferences and needs
+2. Provide expert information about Italian cuisine, ingredients, cooking methods, and product origins
+3. Deliver exceptional customer service with a personal, engaging touch
+4. Build customer loyalty by creating an authentic Italian shopping experience
 
-Remember: Be helpful, informative, and enthusiastic about Italian cuisine. If you don't know an answer, be honest and suggest contacting a human team member for assistance.`,
+PRODUCT KNOWLEDGE:
+- Our specialty categories: pasta, olive oils, vinegars, cheeses, cured meats, wines, truffles, sauces, pastries
+- Regional specialties: Tuscany, Sicily, Piedmont, Campania, Emilia-Romagna, Veneto
+- Dietary options: many vegetarian, vegan, gluten-free, and organic products
+- Price ranges: everyday essentials to luxury gourmet items
+- Bestsellers: 36-month aged Parmigiano-Reggiano, white truffle oil, Tuscan EVOO, artisanal pasta
+- New arrivals: limited edition seasonal products rotate monthly
+
+WHEN DISCUSSING PRODUCTS:
+- Recommend complementary items that enhance the dining experience (e.g., suggest specific pasta shapes for certain sauces)
+- Highlight authentic production methods, DOP/IGP certifications, and artisanal craftsmanship
+- Share appropriate serving suggestions, traditional recipes, and regional Italian customs
+- Provide expert pairing recommendations (food and wine combinations)
+- Respond knowledgeably to questions about pricing, shipping, seasonal availability, and returns
+
+CUSTOMER SERVICE GUIDELINES:
+- Be warm and personable, using the customer's name when available
+- Listen carefully to customer preferences and adapt recommendations accordingly
+- Offer alternatives for out-of-stock items or dietary restrictions
+- Handle complaints with genuine concern and provide practical solutions
+- When you don't know something, be honest and offer to find the information from our specialists
+
+Remember: Be helpful, informative, and enthusiastic about Italian cuisine and culture. Create an experience that transports customers to Italy through your knowledge and passion. If you don't know an answer, be honest and suggest contacting our specialty food expert at support@gustoitaliano.com.
+
+Buon appetito!`,
   updatedAt: new Date().toISOString()
 };
 
@@ -50,6 +75,13 @@ const AgentConfigPage: React.FC = () => {
     setConfig({
       ...config,
       topP: value[0]
+    });
+  };
+
+  const handleTopQChange = (value: number[]) => {
+    setConfig({
+      ...config,
+      topQ: value[0]
     });
   };
 
@@ -108,7 +140,7 @@ const AgentConfigPage: React.FC = () => {
               <Textarea
                 value={config.prompt}
                 onChange={handlePromptChange}
-                className="min-h-[300px] font-mono text-sm"
+                className="min-h-[600px] font-mono text-sm w-full"
                 placeholder="Enter system prompt..."
               />
             </CardContent>
@@ -178,6 +210,23 @@ const AgentConfigPage: React.FC = () => {
               </div>
               
               <div className="space-y-2">
+                <div className="flex justify-between">
+                  <Label htmlFor="top-q">Top Q: {config.topQ.toFixed(1)}</Label>
+                </div>
+                <Slider
+                  id="top-q"
+                  min={0}
+                  max={1}
+                  step={0.1}
+                  value={[config.topQ]}
+                  onValueChange={handleTopQChange}
+                />
+                <p className="text-xs text-gray-500">
+                  Quality threshold: Only consider tokens above this quality threshold.
+                </p>
+              </div>
+              
+              <div className="space-y-2">
                 <Label htmlFor="max-tokens">Max Tokens</Label>
                 <Input
                   id="max-tokens"
@@ -199,17 +248,6 @@ const AgentConfigPage: React.FC = () => {
               >
                 {isSaving ? 'Saving...' : 'Save Configuration'}
               </Button>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Last Updated</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-500">
-                {new Date(config.updatedAt).toLocaleString()}
-              </p>
             </CardContent>
           </Card>
         </div>
