@@ -1,15 +1,14 @@
-
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useAuth } from '@/contexts/AuthContext';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
 
 const Login = () => {
-  const [email, setEmail] = useState('demo@shopme.com');
-  const [password, setPassword] = useState('password');
+  const [email, setEmail] = useState('test@example.com');
+  const [password, setPassword] = useState('password123');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { login } = useAuth();
@@ -88,7 +87,7 @@ const Login = () => {
         
         <div className="text-center mt-4 text-sm text-gray-600">
           <p>Demo credentials are pre-filled for you.</p>
-          <p className="mt-1">Email: demo@shopme.com | Password: password</p>
+          <p className="mt-1">Email: test@example.com | Password: password123</p>
         </div>
       </div>
     </div>

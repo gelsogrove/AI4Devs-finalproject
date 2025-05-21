@@ -258,19 +258,25 @@ Acceptance Criteria:
 ---
 
 ## 3. Authentication
-- [ ] User model/schema (Prisma)
-- [ ] JWT-based login API
-- [ ] Login form (frontend) with validation
-- [ ] Secure JWT storage (httpOnly/localStorage for demo)
-- [ ] Protect all sensitive endpoints with JWT middleware
+- [✓] User model/schema (Prisma)
+- [✓] JWT-based login API
+- [✓] Login form (frontend) with validation
+- [✓] Secure JWT storage (httpOnly/localStorage for demo)
+- [✓] Protect all sensitive endpoints with JWT middleware
 
 Acceptance Criteria:
-- Users can log in with email/password
-- JWT tokens are stored securely
-- Protected routes redirect to login
-- Error messages are clear and user-friendly
-- Session persists after page reload
-- Logout functionality works correctly
+- [✓] Users can log in with email/password
+- [✓] JWT tokens are stored securely
+- [✓] Protected routes redirect to login
+- [✓] Error messages are clear and user-friendly
+- [✓] Session persists after page reload
+- [✓] Logout functionality works correctly
+
+Notes:
+- Implemented simple token-based authentication for MVP
+- Created test user (test@example.com / password123)
+- Backend server runs on port 3002 with protected routes
+- Frontend proxy correctly routes API requests
 
 ---
 
@@ -374,8 +380,8 @@ Acceptance Criteria:
     - Payment methods
     - Product warranty
     - How to use the chatbot
-- [ ] Seed at least one agent configuration
-- [ ] Seed at least one user (for login)
+- [✓] Seed at least one agent configuration
+- [✓] Seed at least one user (for login)
 
 Acceptance Criteria:
 - All seed scripts run without errors
@@ -390,7 +396,8 @@ Acceptance Criteria:
 
 ## 8. Testing
 ### 8.1 Unit Tests
-- [ ] Backend: services, controllers, utils
+- [✓] Backend: authentication (auth.utils, auth.middleware, auth.controller)
+- [ ] Backend: other services, controllers, utils
 - [ ] Frontend: shared components, hooks
 
 ### 8.2 Integration Tests

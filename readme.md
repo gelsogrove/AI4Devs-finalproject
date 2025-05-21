@@ -13,7 +13,7 @@ ShopMe is a multilingual SaaS platform that transforms WhatsApp into a complete 
 ## 🛠️ Tech Stack
 
 ### Frontend
-- React 19
+- React
 - TypeScript
 - Tailwind CSS
 - Vite
@@ -24,6 +24,7 @@ ShopMe is a multilingual SaaS platform that transforms WhatsApp into a complete 
 - TypeScript
 - Prisma ORM
 - PostgreSQL
+- Domain-Driven Design (DDD) architecture
 
 ## 🚀 Getting Started
 
@@ -36,7 +37,7 @@ ShopMe is a multilingual SaaS platform that transforms WhatsApp into a complete 
 
 1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/shopme.git
+git clone https://github.com/AI4Devs-finalproject/shopme.git
 cd shopme
 ```
 
@@ -45,40 +46,66 @@ cd shopme
 docker-compose up -d
 ```
 
-3. Install dependencies and set up the backend
+3. Install dependencies for both backend and frontend
 ```bash
+# Backend dependencies
 cd backend
 npm install
 npm run db:setup
-npm run dev
-```
 
-4. Install dependencies and start the frontend
-```bash
-cd frontend
+# Frontend dependencies
+cd ../frontend
 npm install
-npm run dev
 ```
 
-5. Access the application at http://localhost:3000
+4. Start the application in development mode
+```bash
+# Da eseguire nella root del progetto
+./dev.sh
+```
+
+5. Access the application at http://localhost:5173
+
+### Alternative Manual Startup
+You can also start the frontend and backend separately:
+
+```bash
+# Terminal 1 - Backend
+cd backend
+npm run dev
+
+# Terminal 2 - Frontend
+cd frontend
+npm run dev
+```
 
 ## 📝 Project Structure
 
 ```
 shopme/
-├── backend/               # Backend Express application
+├── backend/               # Backend Express application with DDD architecture
 │   ├── prisma/            # Database schema and migrations
-│   ├── src/               # Source code
+│   ├── src/               
+│   │   ├── domain/        # Domain entities and business logic
+│   │   ├── application/   # Application services and use cases
+│   │   ├── infrastructure/# Database repositories and external services
+│   │   └── interfaces/    # API controllers and routes
 │   └── __tests__/         # Test files
 ├── frontend/              # React frontend application
 │   ├── public/            # Static assets
 │   └── src/               # Source code
 ├── docs/                  # Documentation files
 │   └── PRD.md             # Product Requirements Document
+├── dev.sh                 # Script per avviare l'app in modalità sviluppo
+├── start.sh               # Script per avviare l'app in modalità produzione
 └── docker-compose.yml     # Docker configuration
 ```
 
 ## 💻 Development
+
+### Scripts principali
+- Avviare in sviluppo: `./dev.sh` (avvia sia backend che frontend)
+- Avviare in produzione: `./start.sh` (richiede di aver già fatto la build)
 
 ### Backend
 - Run development server: `cd backend && npm run dev`
@@ -99,9 +126,9 @@ The application implements OWASP security best practices:
 
 ## 📚 Documentation
 
-For detailed information about the project, refer to the documentation in the `docs` folder:
+For detailed information about the project, refer to the documentation:
 - [Product Requirements Document](docs/PRD.md)
-- [Task List](docs/task-list.md)
+- [Task List](task-list.md)
 - [OWASP Secure Coding Guidelines](docs/owasp-secure-coding.md)
 
 ## 🌐 Business Model

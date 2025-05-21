@@ -1,7 +1,7 @@
-
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { AuthState, LoginCredentials, User } from '@/types/auth';
+import { loginUser } from '@/api/authApi';
 import { useToast } from '@/components/ui/use-toast';
+import { AuthState, LoginCredentials, User } from '@/types/auth';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
 interface AuthContextType {
   auth: AuthState;
@@ -11,26 +11,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Mock API for demo purposes
-const mockLogin = async (credentials: LoginCredentials): Promise<{ user: User; token: string }> => {
-  // Simulate API call delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  // Demo credentials check
-  if (credentials.email === 'demo@shopme.com' && credentials.password === 'password') {
-    return {
-      user: {
-        id: '1',
-        email: 'demo@shopme.com',
-        name: 'Demo User'
-      },
-      token: 'mock-jwt-token'
-    };
-  }
-  
-  throw new Error('Invalid credentials');
-};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [auth, setAuth] = useState<AuthState>({
@@ -68,17 +48,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (credentials: LoginCredentials) => {
     setIsLoading(true);
     try {
-      const { user, token } = await mockLogin(credentials);
+      const response = await loginUser(credentials);
+      
+      const user: User = {
+        id: response.user.id,
+        email: response.user.email,
+        name: `${response.user.firstName} ${response.user.lastName}`.trim()
+      };
       
       // Save to state
       setAuth({
         user,
-        token,
+        token: response.token,
         isAuthenticated: true
       });
       
       // Save to localStorage for persistence
-      localStorage.setItem('token', token);
+      localStorage.setItem('token', response.token);
       localStorage.setItem('user', JSON.stringify(user));
       
       toast({
