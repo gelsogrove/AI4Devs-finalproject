@@ -1,63 +1,97 @@
+import { expect } from '@jest/globals';
 import request from 'supertest';
-import createMockExpressApp from './mock/express.mock';
+import app from '../../src/app';
 
-// Create test server based on our mock
-const app = createMockExpressApp();
+// Mock user for testing
+const testUser = {
+  email: 'test@example.com',
+  password: 'password123',
+  firstName: 'Test',
+  lastName: 'User'
+};
 
-describe('Integration: Authentication', () => {
+describe('Auth API Integration Tests', () => {
   describe('POST /api/auth/login', () => {
-    it('should return 400 if email or password is missing', async () => {
-      // Test missing email
-      const res1 = await request(app)
+    it('should authenticate user with valid credentials', async () => {
+      const response = await request(app)
         .post('/api/auth/login')
-        .send({ password: 'password123' });
+        .send({
+          email: testUser.email,
+          password: testUser.password
+        })
+        .expect(200);
       
-      expect(res1.statusCode).toBe(400);
-      expect(res1.body.error).toBe('Email and password are required');
-      
-      // Test missing password
-      const res2 = await request(app)
-        .post('/api/auth/login')
-        .send({ email: 'test@example.com' });
-      
-      expect(res2.statusCode).toBe(400);
-      expect(res2.body.error).toBe('Email and password are required');
+      expect(response.body).toHaveProperty('token');
+      expect(response.body).toHaveProperty('user');
+      expect(response.body.user).toHaveProperty('email', testUser.email);
+      expect(response.body).toHaveProperty('message', 'Login successful');
     });
     
-    it('should return 401 for invalid credentials', async () => {
-      const res = await request(app)
+    it('should return 401 with invalid credentials', async () => {
+      const response = await request(app)
         .post('/api/auth/login')
-        .send({ email: 'wrong@example.com', password: 'wrongpassword' });
+        .send({
+          email: testUser.email,
+          password: 'wrongpassword'
+        })
+        .expect(401);
       
-      expect(res.statusCode).toBe(401);
-      expect(res.body.error).toBe('Invalid email or password');
+      expect(response.body).toHaveProperty('error', 'Invalid email or password');
     });
     
-    it('should return 401 for correct email but wrong password', async () => {
-      const res = await request(app)
+    it('should return 400 with invalid email format', async () => {
+      const response = await request(app)
         .post('/api/auth/login')
-        .send({ email: 'test@example.com', password: 'wrongpassword' });
+        .send({
+          email: 'invalid-email',
+          password: testUser.password
+        })
+        .expect(400);
       
-      expect(res.statusCode).toBe(401);
-      expect(res.body.error).toBe('Invalid email or password');
+      expect(response.body).toHaveProperty('error', 'Validation error');
+    });
+  });
+  
+  describe('GET /api/auth/profile', () => {
+    let authToken: string;
+    
+    beforeEach(async () => {
+      // Login to get token
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({
+          email: testUser.email,
+          password: testUser.password
+        });
+      
+      authToken = response.body.token;
     });
     
-    it('should return 200 with token and user data for valid credentials', async () => {
-      const res = await request(app)
-        .post('/api/auth/login')
-        .send({ email: 'test@example.com', password: 'password123' });
+    it('should get user profile with valid token', async () => {
+      const response = await request(app)
+        .get('/api/auth/profile')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
       
-      expect(res.statusCode).toBe(200);
-      expect(res.body.message).toBe('Login successful');
-      expect(res.body.token).toBeDefined();
-      expect(res.body.token).toMatch(/^demo-token-/);
+      expect(response.body).toHaveProperty('user');
+      expect(response.body.user).toHaveProperty('email', testUser.email);
+    });
+    
+    it('should return 401 with invalid token', async () => {
+      const response = await request(app)
+        .get('/api/auth/profile')
+        .set('Authorization', 'Bearer invalid-token')
+        .expect(401);
       
-      // Check user data
-      expect(res.body.user).toBeDefined();
-      expect(res.body.user.id).toBe('1');
-      expect(res.body.user.email).toBe('test@example.com');
-      expect(res.body.user.firstName).toBe('Test');
-      expect(res.body.user.lastName).toBe('User');
+      expect(response.body).toHaveProperty('error', 'Invalid token');
+    });
+    
+    it('should return 401 with missing token', async () => {
+      const response = await request(app)
+        .get('/api/auth/profile')
+        .expect(401);
+      
+      expect(response.body).toHaveProperty('error', 'Authentication required');
     });
   });
 }); 

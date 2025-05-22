@@ -1,0 +1,15 @@
+{
+  "name": "ai4devs-finalproject",
+  "version": "1.0.0",
+  "description": "ShopMe MVP Project",
+  "private": true,
+  "scripts": {
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:all": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "test:e2e": "./scripts/run-e2e-tests.sh"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+} 

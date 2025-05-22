@@ -79,4 +79,4 @@ sudo systemctl restart nginx
 - Cypress tests execute only when all services are ready
 - Backend logs accessible via `pm2 logs`
 - PM2 ensures backend resilience by restarting on failure
-- Nginx serves as a reverse proxy redirecting port 80 traffic to the backend
+- Nginx serves as a reverse proxy redirecting port 80 traffic to the backend 

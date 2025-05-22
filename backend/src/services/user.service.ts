@@ -1,4 +1,5 @@
 import { comparePasswords, hashPassword } from '../utils/auth';
+import logger from '../utils/logger';
 
 interface User {
   id: string;
@@ -17,7 +18,8 @@ const users: User[] = [
   {
     id: '1',
     email: 'test@example.com',
-    password: '$2b$10$dWd6JwUQUl47jP.4kUelweOfYTU/7PF8VJZIq5LGiTSLp0og/JwOu', // password123
+    // This is the hashed version of 'password123' 
+    password: '$2b$10$dWd6JwUQUl47jP.4kUelweOfYTU/7PF8VJZIq5LGiTSLp0og/JwOu',
     firstName: 'Test',
     lastName: 'User',
     isActive: true,
@@ -83,41 +85,54 @@ class UserService {
    * Login a user and generate JWT token
    */
   async login(email: string, password: string): Promise<LoginResponse> {
-    // Find user by email
-    const user = users.find(user => user.email === email);
+    try {
+      // Find user by email
+      const user = users.find(user => user.email === email);
 
-    if (!user) {
-      throw new Error('Invalid email or password');
+      if (!user) {
+        logger.warn(`Login attempt with non-existent email: ${email}`);
+        throw new Error('Invalid email or password');
+      }
+
+      // Check if user is active
+      if (!user.isActive) {
+        logger.warn(`Login attempt for inactive account: ${email}`);
+        throw new Error('Account is inactive');
+      }
+
+      // Verify password
+      const passwordMatches = await comparePasswords(password, user.password);
+      
+      // Log for debugging
+      logger.info(`Password verification result for ${email}: ${passwordMatches}`);
+      
+      if (!passwordMatches) {
+        logger.warn(`Failed login attempt for ${email}: incorrect password`);
+        throw new Error('Invalid email or password');
+      }
+
+      // Update last login timestamp
+      user.lastLogin = new Date();
+      user.updatedAt = new Date();
+
+      // Generate a simple token for demo
+      const token = 'demo-token-' + Date.now();
+      logger.info(`Successful login for ${email}`);
+
+      // Return user info and token
+      return {
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+        },
+      };
+    } catch (error) {
+      logger.error(`Login error: ${error}`);
+      throw error;
     }
-
-    // Check if user is active
-    if (!user.isActive) {
-      throw new Error('Account is inactive');
-    }
-
-    // Verify password
-    const passwordMatches = await comparePasswords(password, user.password);
-    if (!passwordMatches) {
-      throw new Error('Invalid email or password');
-    }
-
-    // Update last login timestamp
-    user.lastLogin = new Date();
-    user.updatedAt = new Date();
-
-    // Generate a simple token for demo
-    const token = 'demo-token-' + Date.now();
-
-    // Return user info and token
-    return {
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-      },
-    };
   }
 
   /**
@@ -133,6 +148,11 @@ class UserService {
     // Return user without password
     const { password, ...userWithoutPassword } = user;
     return userWithoutPassword;
+  }
+  
+  // For testing purposes only
+  _getUsers() {
+    return [...users];
   }
 }
 

@@ -32,6 +32,12 @@ const filtersSchema = z.object({
 });
 
 class ProductController {
+  private productService: typeof productService;
+  
+  constructor() {
+    this.productService = productService;
+  }
+
   /**
    * Create a new product
    */
@@ -40,12 +46,12 @@ class ProductController {
       // Validate request body
       const validatedData = createProductSchema.parse(req.body);
       
-      // Create product
-      const product = await productService.createProduct(validatedData);
+      // Create product using application service
+      const product = await this.productService.createProduct(validatedData);
       
       return res.status(201).json({
         message: 'Product created successfully',
-        product,
+        product: product.toDTO(),
       });
     } catch (error) {
       logger.error('Create product error:', error);
@@ -75,14 +81,16 @@ class ProductController {
       // Validate and extract query parameters
       const { category, minPrice, maxPrice, search, page = 1, limit = 10 } = filtersSchema.parse(req.query);
       
-      // Get products with filters
-      const result = await productService.getProducts(
+      // Get products with filters using application service
+      const result = await this.productService.getProducts(
         { category, minPrice, maxPrice, search },
-        page,
-        limit
+        { page, limit }
       );
       
-      return res.status(200).json(result);
+      return res.status(200).json({
+        data: result.data.map(p => p.toDTO()),
+        pagination: result.pagination
+      });
     } catch (error) {
       logger.error('Get products error:', error);
       
@@ -105,9 +113,9 @@ class ProductController {
     try {
       const { id } = req.params;
       
-      const product = await productService.getProductById(id);
+      const product = await this.productService.getProductById(id);
       
-      return res.status(200).json(product);
+      return res.status(200).json(product.toDTO());
     } catch (error) {
       logger.error('Get product by ID error:', error);
       
@@ -129,12 +137,12 @@ class ProductController {
       // Validate request body
       const validatedData = updateProductSchema.parse(req.body);
       
-      // Update product
-      const product = await productService.updateProduct(id, validatedData);
+      // Update product using application service
+      const product = await this.productService.updateProduct(id, validatedData);
       
       return res.status(200).json({
         message: 'Product updated successfully',
-        product,
+        product: product.toDTO(),
       });
     } catch (error) {
       logger.error('Update product error:', error);
@@ -168,7 +176,7 @@ class ProductController {
     try {
       const { id } = req.params;
       
-      const result = await productService.deleteProduct(id);
+      const result = await this.productService.deleteProduct(id);
       
       return res.status(200).json(result);
     } catch (error) {
@@ -188,7 +196,7 @@ class ProductController {
    */
   async getCategories(req: Request, res: Response) {
     try {
-      const categories = await productService.getCategories();
+      const categories = await this.productService.getCategories();
       
       return res.status(200).json(categories);
     } catch (error) {

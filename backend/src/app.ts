@@ -8,7 +8,7 @@ dotenv.config();
 // Import routes
 import routes from './routes';
 
-function setupServer() {
+export function setupServer() {
   // Set up Express app
   const app = express();
   
@@ -41,36 +41,9 @@ function setupServer() {
     });
   });
   
-  // Add a direct login endpoint to verify our auth system
-  app.post('/api/auth/login', (req, res) => {
-    const { email, password } = req.body;
-    
-    // Simple validation
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
-    }
-    
-    // For demo/testing - use fixed credentials
-    if (email === 'test@example.com' && password === 'password123') {
-      // Generate a simple token - in production use proper JWT
-      const token = 'demo-token-' + Date.now();
-      
-      return res.status(200).json({
-        message: 'Login successful',
-        token,
-        user: {
-          id: '1',
-          email: 'test@example.com',
-          firstName: 'Test',
-          lastName: 'User'
-        }
-      });
-    }
-    
-    return res.status(401).json({ error: 'Invalid email or password' });
-  });
-  
   return app;
 }
 
-export default setupServer; 
+// Create and export the app instance
+const app = setupServer();
+export default app; 

@@ -62,7 +62,12 @@ describe('Product Service', () => {
         data: createData,
       });
       
-      expect(result).toEqual(mockProduct);
+      expect(result.toDTO()).toEqual(expect.objectContaining({
+        name: mockProduct.name,
+        description: mockProduct.description,
+        price: mockProduct.price,
+        category: mockProduct.category,
+      }));
     });
     
     it('should throw an error if creation fails', async () => {
@@ -100,14 +105,18 @@ describe('Product Service', () => {
       
       expect(prisma.product.count).toHaveBeenCalledWith({ where: {} });
       
-      expect(result).toEqual({
-        data: mockProducts,
-        pagination: {
-          page: 1,
-          limit: 10,
-          total: mockTotal,
-          totalPages: Math.ceil(mockTotal / 10),
-        },
+      expect(result.data[0].toDTO()).toEqual(expect.objectContaining({
+        name: mockProduct.name,
+        description: mockProduct.description,
+        price: mockProduct.price,
+        category: mockProduct.category,
+      }));
+
+      expect(result.pagination).toEqual({
+        page: 1,
+        limit: 10,
+        total: mockTotal,
+        totalPages: Math.ceil(mockTotal / 10),
       });
     });
     
@@ -156,7 +165,12 @@ describe('Product Service', () => {
         where: { id: '123' },
       });
       
-      expect(result).toEqual(mockProduct);
+      expect(result.toDTO()).toEqual(expect.objectContaining({
+        name: mockProduct.name,
+        description: mockProduct.description,
+        price: mockProduct.price,
+        category: mockProduct.category,
+      }));
     });
     
     it('should throw an error when product not found', async () => {
@@ -185,15 +199,17 @@ describe('Product Service', () => {
         where: { id: '123' },
       });
       
-      expect(prisma.product.update).toHaveBeenCalledWith({
-        where: { id: '123' },
-        data: updateData,
-      });
+      expect(prisma.product.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: '123' },
+          data: expect.objectContaining(updateData),
+        })
+      );
       
-      expect(result).toEqual({
-        ...mockProduct,
-        ...updateData,
-      });
+      expect(result.toDTO()).toEqual(expect.objectContaining({
+        name: updateData.name,
+        price: updateData.price,
+      }));
     });
     
     it('should throw an error when product not found', async () => {

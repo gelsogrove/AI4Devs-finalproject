@@ -10,11 +10,9 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test:e2e": "cypress open",
-    "test:e2e:headless": "cypress run",
+    "test:e2e": "../scripts/run-e2e-tests.sh",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "dev:e2e": "vite & CYPRESS_CONFIG_FILE=cypress.config.cjs cypress run"
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

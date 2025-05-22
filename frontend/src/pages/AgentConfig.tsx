@@ -1,23 +1,16 @@
+import { getAgentConfig, updateAgentConfig } from '@/api/agentApi';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { AI_MODELS, AgentConfig as IAgentConfig } from '@/types/agentConfig';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
-// Mock initial agent configuration
-const initialConfig: IAgentConfig = {
-  id: '1',
-  temperature: 0.7,
-  maxTokens: 500,
-  topP: 0.9,
-  topQ: 0.9,
-  model: 'gpt-4-turbo',
-  prompt: `You are a friendly, knowledgeable assistant for an Italian specialty foods store called 'Gusto Italiano'.
+// Initial default agent configuration with a default prompt
+const DEFAULT_PROMPT = `You are a friendly, knowledgeable assistant for an Italian specialty foods store called 'Gusto Italiano'.
 
 YOUR IDENTITY:
 - You are "Sofia", the virtual assistant for Gusto Italiano
@@ -55,14 +48,53 @@ CUSTOMER SERVICE GUIDELINES:
 
 Remember: Be helpful, informative, and enthusiastic about Italian cuisine and culture. Create an experience that transports customers to Italy through your knowledge and passion. If you don't know an answer, be honest and suggest contacting our specialty food expert at support@gustoitaliano.com.
 
-Buon appetito!`,
+Buon appetito!`;
+
+const initialConfig: IAgentConfig = {
+  id: '1',
+  temperature: 0.7,
+  maxTokens: 500,
+  topP: 0.9,
+  model: 'gpt-4-turbo',
+  prompt: DEFAULT_PROMPT,
   updatedAt: new Date().toISOString()
 };
 
 const AgentConfigPage: React.FC = () => {
   const [config, setConfig] = useState<IAgentConfig>(initialConfig);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+
+  // Fetch agent configuration on component mount
+  useEffect(() => {
+    const fetchAgentConfig = async () => {
+      try {
+        setIsLoading(true);
+        const data = await getAgentConfig();
+        console.log("Fetched config:", data); // Debug log
+        
+        // Ensure prompt is never null or undefined by providing the default
+        const configWithValidPrompt = {
+          ...data,
+          prompt: data.prompt || DEFAULT_PROMPT
+        };
+        
+        setConfig(configWithValidPrompt);
+      } catch (error) {
+        console.error('Failed to fetch agent configuration:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load agent configuration.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAgentConfig();
+  }, [toast]);
 
   const handleTemperatureChange = (value: number[]) => {
     setConfig({
@@ -78,12 +110,7 @@ const AgentConfigPage: React.FC = () => {
     });
   };
 
-  const handleTopQChange = (value: number[]) => {
-    setConfig({
-      ...config,
-      topQ: value[0]
-    });
-  };
+  // Top Q removed as it's not in the database schema
 
   const handleMaxTokensChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value);
@@ -108,16 +135,84 @@ const AgentConfigPage: React.FC = () => {
   };
 
   const handleSave = async () => {
-    setIsSaving(true);
+    // Debug logs
+    console.log("Saving config:", config);
+    console.log("Prompt value:", config.prompt);
+    console.log("Prompt length:", config.prompt?.length || 0);
+    console.log("Prompt is empty:", !config.prompt || config.prompt.trim() === '');
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    setIsSaving(false);
-    toast({
-      title: "Settings saved",
-      description: "Your agent configuration has been updated.",
-    });
+    // Validate form values
+    if (config.temperature < 0 || config.temperature > 1) {
+      toast({
+        title: "Validation Error",
+        description: "Temperature must be between 0 and 1",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (config.topP < 0 || config.topP > 1) {
+      toast({
+        title: "Validation Error",
+        description: "Top P must be between 0 and 1",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (config.maxTokens <= 0) {
+      toast({
+        title: "Validation Error",
+        description: "Max tokens must be greater than 0",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!config.prompt || !config.prompt.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Prompt is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      
+      // Ensure prompt is not null or undefined before sending to API
+      const configToSave = {
+        temperature: config.temperature,
+        maxTokens: config.maxTokens,
+        topP: config.topP,
+        model: config.model,
+        prompt: config.prompt || DEFAULT_PROMPT // Fallback to default if somehow still null
+      };
+      
+      // Send update request to API using the agentApi service
+      const updatedConfig = await updateAgentConfig(configToSave);
+      
+      // Update local state with response data, ensuring prompt is valid
+      setConfig({
+        ...updatedConfig,
+        prompt: updatedConfig.prompt || DEFAULT_PROMPT
+      });
+      
+      toast({
+        title: "Settings saved",
+        description: "Your agent configuration has been updated.",
+      });
+    } catch (error) {
+      console.error('Failed to update agent configuration:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update agent configuration.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -127,131 +222,129 @@ const AgentConfigPage: React.FC = () => {
         <p className="text-gray-600">Configure your AI chatbot's behavior and responses</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>System Prompt</CardTitle>
-              <CardDescription>
-                This is the prompt that guides your AI assistant's behavior and knowledge base
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                value={config.prompt}
-                onChange={handlePromptChange}
-                className="min-h-[600px] font-mono text-sm w-full"
-                placeholder="Enter system prompt..."
-              />
-            </CardContent>
-          </Card>
-        </div>
-        
-        <div className="lg:col-span-1 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Model Settings</CardTitle>
-              <CardDescription>
-                Configure the AI model and its parameters
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="model">Model</Label>
-                <Select 
-                  value={config.model} 
-                  onValueChange={handleModelChange}
+      <form onSubmit={(e) => { 
+        e.preventDefault(); 
+        console.log("Form submitted, prompt value:", config.prompt); // Debug log
+        handleSave(); 
+      }}>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>System Prompt</CardTitle>
+                <CardDescription>
+                  This is the prompt that guides your AI assistant's behavior and knowledge base
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  name="prompt"
+                  value={config.prompt || ''}
+                  onChange={handlePromptChange}
+                  className="min-h-[600px] font-mono text-sm w-full"
+                  placeholder="Enter system prompt..."
+                  required
+                />
+              </CardContent>
+            </Card>
+          </div>
+          
+          <div className="lg:col-span-1 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Model Settings</CardTitle>
+                <CardDescription>
+                  Configure the AI model and its parameters
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="model">Model</Label>
+                  <Select 
+                    name="model"
+                    value={config.model} 
+                    onValueChange={handleModelChange}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {AI_MODELS.map(model => (
+                        <SelectItem key={model} value={model}>
+                          {model}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <Label htmlFor="temperature">Temperature: {config.temperature.toFixed(1)}</Label>
+                  </div>
+                  <Input
+                    type="range"
+                    id="temperature"
+                    name="temperature"
+                    min={0}
+                    max={1}
+                    step={0.1}
+                    value={config.temperature}
+                    onChange={(e) => handleTemperatureChange([parseFloat(e.target.value)])}
+                    disabled={isLoading}
+                  />
+                  <p className="text-xs text-gray-500">
+                    Controls randomness: Lower values are more focused and deterministic, higher values are more creative.
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <Label htmlFor="top-p">Top P: {config.topP.toFixed(1)}</Label>
+                  </div>
+                  <Input
+                    type="range"
+                    id="topP"
+                    name="topP"
+                    min={0}
+                    max={1}
+                    step={0.1}
+                    value={config.topP}
+                    onChange={(e) => handleTopPChange([parseFloat(e.target.value)])}
+                  />
+                  <p className="text-xs text-gray-500">
+                    Nucleus sampling: Only consider tokens with the top P% probability mass.
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="max-tokens">Max Tokens</Label>
+                  <Input
+                    id="maxTokens"
+                    name="maxTokens"
+                    type="number"
+                    min={1}
+                    max={4000}
+                    value={config.maxTokens}
+                    onChange={handleMaxTokensChange}
+                  />
+                  <p className="text-xs text-gray-500">
+                    Maximum number of tokens to generate in a response.
+                  </p>
+                </div>
+                
+                <Button 
+                  type="submit"
+                  className="w-full bg-shopme-500 hover:bg-shopme-600 mt-4"
+                  disabled={isSaving || isLoading}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a model" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {AI_MODELS.map(model => (
-                      <SelectItem key={model} value={model}>
-                        {model}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <Label htmlFor="temperature">Temperature: {config.temperature.toFixed(1)}</Label>
-                </div>
-                <Slider
-                  id="temperature"
-                  min={0}
-                  max={1}
-                  step={0.1}
-                  value={[config.temperature]}
-                  onValueChange={handleTemperatureChange}
-                />
-                <p className="text-xs text-gray-500">
-                  Controls randomness: Lower values are more focused and deterministic, higher values are more creative.
-                </p>
-              </div>
-              
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <Label htmlFor="top-p">Top P: {config.topP.toFixed(1)}</Label>
-                </div>
-                <Slider
-                  id="top-p"
-                  min={0}
-                  max={1}
-                  step={0.1}
-                  value={[config.topP]}
-                  onValueChange={handleTopPChange}
-                />
-                <p className="text-xs text-gray-500">
-                  Nucleus sampling: Only consider tokens with the top P% probability mass.
-                </p>
-              </div>
-              
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <Label htmlFor="top-q">Top Q: {config.topQ.toFixed(1)}</Label>
-                </div>
-                <Slider
-                  id="top-q"
-                  min={0}
-                  max={1}
-                  step={0.1}
-                  value={[config.topQ]}
-                  onValueChange={handleTopQChange}
-                />
-                <p className="text-xs text-gray-500">
-                  Quality threshold: Only consider tokens above this quality threshold.
-                </p>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="max-tokens">Max Tokens</Label>
-                <Input
-                  id="max-tokens"
-                  type="number"
-                  min={1}
-                  max={4000}
-                  value={config.maxTokens}
-                  onChange={handleMaxTokensChange}
-                />
-                <p className="text-xs text-gray-500">
-                  Maximum number of tokens to generate in a response.
-                </p>
-              </div>
-              
-              <Button 
-                className="w-full bg-shopme-500 hover:bg-shopme-600 mt-4" 
-                onClick={handleSave}
-                disabled={isSaving}
-              >
-                {isSaving ? 'Saving...' : 'Save Configuration'}
-              </Button>
-            </CardContent>
-          </Card>
+                  {isLoading ? 'Loading...' : isSaving ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </div>
+      </form>
     </>
   );
 };

@@ -19,6 +19,7 @@ export function ProductForm({
   const [isSaving, setIsSaving] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   
   const [form, setForm] = useState<CreateProductDto>({
@@ -108,6 +109,7 @@ export function ProductForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccessMessage(null);
     
     // Validate form before submission
     if (!validateForm()) {
@@ -119,10 +121,16 @@ export function ProductForm({
     try {
       if (isNew) {
         await productApi.createProduct(form);
+        setSuccessMessage("Product created successfully");
       } else if (productId) {
         await productApi.updateProduct(productId, form as UpdateProductDto);
+        setSuccessMessage("Product updated successfully");
       }
-      onSave();
+      
+      // Wait a bit before calling onSave to allow the user to see the success message
+      setTimeout(() => {
+        onSave();
+      }, 1500);
     } catch (err: any) {
       setError(err.response?.data?.error || "Failed to save product");
       console.error(err);
@@ -140,6 +148,12 @@ export function ProductForm({
       {error && (
         <div className="bg-red-50 p-4 rounded-md text-red-700 mb-4">
           {error}
+        </div>
+      )}
+      
+      {successMessage && (
+        <div className="bg-green-50 p-4 rounded-md text-green-700 mb-4">
+          {successMessage}
         </div>
       )}
 
