@@ -1,6 +1,6 @@
+import { CreateProductDto, UpdateProductDto } from '../../domain';
 import { Product } from '../../domain/entities/Product';
 import { ProductCreatedEvent } from '../../domain/events/ProductEvents';
-import { CreateProductDto, UpdateProductDto } from '../../domain/product.interface';
 import {
     PaginatedResult,
     PaginationOptions,

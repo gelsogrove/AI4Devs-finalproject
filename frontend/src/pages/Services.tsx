@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { serviceApi } from "../api/serviceApi";
 import { ServiceForm } from "../components/services/ServiceForm";
 import { Badge } from "../components/ui/badge";
+import { MarkdownViewer } from "../components/ui/markdown-viewer";
 import { SlidePanel } from "../components/ui/SlidePanel";
 import { Service, ServiceFilters } from "../types/service";
 
@@ -19,6 +20,7 @@ export default function Services() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [expandedDescription, setExpandedDescription] = useState<string | null>(null);
 
   // Collect all unique tags from services
   const allTags = [...new Set(services.flatMap(service => service.tags || []))].sort();
@@ -104,6 +106,15 @@ export default function Services() {
         console.error("Failed to delete service", err);
         alert("Failed to delete service. Please try again later.");
       }
+    }
+  };
+
+  // Toggle description expansion
+  const toggleDescription = (serviceId: string) => {
+    if (expandedDescription === serviceId) {
+      setExpandedDescription(null);
+    } else {
+      setExpandedDescription(serviceId);
     }
   };
 
@@ -256,12 +267,37 @@ export default function Services() {
               {services.map((service) => (
                 <tr key={service.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
-                    <div className="text-sm font-medium text-gray-900">
+                    <div className="text-sm font-medium text-gray-900 flex items-center">
                       {service.name}
+                      {service.isActive === false && (
+                        <Badge className="ml-2 bg-gray-200 text-gray-700">Inactive</Badge>
+                      )}
                     </div>
-                    <div className="text-sm text-gray-500 truncate max-w-md">
-                      {service.description}
+                    
+                    <div 
+                      className="mt-1 cursor-pointer"
+                      onClick={() => toggleDescription(service.id)}
+                    >
+                      {expandedDescription === service.id ? (
+                        <div className="prose prose-sm max-w-none p-2 rounded bg-gray-50">
+                          <MarkdownViewer content={service.description} />
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-500 truncate max-w-md">
+                          {service.description}
+                        </div>
+                      )}
                     </div>
+                    
+                    {service.tags && service.tags.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {service.tags.map(tag => (
+                          <Badge key={tag} variant="outline" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">

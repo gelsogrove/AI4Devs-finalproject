@@ -1,19 +1,8 @@
 import { PrismaClient } from '@prisma/client';
+import { FAQFilters, ProductFilters, ServiceFilters } from '../domain';
 import logger from '../utils/logger';
 
 const prisma = new PrismaClient();
-
-interface ProductFilters {
-  category?: string;
-  search?: string;
-  countOnly?: boolean;
-}
-
-interface ServiceFilters {
-  isActive?: boolean;
-  search?: string;
-  tags?: string[];
-}
 
 // Filter common words that should not be used for search
 const stopWords = ['il', 'lo', 'la', 'i', 'gli', 'le', 'un', 'uno', 'una', 'the', 'a', 'an', 'di', 'del', 'della', 'dei', 'degli', 'delle'];
@@ -277,7 +266,7 @@ export const availableFunctions = {
   /**
    * Get FAQs with optional filters
    */
-  getFAQs: async (filters: { category?: string, search?: string, tags?: string[] }) => {
+  getFAQs: async (filters: FAQFilters) => {
     try {
       const { category, search, tags } = filters;
       

@@ -2,6 +2,10 @@ import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { productApi } from "../../api/productApi";
 import { CreateProductDto, UpdateProductDto } from "../../types/product";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Textarea } from "../ui/textarea";
 
 interface ProductFormProps {
   productId?: string;
@@ -178,209 +182,166 @@ export function ProductForm({
         </div>
       )}
 
-      <div>
+      <div className="space-y-2">
         <label 
           htmlFor="name" 
-          className="block text-sm font-medium text-gray-700 mb-1"
+          className="block text-sm font-medium"
         >
           Product Name
         </label>
-        <input
+        <Input
           type="text"
           id="name"
           name="name"
           value={form.name}
           onChange={handleChange}
-          className="w-full p-2 border rounded-lg focus:ring-green-500 focus:border-green-500"
+          className={validationErrors.name ? "border-red-500" : ""}
           required
         />
+        {validationErrors.name && (
+          <p className="text-sm text-destructive">{validationErrors.name}</p>
+        )}
       </div>
 
-      <div>
+      <div className="space-y-2">
         <label 
           htmlFor="description" 
-          className="block text-sm font-medium text-gray-700 mb-1"
+          className="block text-sm font-medium"
         >
           Description
         </label>
-        <textarea
+        <Textarea
           id="description"
           name="description"
-          rows={4}
+          rows={5}
           value={form.description}
           onChange={handleChange}
-          className={`w-full p-2 border rounded-lg focus:ring-green-500 focus:border-green-500 ${
-            validationErrors.description ? "border-red-500" : ""
-          }`}
+          className={validationErrors.description ? "border-red-500" : ""}
           required
         />
         {validationErrors.description && (
-          <p className="mt-1 text-sm text-red-600">{validationErrors.description}</p>
+          <p className="text-sm text-destructive">{validationErrors.description}</p>
         )}
       </div>
 
-      <div>
-        <label 
-          htmlFor="price" 
-          className="block text-sm font-medium text-gray-700 mb-1"
-        >
-          Price (€)
-        </label>
-        <input
-          type="number"
-          id="price"
-          name="price"
-          min="0.01"
-          step="0.01"
-          value={form.price}
-          onChange={handleChange}
-          className={`w-full p-2 border rounded-lg focus:ring-green-500 focus:border-green-500 ${
-            validationErrors.price ? "border-red-500" : ""
-          }`}
-          required
-        />
-        {validationErrors.price && (
-          <p className="mt-1 text-sm text-red-600">{validationErrors.price}</p>
-        )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label 
+            htmlFor="price" 
+            className="block text-sm font-medium"
+          >
+            Price (€)
+          </label>
+          <Input
+            type="number"
+            id="price"
+            name="price"
+            value={form.price}
+            onChange={handleChange}
+            className={validationErrors.price ? "border-red-500" : ""}
+            step="0.01"
+            min="0"
+            required
+          />
+          {validationErrors.price && (
+            <p className="text-sm text-destructive">{validationErrors.price}</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <label 
+            htmlFor="category" 
+            className="block text-sm font-medium"
+          >
+            Category
+          </label>
+          <select
+            id="category"
+            name="category"
+            value={form.category}
+            onChange={handleChange}
+            className="w-full h-10 px-3 py-2 bg-background border border-input rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            required
+          >
+            <option value="">Select a category</option>
+            {categories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+            <option value="other">Other</option>
+          </select>
+        </div>
       </div>
 
-      <div>
+      <div className="space-y-2">
         <label 
           htmlFor="imageUrl" 
-          className="block text-sm font-medium text-gray-700 mb-1"
+          className="block text-sm font-medium"
         >
           Image URL
         </label>
-        <input
+        <Input
           type="url"
           id="imageUrl"
           name="imageUrl"
           value={form.imageUrl}
           onChange={handleChange}
-          className="w-full p-2 border rounded-lg focus:ring-green-500 focus:border-green-500"
+          placeholder="https://example.com/image.jpg"
           required
         />
-        {form.imageUrl && (
-          <div className="mt-2">
-            <img 
-              src={form.imageUrl} 
-              alt="Product preview" 
-              className="h-40 w-40 object-cover rounded-lg border"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iI2VlZWVlZSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjE0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBhbGlnbm1lbnQtYmFzZWxpbmU9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmaWxsPSIjMzMzMzMzIj5JbnZhbGlkIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
-              }}
-            />
-          </div>
-        )}
       </div>
 
-      <div>
-        <label 
-          htmlFor="category" 
-          className="block text-sm font-medium text-gray-700 mb-1"
-        >
-          Category
-        </label>
-        <select
-          id="category"
-          name="category"
-          value={form.category}
-          onChange={handleChange}
-          className="w-full p-2 border rounded-lg focus:ring-green-500 focus:border-green-500"
-          required
-        >
-          <option value="">Select a category</option>
-          {categories.map((category) => (
-            <option key={category} value={category}>
-              {category}
-            </option>
-          ))}
-          {/* Allow creating a new category if it's not in the list */}
-          {form.category && !categories.includes(form.category) && (
-            <option value={form.category}>{form.category} (New)</option>
-          )}
-        </select>
-        {/* Input field to add a new category */}
-        <div className="mt-2">
-          <input
-            type="text"
-            name="category"
-            placeholder="Or enter a new category"
-            onChange={handleChange}
-            className="w-full p-2 border rounded-lg focus:ring-green-500 focus:border-green-500"
-          />
-        </div>
-      </div>
-
-      {/* Tags section */}
-      <div>
-        <label 
-          htmlFor="tags" 
-          className="block text-sm font-medium text-gray-700 mb-1"
-        >
-          Tags
-        </label>
-        <div className="flex flex-wrap gap-2 mb-2">
-          {form.tags?.map((tag) => (
-            <div 
-              key={tag} 
-              className="bg-green-100 text-green-800 px-3 py-1 rounded-full flex items-center gap-1"
-            >
-              <span>{tag}</span>
-              <button
-                type="button"
-                onClick={() => handleRemoveTag(tag)}
-                className="text-green-600 hover:text-green-800 focus:outline-none"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          ))}
-        </div>
+      <div className="space-y-2">
+        <label className="block text-sm font-medium">Tags</label>
         <div className="flex gap-2">
-          <input
+          <Input
             type="text"
-            id="newTag"
             value={newTag}
             onChange={(e) => setNewTag(e.target.value)}
             placeholder="Add a tag"
-            className="flex-1 p-2 border rounded-lg focus:ring-green-500 focus:border-green-500"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleAddTag();
-              }
-            }}
+            className="flex-1"
           />
-          <button
+          <Button 
             type="button"
             onClick={handleAddTag}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+            variant="secondary"
           >
             Add
-          </button>
+          </Button>
         </div>
-        <p className="text-sm text-gray-500 mt-1">
-          Press Enter or click Add to add a tag
-        </p>
+        
+        {/* Display tags */}
+        <div className="flex flex-wrap gap-2 mt-2">
+          {form.tags?.map((tag) => (
+            <Badge key={tag} variant="secondary" className="text-sm py-1 px-2 gap-1">
+              {tag}
+              <button
+                type="button"
+                onClick={() => handleRemoveTag(tag)}
+                className="ml-1 text-gray-500 hover:text-gray-700 focus:outline-none"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+        </div>
       </div>
 
-      <div className="flex justify-end space-x-3 pt-5">
-        <button
-          type="button"
+      <div className="flex justify-end gap-3 pt-4">
+        <Button 
+          type="button" 
           onClick={onCancel}
-          disabled={isSaving}
-          className="rounded-lg border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+          variant="outline"
         >
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button 
           type="submit"
           disabled={isSaving}
-          className="rounded-lg border border-transparent bg-green-600 py-2 px-4 text-sm font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
         >
-          {isSaving ? "Saving..." : isNew ? "Create Product" : "Update Product"}
-        </button>
+          {isSaving ? "Saving..." : (isNew ? "Create Product" : "Update Product")}
+        </Button>
       </div>
     </form>
   );

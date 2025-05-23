@@ -1,7 +1,7 @@
 export interface CreateFAQDto {
   question: string;
   answer: string;
-  category: string;
+  category?: string;
   tags?: string[];
 }
 

@@ -2,52 +2,13 @@ import { Request, Response } from 'express';
 import OpenAI from 'openai';
 import { z } from 'zod';
 import { AgentConfigService } from '../application/services/AgentConfigService';
+import {
+  FAQResponse,
+  ProductResponse,
+  ServiceResponse
+} from '../domain';
 import { availableFunctions } from '../services/availableFunctions';
 import logger from '../utils/logger';
-
-// Define interfaces for API responses
-interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: string;
-  category: string;
-  imageUrl: string;
-  tags: string[];
-}
-
-interface ProductResponse {
-  total: number;
-  products?: Product[];
-  error?: string;
-  categories?: Array<{ name: string; count: number }>;
-  alternativeSearch?: string;
-}
-
-interface ServiceResponse {
-  total: number;
-  services?: Array<{
-    id: string;
-    name: string;
-    description: string;
-    price: string;
-    isActive: boolean;
-    tags: string[];
-  }>;
-  error?: string;
-}
-
-interface FAQResponse {
-  total: number;
-  faqs?: Array<{
-    id: string;
-    question: string;
-    answer: string;
-    category: string;
-    tags: string[];
-  }>;
-  error?: string;
-}
 
 type FunctionResult = ProductResponse | ServiceResponse | FAQResponse;
 

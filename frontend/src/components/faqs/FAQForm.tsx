@@ -1,6 +1,11 @@
+import { XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { faqApi } from "../../api/faqApi";
 import { CreateFAQDto, UpdateFAQDto } from "../../types/faq";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Textarea } from "../ui/textarea";
 
 interface FAQFormProps {
   faqId?: string;
@@ -20,6 +25,7 @@ export function FAQForm({
   const [categories, setCategories] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [tagInput, setTagInput] = useState("");
   
   const [form, setForm] = useState<CreateFAQDto>({
     question: "",
@@ -39,7 +45,7 @@ export function FAQForm({
             question: faq.question,
             answer: faq.answer,
             category: faq.category || '',
-            tags: []
+            tags: faq.tags || []
           });
         } catch (err) {
           setError("Failed to load FAQ data");
@@ -80,6 +86,30 @@ export function FAQForm({
         return updated;
       });
     }
+  };
+
+  const addTag = () => {
+    if (tagInput.trim() && !form.tags?.includes(tagInput.trim().toLowerCase())) {
+      setForm(prev => ({
+        ...prev,
+        tags: [...(prev.tags || []), tagInput.trim().toLowerCase()]
+      }));
+      setTagInput('');
+    }
+  };
+
+  const handleTagInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addTag();
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setForm(prev => ({
+      ...prev,
+      tags: (prev.tags || []).filter(tag => tag !== tagToRemove)
+    }));
   };
 
   const validateForm = (): boolean => {
@@ -135,51 +165,48 @@ export function FAQForm({
         </div>
       )}
 
-      <div>
+      <div className="space-y-2">
         <label 
           htmlFor="question" 
-          className="block text-sm font-medium text-gray-700 mb-1"
+          className="block text-sm font-medium"
         >
           Question
         </label>
-        <input
+        <Input
           type="text"
           id="question"
           name="question"
           value={form.question}
           onChange={handleChange}
-          className="w-full p-2 border rounded-lg focus:ring-green-500 focus:border-green-500"
           required
         />
       </div>
 
-      <div>
+      <div className="space-y-2">
         <label 
           htmlFor="answer" 
-          className="block text-sm font-medium text-gray-700 mb-1"
+          className="block text-sm font-medium"
         >
           Answer
         </label>
-        <textarea
+        <Textarea
           id="answer"
           name="answer"
           rows={6}
           value={form.answer}
           onChange={handleChange}
-          className={`w-full p-2 border rounded-lg focus:ring-green-500 focus:border-green-500 ${
-            validationErrors.answer ? "border-red-500" : ""
-          }`}
+          className={validationErrors.answer ? "border-red-500" : ""}
           required
         />
         {validationErrors.answer && (
-          <p className="mt-1 text-sm text-red-600">{validationErrors.answer}</p>
+          <p className="text-sm text-destructive">{validationErrors.answer}</p>
         )}
       </div>
 
-      <div>
+      <div className="space-y-2">
         <label 
           htmlFor="category" 
-          className="block text-sm font-medium text-gray-700 mb-1"
+          className="block text-sm font-medium"
         >
           Category
         </label>
@@ -188,7 +215,7 @@ export function FAQForm({
           name="category"
           value={form.category}
           onChange={handleChange}
-          className="w-full p-2 border rounded-lg focus:ring-green-500 focus:border-green-500"
+          className="w-full h-10 px-3 py-2 bg-background border border-input rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           required
         >
           <option value="">Select a category</option>
@@ -197,39 +224,61 @@ export function FAQForm({
               {category}
             </option>
           ))}
-          {/* Allow creating a new category if it's not in the list */}
-          {form.category && !categories.includes(form.category) && (
-            <option value={form.category}>{form.category} (New)</option>
-          )}
+          <option value="other">Other</option>
         </select>
-        {/* Input field to add a new category */}
-        <div className="mt-2">
-          <input
+      </div>
+
+      <div className="space-y-2">
+        <label className="block text-sm font-medium">Tags</label>
+        <div className="flex gap-2">
+          <Input
             type="text"
-            name="category"
-            placeholder="Or enter a new category"
-            onChange={handleChange}
-            className="w-full p-2 border rounded-lg focus:ring-green-500 focus:border-green-500"
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            onKeyDown={handleTagInputKeyDown}
+            placeholder="Add a tag"
+            className="flex-1"
           />
+          <Button 
+            type="button"
+            onClick={addTag}
+            variant="secondary"
+          >
+            Add
+          </Button>
+        </div>
+        
+        {/* Display tags */}
+        <div className="flex flex-wrap gap-2 mt-2">
+          {form.tags?.map((tag) => (
+            <Badge key={tag} variant="secondary" className="text-sm py-1 px-2 gap-1">
+              {tag}
+              <button
+                type="button"
+                onClick={() => removeTag(tag)}
+                className="ml-1 text-gray-500 hover:text-gray-700 focus:outline-none"
+              >
+                <XCircle className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
         </div>
       </div>
 
-      <div className="flex justify-end space-x-3 pt-5">
-        <button
-          type="button"
+      <div className="flex justify-end gap-3 pt-4">
+        <Button 
+          type="button" 
           onClick={onCancel}
-          disabled={isSaving}
-          className="rounded-lg border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+          variant="outline"
         >
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button 
           type="submit"
           disabled={isSaving}
-          className="rounded-lg border border-transparent bg-green-600 py-2 px-4 text-sm font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
         >
-          {isSaving ? "Saving..." : isNew ? "Create FAQ" : "Update FAQ"}
-        </button>
+          {isSaving ? "Saving..." : (isNew ? "Create FAQ" : "Update FAQ")}
+        </Button>
       </div>
     </form>
   );

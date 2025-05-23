@@ -6,6 +6,7 @@ export interface Service {
   createdAt: string;
   updatedAt: string;
   tags: string[];
+  isActive?: boolean;
 }
 
 export interface CreateServiceDto {
@@ -13,6 +14,7 @@ export interface CreateServiceDto {
   description: string;
   price: number;
   tags: string[];
+  isActive?: boolean;
 }
 
 export interface UpdateServiceDto {
@@ -20,6 +22,7 @@ export interface UpdateServiceDto {
   description?: string;
   price?: number;
   tags?: string[];
+  isActive?: boolean;
 }
 
 export interface ServiceFilters {

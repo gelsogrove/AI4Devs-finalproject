@@ -325,11 +325,11 @@ const Chatbot: React.FC = () => {
                     variant="outline" 
                     className="w-full justify-start text-left h-auto py-2"
                     onClick={() => {
-                      setInput("Do you have a recipe for prosciutto e melone?");
+                      setInput("Do you have a recipe for ham and melon?");
                       setTimeout(() => sendMessage(), 100);
                     }}
                   >
-                    Do you have a recipe for prosciutto e melone?
+                    Do you have a recipe for ham and melon?
                   </Button>
                 </li>
               </ul>

@@ -21,4 +21,5 @@ export interface ProductFilters {
   minPrice?: number;
   maxPrice?: number;
   search?: string;
+  countOnly?: boolean;
 } 

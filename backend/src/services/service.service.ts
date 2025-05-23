@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { CreateServiceDto, ServiceFilters, UpdateServiceDto } from '../domain/service.interface';
+import { CreateServiceDto, ServiceFilters, UpdateServiceDto } from '../domain';
 import logger from '../utils/logger';
 
 const prisma = new PrismaClient();

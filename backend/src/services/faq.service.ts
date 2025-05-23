@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { CreateFAQDto, FAQFilters, UpdateFAQDto } from '../domain/faq.interface';
+import { CreateFAQDto, FAQFilters, UpdateFAQDto } from '../domain';
 import logger from '../utils/logger';
 
 const prisma = new PrismaClient();

@@ -3,6 +3,12 @@ import { useEffect, useState } from "react";
 import { serviceApi } from "../../api/serviceApi";
 import { CreateServiceDto, UpdateServiceDto } from "../../types/service";
 import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { MarkdownViewer } from "../ui/markdown-viewer";
+import { Switch } from "../ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { Textarea } from "../ui/textarea";
 
 interface ServiceFormProps {
   serviceId?: string;
@@ -26,11 +32,15 @@ export function ServiceForm({
     name: "",
     description: "",
     price: 0,
-    tags: []
+    tags: [],
+    isActive: true
   });
 
   // For tag input
   const [tagInput, setTagInput] = useState("");
+  
+  // For markdown preview
+  const [activeTab, setActiveTab] = useState<string>("edit");
 
   // Load Service data if editing an existing Service
   useEffect(() => {
@@ -43,7 +53,8 @@ export function ServiceForm({
             name: service.name,
             description: service.description,
             price: service.price,
-            tags: service.tags || []
+            tags: service.tags || [],
+            isActive: service.isActive !== undefined ? service.isActive : true
           });
         } catch (err) {
           setError("Failed to load service data");
@@ -86,19 +97,27 @@ export function ServiceForm({
     }
   };
 
-  const addTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && tagInput.trim()) {
-      e.preventDefault();
-      
-      // Don't add duplicate tags
-      if (!form.tags.includes(tagInput.trim().toLowerCase())) {
-        setForm(prev => ({
-          ...prev,
-          tags: [...prev.tags, tagInput.trim().toLowerCase()]
-        }));
-      }
-      
+  const handleSwitchChange = (checked: boolean) => {
+    setForm(prev => ({
+      ...prev,
+      isActive: checked
+    }));
+  };
+
+  const addTag = () => {
+    if (tagInput.trim() && !form.tags.includes(tagInput.trim().toLowerCase())) {
+      setForm(prev => ({
+        ...prev,
+        tags: [...prev.tags, tagInput.trim().toLowerCase()]
+      }));
       setTagInput('');
+    }
+  };
+
+  const handleTagInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addTag();
     }
   };
 
@@ -170,122 +189,182 @@ export function ServiceForm({
         </div>
       )}
 
-      <div>
+      <div className="space-y-2">
         <label 
           htmlFor="name" 
-          className="block text-sm font-medium text-gray-700 mb-1"
+          className="block text-sm font-medium"
         >
           Name
         </label>
-        <input
+        <Input
           type="text"
           id="name"
           name="name"
           value={form.name}
           onChange={handleChange}
-          className={`w-full p-2 border rounded-lg focus:ring-green-500 focus:border-green-500 ${
-            validationErrors.name ? "border-red-500" : ""
-          }`}
+          className={validationErrors.name ? "border-red-500" : ""}
           required
         />
         {validationErrors.name && (
-          <p className="mt-1 text-sm text-red-600">{validationErrors.name}</p>
+          <p className="text-sm text-destructive">{validationErrors.name}</p>
         )}
       </div>
 
-      <div>
+      <div className="space-y-2">
         <label 
           htmlFor="description" 
-          className="block text-sm font-medium text-gray-700 mb-1"
+          className="block text-sm font-medium"
         >
-          Description
+          Description (Supports Markdown)
         </label>
-        <textarea
-          id="description"
-          name="description"
-          rows={4}
-          value={form.description}
-          onChange={handleChange}
-          className={`w-full p-2 border rounded-lg focus:ring-green-500 focus:border-green-500 ${
-            validationErrors.description ? "border-red-500" : ""
-          }`}
-          required
-        />
+        
+        <Tabs 
+          value={activeTab} 
+          onValueChange={setActiveTab}
+          className="w-full"
+        >
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="edit">Edit</TabsTrigger>
+            <TabsTrigger value="preview">Preview</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="edit" className="mt-2">
+            <Textarea
+              id="description"
+              name="description"
+              rows={8}
+              value={form.description}
+              onChange={handleChange}
+              className={validationErrors.description ? "border-red-500" : ""}
+              required
+              placeholder="# Title
+## Subtitle
+- Bullet point
+- Another point
+
+**Bold text** and *italic text*
+
+[Link text](http://example.com)
+
+> Blockquote
+
+```
+Code block
+```
+
+| Column 1 | Column 2 |
+| -------- | -------- |
+| Cell 1   | Cell 2   |
+"
+            />
+          </TabsContent>
+          
+          <TabsContent value="preview" className="mt-2 border rounded-md p-4 min-h-[200px]">
+            {form.description ? (
+              <MarkdownViewer content={form.description} />
+            ) : (
+              <p className="text-muted-foreground text-sm italic">Preview will appear here</p>
+            )}
+          </TabsContent>
+        </Tabs>
+        
         {validationErrors.description && (
-          <p className="mt-1 text-sm text-red-600">{validationErrors.description}</p>
+          <p className="text-sm text-destructive">{validationErrors.description}</p>
         )}
       </div>
 
-      <div>
-        <label 
-          htmlFor="price" 
-          className="block text-sm font-medium text-gray-700 mb-1"
-        >
-          Price (€)
-        </label>
-        <input
-          type="number"
-          id="price"
-          name="price"
-          value={form.price}
-          onChange={handleChange}
-          min="0.01"
-          step="0.01"
-          className={`w-full p-2 border rounded-lg focus:ring-green-500 focus:border-green-500 ${
-            validationErrors.price ? "border-red-500" : ""
-          }`}
-          required
-        />
-        {validationErrors.price && (
-          <p className="mt-1 text-sm text-red-600">{validationErrors.price}</p>
-        )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label 
+            htmlFor="price" 
+            className="block text-sm font-medium"
+          >
+            Price (€)
+          </label>
+          <Input
+            type="number"
+            id="price"
+            name="price"
+            value={form.price}
+            onChange={handleChange}
+            className={validationErrors.price ? "border-red-500" : ""}
+            step="0.01"
+            min="0"
+            required
+          />
+          {validationErrors.price && (
+            <p className="text-sm text-destructive">{validationErrors.price}</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <label className="block text-sm font-medium">
+            Status
+          </label>
+          <div className="flex items-center space-x-2">
+            <Switch 
+              checked={form.isActive} 
+              onCheckedChange={handleSwitchChange}
+              id="isActive"
+            />
+            <label htmlFor="isActive" className="text-sm">
+              {form.isActive ? "Active" : "Inactive"}
+            </label>
+          </div>
+        </div>
       </div>
 
-      <div>
-        <label 
-          htmlFor="tags" 
-          className="block text-sm font-medium text-gray-700 mb-1"
-        >
-          Tags (press Enter to add)
-        </label>
-        <input
-          type="text"
-          id="tags"
-          value={tagInput}
-          onChange={(e) => setTagInput(e.target.value)}
-          onKeyDown={addTag}
-          className="w-full p-2 border rounded-lg focus:ring-green-500 focus:border-green-500 mb-2"
-          placeholder="Add tags (e.g. delivery, premium, quick)"
-        />
+      <div className="space-y-2">
+        <label className="block text-sm font-medium">Tags</label>
+        <div className="flex gap-2">
+          <Input
+            type="text"
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            onKeyDown={handleTagInputKeyDown}
+            placeholder="Add a tag"
+            className="flex-1"
+          />
+          <Button 
+            type="button"
+            onClick={addTag}
+            variant="secondary"
+          >
+            Add
+          </Button>
+        </div>
+        
+        {/* Display tags */}
         <div className="flex flex-wrap gap-2 mt-2">
-          {form.tags.map(tag => (
-            <Badge key={tag} variant="secondary" className="flex items-center gap-1 px-3 py-1">
+          {form.tags.map((tag) => (
+            <Badge key={tag} variant="secondary" className="text-sm py-1 px-2 gap-1">
               {tag}
-              <XCircle 
-                className="h-4 w-4 cursor-pointer text-gray-500 hover:text-red-500" 
-                onClick={() => removeTag(tag)} 
-              />
+              <button
+                type="button"
+                onClick={() => removeTag(tag)}
+                className="ml-1 text-gray-500 hover:text-gray-700 focus:outline-none"
+              >
+                <XCircle className="h-3 w-3" />
+              </button>
             </Badge>
           ))}
         </div>
       </div>
 
-      <div className="flex justify-end space-x-3 pt-5">
-        <button
-          type="button"
+      <div className="flex justify-end gap-3 pt-4">
+        <Button 
+          type="button" 
           onClick={onCancel}
-          disabled={isSaving}
-          className="rounded-lg border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+          variant="outline"
         >
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button 
           type="submit"
           disabled={isSaving}
-          className="rounded-lg border border-transparent bg-green-600 py-2 px-4 text-sm font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
         >
-          {isSaving ? "Saving..." : isNew ? "Create Service" : "Update Service"}
-        </button>
+          {isSaving ? "Saving..." : (isNew ? "Create Service" : "Update Service")}
+        </Button>
       </div>
     </form>
   );
