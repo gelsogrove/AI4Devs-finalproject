@@ -76,7 +76,7 @@ model User {
 - There will be **two separate `.env` files**:
   - One for the backend (e.g., `/backend/.env`)
   - One for the frontend (e.g., `/frontend/.env`)
-- Each will have a corresponding `.env.example` template to document required variables
+ 
 
 ### Backend `.env` Variables
 ```env
@@ -368,6 +368,12 @@ Acceptance Criteria:
     - [x] Return formatted response to user
     - [x] All logic must be clearly documented and easily extensible for future function calls
 - [x] (Optional) Persist chat history (Conversation/Message)
+- [x] Add support for multilingual queries (Italian):
+    - [x] Enhanced function calling to support Italian language queries
+    - [x] Implemented product search, category filtering, and product count functions
+    - [x] Created unit tests for Italian language function calling
+    - [x] Updated chat controller to handle Italian queries properly
+    - [x] Ensured LLM properly understands context and formats responses in Italian
 
 Acceptance Criteria:
 - Chatbot responds within 2 seconds
@@ -378,6 +384,8 @@ Acceptance Criteria:
 - Function calling logic works as documented
 - Chat interface is responsive and user-friendly
 - Agent configuration affects responses as expected
+- Chatbot understands and responds to queries in both English and Italian
+- Function calling works properly with Italian queries for product information
 
 ---
 
@@ -427,15 +435,14 @@ Acceptance Criteria:
 ---
 
 ## 9. Documentation
-- [ ] Swagger/OpenAPI docs (all endpoints, in English)
-   - [ ] Setup Swagger in the backend
-   - [ ] Document auth endpoints
-   - [ ] Document product endpoints
-   - [ ] Document FAQ endpoints 
-   - [ ] Document agent endpoints
-   - [ ] Document chat endpoints
+- [x] Swagger/OpenAPI docs (all endpoints, in English)
+   - [x] Setup Swagger in the backend
+   - [x] Document auth endpoints
+   - [x] Document product endpoints
+   - [x] Document FAQ endpoints 
+   - [x] Document agent endpoints
 - [x] README (setup, usage, deploy, in English)
-- [ ] Document function call contract and pipeline
+- [x] Document function call contract and pipeline
 
 Acceptance Criteria:
 - API documentation is complete and accurate
@@ -448,52 +455,29 @@ Acceptance Criteria:
 
 ---
 
-## 10. CI/CD & Deployment
-- [ ] CI pipeline: lint, build, seed, E2E (block deploy if fail)
-- [ ] Setup EC2 instance with required dependencies
-- [ ] Setup and configure Nginx as reverse proxy:
-    - Configure SSL/TLS
-    - Setup proper caching headers
-    - Configure gzip compression
-    - Setup proper security headers
-    - Configure rate limiting
-    - Setup proper logging
-- [ ] Configure PM2 for Node.js process management
-- [ ] Deploy pipeline: 
-    - SSH to EC2
-    - Pull latest changes
-    - Run migrations/seeds
-    - Build frontend
-    - Restart services
-- [ ] Setup monitoring and logging
-- [ ] Smoke test after deploy
-- [ ] Deliver all credentials, links, and documentation
-
-Acceptance Criteria:
-- Automatic deployment on main branch
-- Rollback mechanism works
-- Environment variables are properly managed
-- SSL is configured correctly
-- Application runs without errors on EC2
-- Nginx is properly configured as reverse proxy
-- Monitoring is in place
+## 10. Deployment & Infrastructure
+- [x] CI/CD pipeline: build, lint, test, E2E, block deploy if fail
+- [x] Deploy pipeline: upload artifacts to S3, deploy to EC2, PM2, Nginx
+- [x] Manual app launch and process management on EC2 (PM2, Nginx)
+    - [x] Document and script how to manually start backend/frontend with PM2
+    - [x] Ensure Nginx is running and properly configured
+- [ ] Provisioning and configuration of RDS PostgreSQL with Terraform
+    - [ ] Write Terraform scripts for RDS instance
+    - [ ] Configure security groups and networking
+    - [ ] Document connection string and usage in .env
 
 ---
 
-## 11. Final Review & Bug Fixes
-- [ ] Comprehensive testing on all features
-- [ ] Fix any last-minute issues
-- [ ] Performance optimization if needed
-- [ ] Final code review
-- [ ] Security review
-- [ ] Accessibility review
-- [ ] Documentation review
+## 11. Completed Tasks (Summary)
+- [x] Project setup, lint, Prettier, .env.example
+- [x] Backend and frontend base setup
+- [x] Unit, integration, and E2E tests
+- [x] Product, FAQ, AgentConfig, User models and CRUD
+- [x] Chatbot with function calling
+- [x] Seed/demo data
+- [x] CI/CD pipeline (GitHub Actions)
+- [x] Deploy pipeline (S3, EC2, PM2, Nginx)
+- [x] README and deploy documentation
 
-Acceptance Criteria:
-- All features work as expected
-- No critical bugs exist
-- Application performs well under load
-- All documentation is up to date
-- Security best practices are followed
-- Application is accessible
+---
 

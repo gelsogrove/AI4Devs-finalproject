@@ -4,11 +4,10 @@ import { authenticate } from '../middlewares/auth.middleware';
 
 const router = Router();
 
-// Public routes
-router.post('/register', authController.register);
-router.post('/login', authController.login);
+router.post('/register', authController.register.bind(authController));
 
-// Protected routes
-router.get('/profile', authenticate, authController.getProfile);
+router.post('/login', authController.login.bind(authController));
+
+router.get('/profile', authenticate, authController.getProfile.bind(authController));
 
 export default router; 

@@ -2,7 +2,7 @@ export class ProductId {
   constructor(private readonly _value: string) {
     // In a testing environment, allow empty IDs for mock purposes
     if (process.env.NODE_ENV !== 'test') {
-      this.validate(_value);
+    this.validate(_value);
     }
   }
 

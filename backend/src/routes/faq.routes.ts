@@ -4,16 +4,20 @@ import { authenticate } from '../middlewares/auth.middleware';
 
 const router = Router();
 
-// Public routes - No authentication required
-router.get('/', faqController.getFAQs);
-router.get('/public', faqController.getPublicFAQs);
-router.get('/categories', faqController.getCategories);
-router.get('/:id', faqController.getFAQById);
+router.get('/', faqController.getFAQs.bind(faqController));
 
-// Protected routes - Authentication required
-router.post('/', authenticate, faqController.createFAQ);
-router.put('/:id', authenticate, faqController.updateFAQ);
-router.delete('/:id', authenticate, faqController.deleteFAQ);
-router.patch('/:id/toggle-status', authenticate, faqController.toggleFAQStatus);
+router.get('/public', faqController.getPublicFAQs.bind(faqController));
+
+router.get('/categories', faqController.getCategories.bind(faqController));
+
+router.get('/:id', faqController.getFAQById.bind(faqController));
+
+router.post('/', authenticate, faqController.createFAQ.bind(faqController));
+
+router.put('/:id', authenticate, faqController.updateFAQ.bind(faqController));
+
+router.delete('/:id', authenticate, faqController.deleteFAQ.bind(faqController));
+
+router.patch('/:id/toggle-status', authenticate, faqController.toggleFAQStatus.bind(faqController));
 
 export default router; 

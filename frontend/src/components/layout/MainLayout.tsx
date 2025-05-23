@@ -1,18 +1,18 @@
-
-import React, { useState } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  Home, 
-  ShoppingBag, 
-  HelpCircle, 
-  Settings, 
-  MessageSquare, 
-  LogOut, 
-  Menu, 
-  X 
+import {
+    HelpCircle,
+    Home,
+    LogOut,
+    Menu,
+    MessageSquare,
+    Server,
+    Settings,
+    ShoppingBag,
+    X
 } from 'lucide-react';
+import React, { useState } from 'react';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 
 const MainLayout: React.FC = () => {
   const { auth, logout } = useAuth();
@@ -32,6 +32,7 @@ const MainLayout: React.FC = () => {
     { icon: <Home size={20} />, text: 'Dashboard', path: '/dashboard' },
     { icon: <ShoppingBag size={20} />, text: 'Products', path: '/products' },
     { icon: <HelpCircle size={20} />, text: 'FAQs', path: '/faqs' },
+    { icon: <Server size={20} />, text: 'Services', path: '/services' },
     { icon: <Settings size={20} />, text: 'Agent Settings', path: '/agent-config' },
     { icon: <MessageSquare size={20} />, text: 'Chatbot', path: '/chatbot' },
   ];

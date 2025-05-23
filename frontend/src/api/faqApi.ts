@@ -1,8 +1,8 @@
 import axios from 'axios';
 import { CreateFAQDto, FAQ, FAQFilters, UpdateFAQDto } from '../types/faq';
 
-const API_URL = import.meta.env.API_URL || '';
-const FAQS_ENDPOINT = `${API_URL}/api/faqs`;
+const API_URL = import.meta.env.VITE_API_URL || '';
+const FAQS_ENDPOINT = API_URL ? `${API_URL}/api/faqs` : '/api/faqs';
 
 // Get authentication token from localStorage
 const getAuthHeader = () => {

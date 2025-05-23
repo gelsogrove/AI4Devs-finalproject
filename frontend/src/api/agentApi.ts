@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { AgentConfig, AgentConfigFormData } from '../types/agentConfig';
 
-const API_URL = '/api/agent';
+const API_URL = import.meta.env.VITE_API_URL || '';
+const AGENT_ENDPOINT = API_URL ? `${API_URL}/api/agent` : '/api/agent';
 
 /**
  * Get the current agent configuration
@@ -11,7 +12,7 @@ export const getAgentConfig = async (): Promise<AgentConfig> => {
   try {
     const token = localStorage.getItem('token');
     
-    const response = await axios.get(`${API_URL}/config`, {
+    const response = await axios.get(`${AGENT_ENDPOINT}/config`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -35,7 +36,7 @@ export const updateAgentConfig = async (config: AgentConfigFormData): Promise<Ag
   try {
     const token = localStorage.getItem('token');
     
-    const response = await axios.put(`${API_URL}/config`, config, {
+    const response = await axios.put(`${AGENT_ENDPOINT}/config`, config, {
       headers: {
         Authorization: `Bearer ${token}`
       }

@@ -1,35 +1,10 @@
-
-import React, { useState, useRef, useEffect } from 'react';
+import { chatApi } from '@/api/chatApi';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ChatMessage } from '@/types/chat';
 import { Send } from 'lucide-react';
-
-// Mock product data for function calling
-const products = [
-  {
-    id: '1',
-    name: 'Parmigiano Reggiano',
-    description: 'Authentic Parmigiano Reggiano aged 24 months. Imported directly from Parma, Italy.',
-    price: 29.99,
-    category: 'Cheese',
-  },
-  {
-    id: '2',
-    name: 'Extra Virgin Olive Oil',
-    description: 'Cold-pressed olive oil from Tuscany. Perfect for salads and finishing dishes.',
-    price: 19.99,
-    category: 'Oils',
-  },
-  {
-    id: '3',
-    name: 'Balsamic Vinegar of Modena',
-    description: 'Traditional balsamic vinegar aged in wooden barrels for 12 years.',
-    price: 24.99,
-    category: 'Vinegars',
-  }
-];
+import React, { useEffect, useRef, useState } from 'react';
 
 // Initial messages to demonstrate the chat
 const initialMessages: ChatMessage[] = [
@@ -52,7 +27,7 @@ const Chatbot: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Function to simulate sending a message and getting a response
+  // Function to send a message and get a response from the API
   const sendMessage = async () => {
     if (!input.trim()) return;
     
@@ -68,42 +43,28 @@ const Chatbot: React.FC = () => {
     setInput('');
     setIsTyping(true);
     
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // Generate bot response based on user input
-    let botResponse: string;
-    const userInput = input.toLowerCase();
-    
-    if (userInput.includes('product') || userInput.includes('catalog') || userInput.includes('what do you sell')) {
-      // Simulate function calling for product list
-      botResponse = `We offer a variety of authentic Italian products. Here are some of our popular items:\n\n${products.map(p => 
-        `• **${p.name}** - €${p.price.toFixed(2)}\n  ${p.description}`
-      ).join('\n\n')}`;
-    } 
-    else if (userInput.includes('shipping') || userInput.includes('delivery')) {
-      botResponse = 'We ship to most European countries within 3-5 business days. International shipping usually takes 7-10 business days. All orders over €75 qualify for free shipping!';
+    try {
+      // Call the real chat API
+      const botMessage = await chatApi.sendMessage({
+        messages: [...messages, userMessage],
+      });
+      
+      setMessages(prev => [...prev, botMessage]);
+    } catch (error) {
+      console.error('Error getting chatbot response:', error);
+      
+      // Add error message
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again later.',
+        timestamp: new Date().toISOString()
+      };
+      
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsTyping(false);
     }
-    else if (userInput.includes('return') || userInput.includes('refund')) {
-      botResponse = 'We accept returns within 30 days of delivery. The product must be unused and in its original packaging. Please contact our customer service to initiate a return.';
-    }
-    else if (userInput.includes('hello') || userInput.includes('hi') || userInput.includes('hey') || userInput.includes('ciao')) {
-      botResponse = 'Ciao! How can I help you with our Italian specialty products today?';
-    }
-    else {
-      botResponse = "Thank you for your message! I'd be happy to help with information about our authentic Italian products. Would you like to see our popular items, or do you have questions about specific products, shipping, or anything else?";
-    }
-    
-    // Add bot response
-    const botMessage: ChatMessage = {
-      id: (Date.now() + 1).toString(),
-      role: 'assistant',
-      content: botResponse,
-      timestamp: new Date().toISOString()
-    };
-    
-    setIsTyping(false);
-    setMessages(prev => [...prev, botMessage]);
   };
 
   // Handle Enter key press
@@ -221,11 +182,11 @@ const Chatbot: React.FC = () => {
                     variant="outline" 
                     className="w-full justify-start text-left h-auto py-2"
                     onClick={() => {
-                      setInput("How long does shipping take?");
+                      setInput("Quali prodotti vendete?");
                       setTimeout(() => sendMessage(), 100);
                     }}
                   >
-                    How long does shipping take?
+                    Quali prodotti vendete?
                   </Button>
                 </li>
                 <li>
@@ -233,19 +194,19 @@ const Chatbot: React.FC = () => {
                     variant="outline" 
                     className="w-full justify-start text-left h-auto py-2"
                     onClick={() => {
-                      setInput("What's your return policy?");
+                      setInput("Avete dei formaggi italiani?");
                       setTimeout(() => sendMessage(), 100);
                     }}
                   >
-                    What's your return policy?
+                    Avete dei formaggi italiani?
                   </Button>
                 </li>
               </ul>
               
               <div className="mt-6 text-xs text-gray-500">
                 <p className="font-medium mb-1">About the Chatbot</p>
-                <p>This is a simulation of the ShopMe WhatsApp chatbot. In a production environment, this would connect to the WhatsApp Business API and respond to actual customer inquiries.</p>
-                <p className="mt-2">Function calling capabilities include product searching, FAQ lookup, and order status checking.</p>
+                <p>This chatbot connects to a real AI service with function calling capabilities to search products and services in our database.</p>
+                <p className="mt-2">You can ask about products in Italian or English, and the assistant will understand both languages.</p>
               </div>
             </CardContent>
           </Card>

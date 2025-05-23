@@ -1,7 +1,7 @@
 
-import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import React from 'react';
 
 interface SplashModalProps {
   isOpen: boolean;
@@ -28,13 +28,10 @@ const SplashModal: React.FC<SplashModalProps> = ({ isOpen, onClose }) => {
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
             <h4 className="font-semibold mb-2">About This Demo</h4>
             <ul className="space-y-2 text-sm">
+              
               <li className="flex gap-2">
                 <span className="text-shopme-600">•</span>
-                <span>Browse and manage Italian specialty products</span>
-              </li>
-              <li className="flex gap-2">
-                <span className="text-shopme-600">•</span>
-                <span>Create and organize FAQ content</span>
+                <span>Create and organize Prodcut Service and FAQ content</span>
               </li>
               <li className="flex gap-2">
                 <span className="text-shopme-600">•</span>
@@ -43,6 +40,10 @@ const SplashModal: React.FC<SplashModalProps> = ({ isOpen, onClose }) => {
               <li className="flex gap-2">
                 <span className="text-shopme-600">•</span>
                 <span>Test the chatbot with function calling capabilities</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="text-shopme-600">•</span>
+                <span>Test the chatbot with embedding search</span>
               </li>
             </ul>
           </div>

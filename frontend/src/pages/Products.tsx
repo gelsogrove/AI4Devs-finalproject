@@ -224,7 +224,7 @@ export default function Products() {
                       className="h-16 w-16 rounded-md object-cover"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src =
-                          "https://via.placeholder.com/150?text=No+Image";
+                          "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iI2VlZWVlZSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjE0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBhbGlnbm1lbnQtYmFzZWxpbmU9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmaWxsPSIjMzMzMzMzIj5ObyBJbWFnZTwvdGV4dD48L3N2Zz4=";
                       }}
                     />
                   </td>
@@ -266,40 +266,42 @@ export default function Products() {
       )}
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="mt-6 flex justify-center">
-          <nav className="flex items-center space-x-2">
+      {!loading && totalPages > 1 && (
+        <div className="flex items-center justify-center mt-6">
+          <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
             <button
-              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
               disabled={currentPage === 1}
-              className={`px-3 py-1 rounded-md ${
+              className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 text-sm font-medium ${
                 currentPage === 1
                   ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  : "bg-white text-gray-500 hover:bg-gray-50"
               }`}
             >
               Previous
             </button>
+
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <button
                 key={page}
                 onClick={() => setCurrentPage(page)}
-                className={`px-3 py-1 rounded-md ${
+                className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                   currentPage === page
-                    ? "bg-green-600 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    ? "bg-green-600 text-white border-green-600 z-10"
+                    : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
                 }`}
               >
                 {page}
               </button>
             ))}
+
             <button
-              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
               disabled={currentPage === totalPages}
-              className={`px-3 py-1 rounded-md ${
+              className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 text-sm font-medium ${
                 currentPage === totalPages
                   ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  : "bg-white text-gray-500 hover:bg-gray-50"
               }`}
             >
               Next
@@ -308,25 +310,40 @@ export default function Products() {
         </div>
       )}
 
-      {/* Edit Product Panel */}
-      <SlidePanel
-        title={isEditing ? "Edit Product" : "Add Product"}
-        isOpen={isEditing || isCreating}
-        onClose={() => {
-          setIsEditing(false);
-          setIsCreating(false);
-        }}
-      >
-        <ProductForm
-          productId={selectedProductId || undefined}
-          isNew={isCreating}
-          onSave={handleSave}
-          onCancel={() => {
+      {/* Product edit slide panel */}
+      {isEditing && selectedProductId && (
+        <SlidePanel
+          title="Edit Product"
+          isOpen={isEditing}
+          onClose={() => {
             setIsEditing(false);
-            setIsCreating(false);
+            setSelectedProductId(null);
           }}
-        />
-      </SlidePanel>
+        >
+          <ProductForm
+            productId={selectedProductId}
+            onSave={handleSave}
+            onCancel={() => {
+              setIsEditing(false);
+              setSelectedProductId(null);
+            }}
+          />
+        </SlidePanel>
+      )}
+
+      {/* Product create slide panel */}
+      {isCreating && (
+        <SlidePanel
+          title="Add New Product"
+          isOpen={isCreating}
+          onClose={() => setIsCreating(false)}
+        >
+          <ProductForm
+            onSave={handleSave}
+            onCancel={() => setIsCreating(false)}
+          />
+        </SlidePanel>
+      )}
     </div>
   );
 }

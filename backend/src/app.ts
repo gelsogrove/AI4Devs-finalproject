@@ -1,6 +1,8 @@
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
+import swaggerUi from 'swagger-ui-express';
+import swaggerSpec from './swagger';
 
 // Load environment variables
 dotenv.config();
@@ -19,6 +21,14 @@ export function setupServer() {
     credentials: true,
   }));
   
+  // Swagger Documentation
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  
+  // Serve Swagger specification as JSON
+  app.get('/api-docs.json', (_req, res) => {
+    res.json(swaggerSpec);
+  });
+  
   // API Routes
   app.use('/api', routes);
   
@@ -29,7 +39,7 @@ export function setupServer() {
   
   // Root endpoint for direct browser testing
   app.get('/', (_req, res) => {
-    res.send('Backend is running!');
+    res.send('Backend is running! Visit <a href="/api-docs">API Documentation</a>');
   });
   
   // Health check endpoint
@@ -42,6 +52,15 @@ export function setupServer() {
   });
   
   return app;
+}
+
+/**
+ * Creates an Express app for testing purposes
+ * This function is used by integration tests
+ */
+export async function createApp() {
+  // Simply return the configured Express app
+  return setupServer();
 }
 
 // Create and export the app instance

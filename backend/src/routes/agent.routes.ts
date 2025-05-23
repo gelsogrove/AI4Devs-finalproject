@@ -4,10 +4,8 @@ import { authenticate } from '../middlewares/auth.middleware';
 
 const router = Router();
 
-// Get agent configuration
-router.get('/config', authenticate, agentController.getAgentConfig);
+router.get('/config', agentController.getAgentConfig.bind(agentController));
 
-// Update agent configuration
-router.put('/config', authenticate, agentController.updateAgentConfig);
+router.put('/config', authenticate, agentController.updateAgentConfig.bind(agentController));
 
 export default router; 

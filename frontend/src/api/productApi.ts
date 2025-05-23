@@ -1,8 +1,8 @@
 import axios from 'axios';
 import { CreateProductDto, Product, UpdateProductDto } from '../types/product';
 
-const API_URL = import.meta.env.API_URL || '';
-const PRODUCTS_ENDPOINT = `${API_URL}/api/products`;
+const API_URL = import.meta.env.VITE_API_URL || '';
+const PRODUCTS_ENDPOINT = API_URL ? `${API_URL}/api/products` : '/api/products';
 
 // Get authentication token from localStorage
 const getAuthHeader = () => {

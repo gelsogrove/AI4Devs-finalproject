@@ -181,6 +181,51 @@ async function main() {
     console.log(`Created ${faqs.length} FAQs`);
   }
   
+  // Create sample Services
+  const serviceCount = await prisma.service.count();
+  if (serviceCount === 0) {
+    const services = [
+      {
+        name: 'Standard Delivery',
+        description: 'Standard home delivery service with tracking. Your Italian products will be delivered within 3-5 business days.',
+        price: 9.99,
+        isActive: true,
+      },
+      {
+        name: 'Express Delivery',
+        description: 'Fast delivery service guaranteed within 24-48 hours. The perfect solution when you need your Italian products quickly.',
+        price: 19.99,
+        isActive: true,
+      },
+      {
+        name: 'Gift Package',
+        description: 'Special gift wrapping service with customized message card. Perfect for sending Italian delicacies as gifts to friends and family.',
+        price: 4.99,
+        isActive: true,
+      },
+      {
+        name: 'Refrigerated Transport',
+        description: 'Temperature-controlled shipping for perishable Italian products like cheese, cured meats, and fresh pasta. Ensures product quality during delivery.',
+        price: 14.99,
+        isActive: true,
+      },
+      {
+        name: 'Shipping Insurance',
+        description: 'Full coverage insurance for your valuable Italian products during transit. Covers damage, loss, or theft up to €500.',
+        price: 6.99,
+        isActive: true,
+      }
+    ];
+    
+    for (const service of services) {
+      await prisma.service.create({
+        data: service,
+      });
+    }
+    
+    console.log(`Created ${services.length} services`);
+  }
+  
   console.log('Seed completed successfully!');
 }
 

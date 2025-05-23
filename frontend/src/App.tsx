@@ -1,20 +1,19 @@
-
-import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "./contexts/AuthContext";
-import { useAuth } from "./contexts/AuthContext";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
 // Pages
-import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
-import Products from "./pages/Products";
-import FAQs from "./pages/FAQs";
 import AgentConfig from "./pages/AgentConfig";
 import Chatbot from "./pages/Chatbot";
+import Dashboard from "./pages/Dashboard";
+import FAQs from "./pages/FAQs";
+import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
+import Products from "./pages/Products";
+import Services from "./pages/Services";
 
 // Layout
 import MainLayout from "./components/layout/MainLayout";
@@ -51,6 +50,7 @@ const AppRoutes = () => {
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="products" element={<Products />} />
         <Route path="faqs" element={<FAQs />} />
+        <Route path="services" element={<Services />} />
         <Route path="agent-config" element={<AgentConfig />} />
         <Route path="chatbot" element={<Chatbot />} />
       </Route>
