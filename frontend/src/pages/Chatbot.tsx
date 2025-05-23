@@ -92,7 +92,7 @@ const Chatbot: React.FC = () => {
                   AI
                 </div>
                 <div>
-                  <h3 className="font-medium">Gusto Italiano Assistant</h3>
+                  <h3 className="font-medium">ShopMe  Assistant</h3>
                   <p className="text-xs text-gray-500">Online</p>
                 </div>
               </div>
@@ -182,11 +182,11 @@ const Chatbot: React.FC = () => {
                     variant="outline" 
                     className="w-full justify-start text-left h-auto py-2"
                     onClick={() => {
-                      setInput("Quali prodotti vendete?");
+                      setInput("Which services do you offer?");
                       setTimeout(() => sendMessage(), 100);
                     }}
                   >
-                    Quali prodotti vendete?
+                   Which services do you offer ?
                   </Button>
                 </li>
                 <li>
@@ -194,19 +194,31 @@ const Chatbot: React.FC = () => {
                     variant="outline" 
                     className="w-full justify-start text-left h-auto py-2"
                     onClick={() => {
-                      setInput("Avete dei formaggi italiani?");
+                      setInput("Do you have any Italian wine?");
                       setTimeout(() => sendMessage(), 100);
                     }}
                   >
-                    Avete dei formaggi italiani?
+                   Do you have any Italian wine?
                   </Button>
                 </li>
+                <li>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start text-left h-auto py-2"
+                    onClick={() => {
+                      setInput("Are your products authentic Italian?");
+                      setTimeout(() => sendMessage(), 100);
+                    }}
+                  >
+                  Are your products authentic Italian?  </Button>
+                </li>
+
               </ul>
               
               <div className="mt-6 text-xs text-gray-500">
                 <p className="font-medium mb-1">About the Chatbot</p>
                 <p>This chatbot connects to a real AI service with function calling capabilities to search products and services in our database.</p>
-                <p className="mt-2">You can ask about products in Italian or English, and the assistant will understand both languages.</p>
+               
               </div>
             </CardContent>
           </Card>

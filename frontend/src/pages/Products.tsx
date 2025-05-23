@@ -339,6 +339,7 @@ export default function Products() {
           onClose={() => setIsCreating(false)}
         >
           <ProductForm
+            isNew={true}
             onSave={handleSave}
             onCancel={() => setIsCreating(false)}
           />

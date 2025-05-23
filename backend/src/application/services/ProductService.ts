@@ -25,7 +25,7 @@ export class ProductService {
   async createProduct(productData: CreateProductDto): Promise<Product> {
     // Create domain entity with proper value objects
     const product = new Product(
-      new ProductId(''), // Temporary ID, will be replaced by DB
+      new ProductId('', true), // Empty ID with isNew flag
       new ProductName(productData.name),
       productData.description,
       new Price(productData.price),
