@@ -41,10 +41,7 @@ const SplashModal: React.FC<SplashModalProps> = ({ isOpen, onClose }) => {
                 <span className="text-shopme-600">•</span>
                 <span>Test the chatbot with function calling capabilities</span>
               </li>
-              <li className="flex gap-2">
-                <span className="text-shopme-600">•</span>
-                <span>Test the chatbot with embedding search</span>
-              </li>
+               
             </ul>
           </div>
           

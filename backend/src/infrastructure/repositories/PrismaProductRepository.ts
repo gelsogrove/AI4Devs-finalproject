@@ -19,6 +19,7 @@ export class PrismaProductRepository implements ProductRepository {
   async save(product: Product): Promise<Product> {
     try {
       const dto = product.toDTO();
+      
       const savedProduct = await this.prisma.product.create({
         data: {
           name: dto.name,
@@ -26,6 +27,7 @@ export class PrismaProductRepository implements ProductRepository {
           price: dto.price,
           imageUrl: dto.imageUrl,
           category: dto.category,
+          tags: dto.tags || [],
         },
       });
 
@@ -125,7 +127,7 @@ export class PrismaProductRepository implements ProductRepository {
           price: dto.price,
           imageUrl: dto.imageUrl,
           category: dto.category,
-          updatedAt: new Date(),
+          tags: dto.tags || [],
         },
       });
       

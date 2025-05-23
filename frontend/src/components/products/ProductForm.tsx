@@ -1,3 +1,4 @@
+import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { productApi } from "../../api/productApi";
 import { CreateProductDto, UpdateProductDto } from "../../types/product";
@@ -21,6 +22,7 @@ export function ProductForm({
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [newTag, setNewTag] = useState<string>("");
   
   const [form, setForm] = useState<CreateProductDto>({
     name: "",
@@ -28,6 +30,7 @@ export function ProductForm({
     price: 0,
     imageUrl: "",
     category: "",
+    tags: [],
   });
 
   // Load product data if editing an existing product
@@ -43,6 +46,7 @@ export function ProductForm({
             price: product.price,
             imageUrl: product.imageUrl,
             category: product.category,
+            tags: product.tags || [],
           });
         } catch (err) {
           setError("Failed to load product data");
@@ -85,6 +89,23 @@ export function ProductForm({
         return updated;
       });
     }
+  };
+
+  const handleAddTag = () => {
+    if (newTag.trim() && !form.tags?.includes(newTag.trim())) {
+      setForm((prev) => ({
+        ...prev,
+        tags: [...(prev.tags || []), newTag.trim()],
+      }));
+      setNewTag("");
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setForm((prev) => ({
+      ...prev,
+      tags: (prev.tags || []).filter(tag => tag !== tagToRemove),
+    }));
   };
 
   const validateForm = (): boolean => {
@@ -289,6 +310,59 @@ export function ProductForm({
             className="w-full p-2 border rounded-lg focus:ring-green-500 focus:border-green-500"
           />
         </div>
+      </div>
+
+      {/* Tags section */}
+      <div>
+        <label 
+          htmlFor="tags" 
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
+          Tags
+        </label>
+        <div className="flex flex-wrap gap-2 mb-2">
+          {form.tags?.map((tag) => (
+            <div 
+              key={tag} 
+              className="bg-green-100 text-green-800 px-3 py-1 rounded-full flex items-center gap-1"
+            >
+              <span>{tag}</span>
+              <button
+                type="button"
+                onClick={() => handleRemoveTag(tag)}
+                className="text-green-600 hover:text-green-800 focus:outline-none"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            id="newTag"
+            value={newTag}
+            onChange={(e) => setNewTag(e.target.value)}
+            placeholder="Add a tag"
+            className="flex-1 p-2 border rounded-lg focus:ring-green-500 focus:border-green-500"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleAddTag();
+              }
+            }}
+          />
+          <button
+            type="button"
+            onClick={handleAddTag}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+          >
+            Add
+          </button>
+        </div>
+        <p className="text-sm text-gray-500 mt-1">
+          Press Enter or click Add to add a tag
+        </p>
       </div>
 
       <div className="flex justify-end space-x-3 pt-5">

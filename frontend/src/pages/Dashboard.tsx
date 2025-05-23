@@ -104,8 +104,8 @@ const Dashboard: React.FC = () => {
 
       {/* Quick actions */}
       <h2 className="text-xl font-semibold text-gray-800 mb-4">Quick Actions</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        <Link to="/products">
+      <div className="flex overflow-x-auto gap-4 mb-8 pb-2">
+        <Link to="/products" className="flex-shrink-0 w-64">
           <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
             <CardHeader>
               <ShoppingBag className="h-8 w-8 text-shopme-600 mb-2" />
@@ -120,7 +120,7 @@ const Dashboard: React.FC = () => {
           </Card>
         </Link>
 
-        <Link to="/faqs">
+        <Link to="/faqs" className="flex-shrink-0 w-64">
           <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
             <CardHeader>
               <HelpCircle className="h-8 w-8 text-shopme-600 mb-2" />
@@ -135,7 +135,7 @@ const Dashboard: React.FC = () => {
           </Card>
         </Link>
 
-        <Link to="/services">
+        <Link to="/services" className="flex-shrink-0 w-64">
           <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
             <CardHeader>
               <Server className="h-8 w-8 text-shopme-600 mb-2" />
@@ -150,7 +150,7 @@ const Dashboard: React.FC = () => {
           </Card>
         </Link>
 
-        <Link to="/agent-config">
+        <Link to="/agent-config" className="flex-shrink-0 w-64">
           <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
             <CardHeader>
               <Settings className="h-8 w-8 text-shopme-600 mb-2" />

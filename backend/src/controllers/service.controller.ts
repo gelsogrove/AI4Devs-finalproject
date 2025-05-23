@@ -13,7 +13,7 @@ const createServiceSchema = z.object({
   ]).refine((val) => !isNaN(val) && val > 0, {
     message: 'Price must be a positive number',
   }),
-  isActive: z.boolean().optional(),
+  tags: z.array(z.string()).optional(),
 });
 
 const updateServiceSchema = z.object({
@@ -25,29 +25,26 @@ const updateServiceSchema = z.object({
   ]).refine((val) => !isNaN(val) && val > 0, {
     message: 'Price must be a positive number',
   }).optional(),
-  isActive: z.boolean().optional(),
+  tags: z.array(z.string()).optional(),
 }).refine(data => Object.keys(data).length > 0, {
   message: 'At least one field must be provided',
 });
 
 const filtersSchema = z.object({
-  isActive: z.coerce.boolean().optional(),
   search: z.string().optional(),
-  page: z.coerce.number().positive().optional(),
-  limit: z.coerce.number().positive().max(100).optional(),
 });
 
 class ServiceController {
   /**
-   * Get all services with optional filters and pagination
+   * Get all services with optional filters
    */
   async getServices(req: Request, res: Response) {
     try {
       // Parse and validate filters
-      const { isActive, search, page = 1, limit = 10 } = filtersSchema.parse(req.query);
+      const { search } = filtersSchema.parse(req.query);
       
       // Get services
-      const result = await serviceService.getServices({ isActive, search }, page, limit);
+      const result = await serviceService.getServices({ search });
       
       return res.json(result);
     } catch (error) {
@@ -61,15 +58,15 @@ class ServiceController {
   }
 
   /**
-   * Get active services
+   * Get all services
    */
-  async getActiveServices(req: Request, res: Response) {
+  async getAllServices(req: Request, res: Response) {
     try {
-      const services = await serviceService.getActiveServices();
+      const services = await serviceService.getAllServices();
       return res.json(services);
     } catch (error) {
-      logger.error('Error in getActiveServices controller:', error);
-      return res.status(500).json({ error: 'Failed to get active services' });
+      logger.error('Error in getAllServices controller:', error);
+      return res.status(500).json({ error: 'Failed to get services' });
     }
   }
 

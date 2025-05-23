@@ -31,6 +31,7 @@ export class ProductService {
       new Price(productData.price),
       productData.imageUrl,
       productData.category,
+      productData.tags || [], // Aggiungo i tags con valore di default array vuoto
       new Date(),
       new Date()
     );
@@ -84,6 +85,10 @@ export class ProductService {
     
     if (productData.category) {
       existingProduct.updateCategory(productData.category);
+    }
+    
+    if (productData.tags) {
+      existingProduct.updateTags(productData.tags);
     }
     
     // Use repository to update

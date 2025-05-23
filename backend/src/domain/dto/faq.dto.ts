@@ -1,17 +1,7 @@
-export interface FAQ {
-  id: string;
-  question: string;
-  answer: string;
-  category?: string;
-  tags: string[];
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 export interface CreateFAQDto {
   question: string;
   answer: string;
-  category?: string;
+  category: string;
   tags?: string[];
 }
 
@@ -25,4 +15,5 @@ export interface UpdateFAQDto {
 export interface FAQFilters {
   category?: string;
   search?: string;
+  tags?: string[];
 } 

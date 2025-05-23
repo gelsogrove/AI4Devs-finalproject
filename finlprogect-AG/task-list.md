@@ -39,11 +39,13 @@ model FAQ {
   question    String
   answer      String   @db.Text
   category    String?
-  isPublished Boolean  @default(true)
+  tags        String[] @default([])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 ```
+
+> **Note:** The `isPublished` field has been removed as per client request. All FAQs are now considered published by default.
 
 ### AgentConfig
 ```prisma
@@ -69,6 +71,20 @@ model User {
   updatedAt DateTime @updatedAt
 }
 ```
+
+### Service
+```prisma
+model Service {
+  id          String   @id @default(uuid())
+  name        String
+  description String
+  price       Decimal  @db.Decimal(10, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+```
+
+> **Note:** The `tags` field has been removed as per client request.
 
 ## Environment Variables (.env)
 

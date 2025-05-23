@@ -25,7 +25,7 @@ export function FAQForm({
     question: "",
     answer: "",
     category: "",
-    isPublished: true,
+    tags: []
   });
 
   // Load FAQ data if editing an existing FAQ
@@ -39,7 +39,7 @@ export function FAQForm({
             question: faq.question,
             answer: faq.answer,
             category: faq.category || '',
-            isPublished: faq.isPublished,
+            tags: []
           });
         } catch (err) {
           setError("Failed to load FAQ data");
@@ -69,7 +69,7 @@ export function FAQForm({
     const { name, value } = e.target;
     setForm((prev) => ({
       ...prev,
-      [name]: name === "isPublished" ? value === "true" : value,
+      [name]: value,
     }));
     
     // Clear validation error when field is updated
@@ -80,14 +80,6 @@ export function FAQForm({
         return updated;
       });
     }
-  };
-
-  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: checked,
-    }));
   };
 
   const validateForm = (): boolean => {
@@ -220,23 +212,6 @@ export function FAQForm({
             className="w-full p-2 border rounded-lg focus:ring-green-500 focus:border-green-500"
           />
         </div>
-      </div>
-
-      <div className="flex items-center">
-        <input
-          type="checkbox"
-          id="isPublished"
-          name="isPublished"
-          checked={form.isPublished ?? true}
-          onChange={handleCheckboxChange}
-          className="h-4 w-4 rounded border text-green-600 focus:ring-green-500"
-        />
-        <label
-          htmlFor="isPublished"
-          className="ml-2 block text-sm text-gray-700"
-        >
-          Published
-        </label>
       </div>
 
       <div className="flex justify-end space-x-3 pt-5">

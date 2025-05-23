@@ -8,21 +8,20 @@ const createFAQSchema = z.object({
   question: z.string().min(5, 'Question must be at least 5 characters'),
   answer: z.string().min(10, 'Answer must be at least 10 characters'),
   category: z.string().optional(),
-  isPublished: z.boolean().optional(),
+  tags: z.array(z.string()).optional(),
 });
 
 const updateFAQSchema = z.object({
   question: z.string().min(5, 'Question must be at least 5 characters').optional(),
   answer: z.string().min(10, 'Answer must be at least 10 characters').optional(),
   category: z.string().optional(),
-  isPublished: z.boolean().optional(),
+  tags: z.array(z.string()).optional(),
 }).refine(data => Object.keys(data).length > 0, {
   message: 'At least one field must be provided',
 });
 
 const filtersSchema = z.object({
   category: z.string().optional(),
-  isPublished: z.coerce.boolean().optional(),
   search: z.string().optional(),
   page: z.coerce.number().positive().optional(),
   limit: z.coerce.number().positive().max(100).optional(),
@@ -70,11 +69,11 @@ class FAQController {
   async getFAQs(req: Request, res: Response) {
     try {
       // Validate and extract query parameters
-      const { category, isPublished, search, page = 1, limit = 10 } = filtersSchema.parse(req.query);
+      const { category, search, page = 1, limit = 10 } = filtersSchema.parse(req.query);
       
       // Get FAQs with filters
       const result = await faqService.getFAQs(
-        { category, isPublished, search },
+        { category, search },
         page,
         limit
       );
@@ -96,13 +95,13 @@ class FAQController {
   }
 
   /**
-   * Get public FAQs (public view)
+   * Get all FAQs (public view)
    */
   async getPublicFAQs(req: Request, res: Response) {
     try {
       const { category } = req.query;
       
-      const faqs = await faqService.getPublicFAQs(category as string | undefined);
+      const faqs = await faqService.getAllFAQs(category as string | undefined);
       
       return res.status(200).json(faqs);
     } catch (error) {
@@ -194,31 +193,6 @@ class FAQController {
       }
       
       return res.status(500).json({ error: 'Failed to delete FAQ' });
-    }
-  }
-
-  /**
-   * Toggle FAQ publication status
-   */
-  async toggleFAQStatus(req: Request, res: Response) {
-    try {
-      const { id } = req.params;
-      
-      const faq = await faqService.toggleFAQStatus(id);
-      
-      return res.status(200).json({
-        message: `FAQ ${faq.isPublished ? 'published' : 'unpublished'} successfully`,
-        faq,
-      });
-    } catch (error) {
-      logger.error('Toggle FAQ status error:', error);
-      
-      // Handle not found error
-      if (error instanceof Error && error.message === 'FAQ not found') {
-        return res.status(404).json({ error: 'FAQ not found' });
-      }
-      
-      return res.status(500).json({ error: 'Failed to toggle FAQ status' });
     }
   }
 

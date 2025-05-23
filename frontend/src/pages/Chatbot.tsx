@@ -49,6 +49,9 @@ const Chatbot: React.FC = () => {
         messages: [...messages, userMessage],
       });
       
+      // Debug log for the response
+      console.log('Received bot message:', botMessage);
+      
       setMessages(prev => [...prev, botMessage]);
     } catch (error) {
       console.error('Error getting chatbot response:', error);
@@ -99,29 +102,110 @@ const Chatbot: React.FC = () => {
               
               {/* Chat messages */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messages.map(message => (
-                  <div 
-                    key={message.id} 
-                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div className={message.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-bot'}>
-                      {message.content.split('\n').map((line, i) => (
-                        <div key={i} className={line.startsWith('•') ? 'mt-2' : ''}>
-                          {line.includes('**') ? (
-                            <div dangerouslySetInnerHTML={{ 
-                              __html: line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
-                            }} />
-                          ) : (
-                            line
-                          )}
+                {messages.map(message => {
+                  // Debug log for each message being rendered
+                  console.log(`Rendering message ${message.id}:`, { 
+                    content: message.content,
+                    imageUrl: message.imageUrl,
+                    hasImage: !!message.imageUrl
+                  });
+                  
+                  return (
+                    <div 
+                      key={message.id} 
+                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div className={message.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-bot'}>
+                        {/* Display image if available */}
+                        {message.imageUrl && (
+                          <div 
+                            className="chat-image mb-2"
+                            data-status="loading"
+                          >
+                            <img 
+                              src={message.imageUrl} 
+                              alt={message.imageCaption || "Image"} 
+                              onError={(e) => {
+                                console.error("Image failed to load:", e);
+                                // Set data attribute on parent for styling
+                                const target = e.target as HTMLImageElement;
+                                if (target.parentElement) {
+                                  target.parentElement.setAttribute('data-status', 'error');
+                                }
+                                // Set a fallback image
+                                target.src = 'https://via.placeholder.com/300x200?text=Image+Not+Available';
+                              }}
+                              onLoad={(e) => {
+                                console.log("Image loaded successfully:", message.imageUrl);
+                                // Set data attribute on parent for styling
+                                const target = e.target as HTMLImageElement;
+                                if (target.parentElement) {
+                                  target.parentElement.setAttribute('data-status', 'loaded');
+                                }
+                              }}
+                              style={{ maxWidth: '100%', height: 'auto' }}
+                            />
+                            {message.imageCaption && (
+                              <p className="chat-image-caption">{message.imageCaption}</p>
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Display text content */}
+                        {message.content.split('\n').map((line, i) => {
+                          // Check for markdown headers
+                          if (line.startsWith('# ')) {
+                            return (
+                              <h1 key={i} className="text-xl font-bold mt-2 mb-2">
+                                {line.substring(2)}
+                              </h1>
+                            );
+                          } else if (line.startsWith('## ')) {
+                            return (
+                              <h2 key={i} className="text-lg font-semibold mt-2 mb-1">
+                                {line.substring(3)}
+                              </h2>
+                            );
+                          } else if (line.startsWith('- ')) {
+                            return (
+                              <div key={i} className="flex items-start mt-1">
+                                <span className="mr-2">•</span>
+                                <span>{line.substring(2)}</span>
+                              </div>
+                            );
+                          } else if (line.match(/^\d+\.\s/)) {
+                            // Numbered list items
+                            const num = line.match(/^\d+/)?.[0] || '';
+                            const text = line.replace(/^\d+\.\s/, '');
+                            return (
+                              <div key={i} className="flex items-start mt-1">
+                                <span className="mr-2 font-medium">{num}.</span>
+                                <span>{text}</span>
+                              </div>
+                            );
+                          } else if (line.includes('**')) {
+                            return (
+                              <div key={i} className={line.startsWith('•') ? 'mt-2' : ''} 
+                                dangerouslySetInnerHTML={{ 
+                                  __html: line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
+                                }} 
+                              />
+                            );
+                          } else {
+                            return (
+                              <div key={i} className={`${line.startsWith('•') ? 'mt-2' : ''} ${line.trim() === '' ? 'h-2' : ''}`}>
+                                {line}
+                              </div>
+                            );
+                          }
+                        })}
+                        <div className="text-xs opacity-70 mt-1 text-right">
+                          {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
-                      ))}
-                      <div className="text-xs opacity-70 mt-1 text-right">
-                        {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 {isTyping && (
                   <div className="flex justify-start">
                     <div className="chat-bubble-bot">
@@ -212,7 +296,42 @@ const Chatbot: React.FC = () => {
                   >
                   Are your products authentic Italian?  </Button>
                 </li>
+                <li>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start text-left h-auto py-2"
+                    onClick={() => {
+                      setInput("What payment methods do you accept?");
+                      setTimeout(() => sendMessage(), 100);
+                    }}
+                  >
+                 What payment methods do you accept?  </Button>
+                </li>
 
+                <li>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start text-left h-auto py-2"
+                    onClick={() => {
+                      setInput("How long does shipping take?");
+                      setTimeout(() => sendMessage(), 100);
+                    }}
+                  >
+                 How long does shipping take?  </Button>
+                </li>
+                
+                <li>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start text-left h-auto py-2"
+                    onClick={() => {
+                      setInput("Do you have a recipe for prosciutto e melone?");
+                      setTimeout(() => sendMessage(), 100);
+                    }}
+                  >
+                    Do you have a recipe for prosciutto e melone?
+                  </Button>
+                </li>
               </ul>
               
               <div className="mt-6 text-xs text-gray-500">

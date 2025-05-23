@@ -18,6 +18,4 @@ router.put('/:id', authenticate, faqController.updateFAQ.bind(faqController));
 
 router.delete('/:id', authenticate, faqController.deleteFAQ.bind(faqController));
 
-router.patch('/:id/toggle-status', authenticate, faqController.toggleFAQStatus.bind(faqController));
-
 export default router; 

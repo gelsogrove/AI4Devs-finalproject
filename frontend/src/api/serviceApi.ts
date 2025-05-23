@@ -24,49 +24,49 @@ export const serviceApi = {
     // Build query string from filters
     const queryParams = new URLSearchParams();
     
-    if (filters?.isActive !== undefined) queryParams.append('isActive', filters.isActive.toString());
     if (filters?.search) queryParams.append('search', filters.search);
+    
+    // Add tags filter if provided
+    if (filters?.tags && filters.tags.length > 0) {
+      filters.tags.forEach(tag => {
+        queryParams.append('tags', tag);
+      });
+    }
     
     queryParams.append('page', page.toString());
     queryParams.append('limit', limit.toString());
     
-    const response = await axios.get(`${SERVICES_ENDPOINT}?${queryParams.toString()}`);
+    const response = await axios.get(`${SERVICES_ENDPOINT}?${queryParams.toString()}`, getAuthHeader());
     return response.data;
   },
   
-  // Get all active services
-  async getActiveServices() {
-    const response = await axios.get(`${SERVICES_ENDPOINT}/active`);
+  // Get all services
+  async getAllServices() {
+    const response = await axios.get(`${SERVICES_ENDPOINT}`);
     return response.data as Service[];
   },
   
   // Get a service by ID
   async getServiceById(id: string) {
-    const response = await axios.get(`${SERVICES_ENDPOINT}/${id}`);
+    const response = await axios.get(`${SERVICES_ENDPOINT}/${id}`, getAuthHeader());
     return response.data as Service;
   },
   
   // Create a new service
-  async createService(data: CreateServiceDto) {
-    const response = await axios.post(SERVICES_ENDPOINT, data, getAuthHeader());
-    return response.data as Service;
+  async createService(service: CreateServiceDto) {
+    const response = await axios.post(SERVICES_ENDPOINT, service, getAuthHeader());
+    return response.data;
   },
   
-  // Update a service
-  async updateService(id: string, data: UpdateServiceDto) {
-    const response = await axios.put(`${SERVICES_ENDPOINT}/${id}`, data, getAuthHeader());
-    return response.data as Service;
+  // Update an existing service
+  async updateService(id: string, service: UpdateServiceDto) {
+    const response = await axios.put(`${SERVICES_ENDPOINT}/${id}`, service, getAuthHeader());
+    return response.data;
   },
   
   // Delete a service
   async deleteService(id: string) {
     const response = await axios.delete(`${SERVICES_ENDPOINT}/${id}`, getAuthHeader());
     return response.data;
-  },
-  
-  // Toggle service active status
-  async toggleServiceStatus(id: string) {
-    const service = await this.getServiceById(id);
-    return this.updateService(id, { isActive: !service.isActive });
   }
 }; 

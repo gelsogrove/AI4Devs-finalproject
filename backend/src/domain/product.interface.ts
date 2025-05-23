@@ -5,6 +5,7 @@ export interface Product {
   price: number;
   imageUrl: string;
   category: string;
+  tags: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -15,6 +16,7 @@ export interface CreateProductDto {
   price: number;
   imageUrl: string;
   category: string;
+  tags?: string[];
 }
 
 export interface UpdateProductDto {
@@ -23,6 +25,7 @@ export interface UpdateProductDto {
   price?: number;
   imageUrl?: string;
   category?: string;
+  tags?: string[];
 }
 
 export interface ProductFilters {

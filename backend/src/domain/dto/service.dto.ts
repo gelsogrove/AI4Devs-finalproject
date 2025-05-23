@@ -1,18 +1,9 @@
-export interface Service {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  tags: string[];
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 export interface CreateServiceDto {
   name: string;
   description: string;
   price: number;
   tags?: string[];
+  isActive?: boolean;
 }
 
 export interface UpdateServiceDto {
@@ -20,8 +11,11 @@ export interface UpdateServiceDto {
   description?: string;
   price?: number;
   tags?: string[];
+  isActive?: boolean;
 }
 
 export interface ServiceFilters {
+  isActive?: boolean;
   search?: string;
+  tags?: string[];
 } 

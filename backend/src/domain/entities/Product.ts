@@ -9,6 +9,7 @@ export class Product {
   private _price: Price;
   private _imageUrl: string;
   private _category: string;
+  private _tags: string[];
   private _createdAt: Date;
   private _updatedAt: Date;
 
@@ -19,6 +20,7 @@ export class Product {
     price: Price,
     imageUrl: string,
     category: string,
+    tags: string[] = [],
     createdAt: Date,
     updatedAt: Date
   ) {
@@ -28,6 +30,7 @@ export class Product {
     this._price = price;
     this._imageUrl = imageUrl;
     this._category = category;
+    this._tags = tags;
     this._createdAt = createdAt;
     this._updatedAt = updatedAt;
   }
@@ -55,6 +58,10 @@ export class Product {
 
   get category(): string {
     return this._category;
+  }
+
+  get tags(): string[] {
+    return [...this._tags];
   }
 
   get createdAt(): Date {
@@ -91,6 +98,23 @@ export class Product {
     this._updatedAt = new Date();
   }
 
+  updateTags(tags: string[]): void {
+    this._tags = [...tags];
+    this._updatedAt = new Date();
+  }
+
+  addTag(tag: string): void {
+    if (!this._tags.includes(tag)) {
+      this._tags.push(tag);
+      this._updatedAt = new Date();
+    }
+  }
+
+  removeTag(tag: string): void {
+    this._tags = this._tags.filter(t => t !== tag);
+    this._updatedAt = new Date();
+  }
+
   // Serialization method for DTO conversion
   toDTO() {
     return {
@@ -100,6 +124,7 @@ export class Product {
       price: this._price.amount,
       imageUrl: this._imageUrl,
       category: this._category,
+      tags: [...this._tags],
       createdAt: this._createdAt,
       updatedAt: this._updatedAt
     };
@@ -114,6 +139,7 @@ export class Product {
       new Price(dto.price),
       dto.imageUrl,
       dto.category,
+      dto.tags || [],
       dto.createdAt instanceof Date ? dto.createdAt : new Date(dto.createdAt),
       dto.updatedAt instanceof Date ? dto.updatedAt : new Date(dto.updatedAt)
     );

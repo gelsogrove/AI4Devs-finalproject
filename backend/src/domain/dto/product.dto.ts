@@ -1,24 +1,3 @@
-export interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  imageUrl: string;
-  category: string;
-  tags: string[];
-  createdAt: string | Date;
-  updatedAt: string | Date;
-}
-
-export interface ProductFormData {
-  name: string;
-  description: string;
-  price: number;
-  imageUrl: string;
-  category: string;
-  tags: string[];
-}
-
 export interface CreateProductDto {
   name: string;
   description: string;
@@ -42,4 +21,4 @@ export interface ProductFilters {
   minPrice?: number;
   maxPrice?: number;
   search?: string;
-}
+} 

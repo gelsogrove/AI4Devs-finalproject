@@ -25,7 +25,6 @@ export const faqApi = {
     const queryParams = new URLSearchParams();
     
     if (filters?.category) queryParams.append('category', filters.category);
-    if (filters?.isPublished !== undefined) queryParams.append('isPublished', filters.isPublished.toString());
     if (filters?.search) queryParams.append('search', filters.search);
     
     queryParams.append('page', page.toString());
@@ -35,7 +34,7 @@ export const faqApi = {
     return response.data;
   },
   
-  // Get public FAQs (published only)
+  // Get public FAQs
   async getPublicFAQs(category?: string) {
     const queryParams = new URLSearchParams();
     if (category) queryParams.append('category', category);
@@ -65,12 +64,6 @@ export const faqApi = {
   // Delete a FAQ
   async deleteFAQ(id: string) {
     const response = await axios.delete(`${FAQS_ENDPOINT}/${id}`, getAuthHeader());
-    return response.data;
-  },
-  
-  // Toggle FAQ publication status
-  async toggleFAQStatus(id: string) {
-    const response = await axios.patch(`${FAQS_ENDPOINT}/${id}/toggle-status`, {}, getAuthHeader());
     return response.data;
   },
   

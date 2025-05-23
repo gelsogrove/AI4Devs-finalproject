@@ -1,6 +1,8 @@
+import { XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { serviceApi } from "../../api/serviceApi";
-import { CreateServiceDto } from "../../types/service";
+import { CreateServiceDto, UpdateServiceDto } from "../../types/service";
+import { Badge } from "../ui/badge";
 
 interface ServiceFormProps {
   serviceId?: string;
@@ -24,10 +26,13 @@ export function ServiceForm({
     name: "",
     description: "",
     price: 0,
-    isActive: true,
+    tags: []
   });
 
-  // Load service data if editing an existing service
+  // For tag input
+  const [tagInput, setTagInput] = useState("");
+
+  // Load Service data if editing an existing Service
   useEffect(() => {
     async function loadService() {
       if (!isNew && serviceId) {
@@ -38,7 +43,7 @@ export function ServiceForm({
             name: service.name,
             description: service.description,
             price: service.price,
-            isActive: service.isActive,
+            tags: service.tags || []
           });
         } catch (err) {
           setError("Failed to load service data");
@@ -53,23 +58,23 @@ export function ServiceForm({
   }, [serviceId, isNew]);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
-    const { name, value, type } = e.target;
+    const { name, value } = e.target;
     
-    // Handle different types of inputs
-    let processedValue: string | number | boolean = value;
-    
-    if (type === 'number') {
-      processedValue = value === '' ? 0 : parseFloat(value);
-    } else if (name === 'isActive') {
-      processedValue = value === 'true';
+    // Handle price separately to ensure it's a number
+    if (name === 'price') {
+      const numValue = parseFloat(value);
+      setForm((prev) => ({
+        ...prev,
+        [name]: isNaN(numValue) ? 0 : numValue,
+      }));
+    } else {
+      setForm((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
     }
-    
-    setForm((prev) => ({
-      ...prev,
-      [name]: processedValue,
-    }));
     
     // Clear validation error when field is updated
     if (validationErrors[name]) {
@@ -81,69 +86,95 @@ export function ServiceForm({
     }
   };
 
-  const validateForm = () => {
+  const addTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && tagInput.trim()) {
+      e.preventDefault();
+      
+      // Don't add duplicate tags
+      if (!form.tags.includes(tagInput.trim().toLowerCase())) {
+        setForm(prev => ({
+          ...prev,
+          tags: [...prev.tags, tagInput.trim().toLowerCase()]
+        }));
+      }
+      
+      setTagInput('');
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setForm(prev => ({
+      ...prev,
+      tags: prev.tags.filter(tag => tag !== tagToRemove)
+    }));
+  };
+
+  const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
     
     if (!form.name.trim()) {
       errors.name = "Name is required";
-    } else if (form.name.length < 3) {
-      errors.name = "Name must be at least 3 characters";
     }
     
     if (!form.description.trim()) {
       errors.description = "Description is required";
-    } else if (form.description.length < 10) {
-      errors.description = "Description must be at least 10 characters";
     }
     
     if (form.price <= 0) {
       errors.price = "Price must be greater than 0";
     }
     
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return false;
+    }
+    
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     
+    // Validate form before submission
     if (!validateForm()) {
       return;
     }
     
     setIsSaving(true);
-    setError(null);
-    
+
     try {
       if (isNew) {
         await serviceApi.createService(form);
       } else if (serviceId) {
-        await serviceApi.updateService(serviceId, form);
+        await serviceApi.updateService(serviceId, form as UpdateServiceDto);
       }
-      
       onSave();
-    } catch (err) {
-      console.error("Error saving service:", err);
-      setError("Failed to save service. Please try again.");
+    } catch (err: any) {
+      setError(err.response?.data?.error || "Failed to save service");
+      console.error(err);
     } finally {
       setIsSaving(false);
     }
   };
 
   if (isLoading) {
-    return <div className="p-4 text-center">Loading service data...</div>;
+    return <div className="p-4">Loading service data...</div>;
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 p-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <div className="bg-red-50 p-4 rounded text-red-700 mb-4">
+        <div className="bg-red-50 p-4 rounded-md text-red-700 mb-4">
           {error}
         </div>
       )}
-      
+
       <div>
-        <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+        <label 
+          htmlFor="name" 
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
           Name
         </label>
         <input
@@ -152,17 +183,21 @@ export function ServiceForm({
           name="name"
           value={form.name}
           onChange={handleChange}
-          className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-shopme-500 focus:ring-shopme-500 sm:text-sm ${
+          className={`w-full p-2 border rounded-lg focus:ring-green-500 focus:border-green-500 ${
             validationErrors.name ? "border-red-500" : ""
           }`}
+          required
         />
         {validationErrors.name && (
           <p className="mt-1 text-sm text-red-600">{validationErrors.name}</p>
         )}
       </div>
-      
+
       <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+        <label 
+          htmlFor="description" 
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
           Description
         </label>
         <textarea
@@ -171,69 +206,83 @@ export function ServiceForm({
           rows={4}
           value={form.description}
           onChange={handleChange}
-          className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-shopme-500 focus:ring-shopme-500 sm:text-sm ${
+          className={`w-full p-2 border rounded-lg focus:ring-green-500 focus:border-green-500 ${
             validationErrors.description ? "border-red-500" : ""
           }`}
+          required
         />
         {validationErrors.description && (
           <p className="mt-1 text-sm text-red-600">{validationErrors.description}</p>
         )}
       </div>
-      
+
       <div>
-        <label htmlFor="price" className="block text-sm font-medium text-gray-700">
-          Price
+        <label 
+          htmlFor="price" 
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
+          Price (€)
         </label>
-        <div className="relative mt-1 rounded-md shadow-sm">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-            <span className="text-gray-500 sm:text-sm">$</span>
-          </div>
-          <input
-            type="number"
-            id="price"
-            name="price"
-            min="0.01"
-            step="0.01"
-            value={form.price}
-            onChange={handleChange}
-            className={`block w-full rounded-md border-gray-300 pl-7 pr-12 focus:border-shopme-500 focus:ring-shopme-500 sm:text-sm ${
-              validationErrors.price ? "border-red-500" : ""
-            }`}
-          />
-        </div>
+        <input
+          type="number"
+          id="price"
+          name="price"
+          value={form.price}
+          onChange={handleChange}
+          min="0.01"
+          step="0.01"
+          className={`w-full p-2 border rounded-lg focus:ring-green-500 focus:border-green-500 ${
+            validationErrors.price ? "border-red-500" : ""
+          }`}
+          required
+        />
         {validationErrors.price && (
           <p className="mt-1 text-sm text-red-600">{validationErrors.price}</p>
         )}
       </div>
-      
+
       <div>
-        <label htmlFor="isActive" className="block text-sm font-medium text-gray-700">
-          Status
-        </label>
-        <select
-          id="isActive"
-          name="isActive"
-          value={form.isActive ? "true" : "false"}
-          onChange={handleChange}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-shopme-500 focus:ring-shopme-500 sm:text-sm"
+        <label 
+          htmlFor="tags" 
+          className="block text-sm font-medium text-gray-700 mb-1"
         >
-          <option value="true">Active</option>
-          <option value="false">Inactive</option>
-        </select>
+          Tags (press Enter to add)
+        </label>
+        <input
+          type="text"
+          id="tags"
+          value={tagInput}
+          onChange={(e) => setTagInput(e.target.value)}
+          onKeyDown={addTag}
+          className="w-full p-2 border rounded-lg focus:ring-green-500 focus:border-green-500 mb-2"
+          placeholder="Add tags (e.g. delivery, premium, quick)"
+        />
+        <div className="flex flex-wrap gap-2 mt-2">
+          {form.tags.map(tag => (
+            <Badge key={tag} variant="secondary" className="flex items-center gap-1 px-3 py-1">
+              {tag}
+              <XCircle 
+                className="h-4 w-4 cursor-pointer text-gray-500 hover:text-red-500" 
+                onClick={() => removeTag(tag)} 
+              />
+            </Badge>
+          ))}
+        </div>
       </div>
-      
-      <div className="flex justify-end space-x-3 pt-4">
+
+      <div className="flex justify-end space-x-3 pt-5">
         <button
           type="button"
           onClick={onCancel}
-          className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-shopme-500 focus:ring-offset-2"
+          disabled={isSaving}
+          className="rounded-lg border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={isSaving}
-          className="inline-flex items-center rounded-md border border-transparent bg-shopme-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-shopme-700 focus:outline-none focus:ring-2 focus:ring-shopme-500 focus:ring-offset-2"
+          className="rounded-lg border border-transparent bg-green-600 py-2 px-4 text-sm font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
         >
           {isSaving ? "Saving..." : isNew ? "Create Service" : "Update Service"}
         </button>

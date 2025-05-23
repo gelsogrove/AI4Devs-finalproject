@@ -3,10 +3,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { AI_MODELS, AgentConfig as IAgentConfig } from '@/types/agentConfig';
+import { HelpCircle } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
 // Initial default agent configuration with a default prompt
@@ -46,6 +52,29 @@ CUSTOMER SERVICE GUIDELINES:
 - Handle complaints with genuine concern and provide practical solutions
 - When you don't know something, be honest and offer to find the information from our specialists
 
+FUNCTION CALLING CAPABILITIES:
+You have access to the following functions that you should call when appropriate:
+
+1. getProducts(category?, search?, countOnly?)
+   - Call this function when a user asks about products, wants to browse products, or asks for specific items.
+   - Use the 'category' parameter when a user wants products from a specific category (e.g., "Show me your cheeses").
+   - Use the 'search' parameter when a user is looking for specific products (e.g., "Do you have Parmigiano?").
+   - Set 'countOnly' to true when you only need to know if products exist or how many there are.
+   - Examples: "What pasta do you sell?", "Do you have any Tuscan olive oil?", "Show me your cheeses"
+
+2. getServices(isActive?, search?)
+   - Call this function when a user asks about services offered by the store.
+   - Use the 'search' parameter to find specific services.
+   - Examples: "What services do you offer?", "Do you provide catering?", "Tell me about your delivery service"
+
+3. getFAQs(category?, search?)
+   - Call this function when a user asks common questions about shipping, returns, or store policies.
+   - Use the 'category' parameter to filter FAQs by category.
+   - Use the 'search' parameter to find specific information.
+   - Examples: "What's your return policy?", "How long does shipping take?", "Do you ship internationally?"
+
+IMPORTANT: Always use these functions to retrieve accurate, up-to-date information rather than making assumptions about product availability or store policies. When a user asks about products, services, or common questions, call the appropriate function before responding.
+
 Remember: Be helpful, informative, and enthusiastic about Italian cuisine and culture. Create an experience that transports customers to Italy through your knowledge and passion. If you don't know an answer, be honest and suggest contacting our specialty food expert at support@gustoitaliano.com.
 
 Buon appetito!`;
@@ -55,9 +84,86 @@ const initialConfig: IAgentConfig = {
   temperature: 0.7,
   maxTokens: 500,
   topP: 0.9,
+  topK: 40,
   model: 'gpt-4-turbo',
   prompt: DEFAULT_PROMPT,
   updatedAt: new Date().toISOString()
+};
+
+// Help content for parameter explanations
+const helpContent = {
+  temperature: {
+    title: "Temperature",
+    content: (
+      <div className="space-y-2 max-h-[300px] overflow-y-auto">
+        <p><strong>Range:</strong> 0.0 to 1.0</p>
+        <p><strong>Default:</strong> 0.7</p>
+        <p><strong>What it does:</strong> Controls randomness in the AI's responses. Lower values make responses more focused and deterministic, while higher values make them more creative and diverse.</p>
+        <p className="font-semibold mt-2">Examples:</p>
+        <ul className="list-disc pl-5 space-y-1">
+          <li><strong>0.0:</strong> Very focused, almost deterministic responses. The model will consistently choose the most probable next token.</li>
+          <li><strong>0.3:</strong> Balanced and predictable, good for factual responses.</li>
+          <li><strong>0.7:</strong> Creative but still coherent, good for general conversation.</li>
+          <li><strong>1.0:</strong> Maximum randomness, can produce very creative but sometimes incoherent responses.</li>
+        </ul>
+        <p className="italic mt-2">Recommendation: Use lower values (0.1-0.4) for factual or technical tasks, and higher values (0.6-0.8) for creative or conversational tasks.</p>
+      </div>
+    )
+  },
+  topP: {
+    title: "Top P (Nucleus Sampling)",
+    content: (
+      <div className="space-y-2 max-h-[300px] overflow-y-auto">
+        <p><strong>Range:</strong> 0.0 to 1.0</p>
+        <p><strong>Default:</strong> 0.9</p>
+        <p><strong>What it does:</strong> Controls diversity by dynamically selecting from the smallest set of tokens whose cumulative probability exceeds the Top P value. Lower values make responses more focused, higher values allow more diversity.</p>
+        <p className="font-semibold mt-2">Examples:</p>
+        <ul className="list-disc pl-5 space-y-1">
+          <li><strong>0.1:</strong> Very focused on the most likely tokens only.</li>
+          <li><strong>0.5:</strong> Considers only the most probable 50% of options.</li>
+          <li><strong>0.9:</strong> Considers a wide range of options but excludes very unlikely tokens.</li>
+          <li><strong>1.0:</strong> Considers all possible tokens based on their probability.</li>
+        </ul>
+        <p className="italic mt-2">Recommendation: Works well with Temperature. For most use cases, a value between 0.7-0.9 provides good results. Lower values (0.3-0.5) for more factual responses.</p>
+      </div>
+    )
+  },
+  topK: {
+    title: "Top K",
+    content: (
+      <div className="space-y-2 max-h-[300px] overflow-y-auto">
+        <p><strong>Range:</strong> 1 to 100</p>
+        <p><strong>Default:</strong> 40</p>
+        <p><strong>What it does:</strong> Limits token selection to the K most likely next tokens. The model will only choose from these top K tokens when generating each word.</p>
+        <p className="font-semibold mt-2">Examples:</p>
+        <ul className="list-disc pl-5 space-y-1">
+          <li><strong>5:</strong> Very restrictive, only the 5 most likely tokens are considered.</li>
+          <li><strong>20:</strong> Moderately restrictive, good for focused responses.</li>
+          <li><strong>40:</strong> Balanced setting for most use cases.</li>
+          <li><strong>80:</strong> Allows for more diversity in responses.</li>
+        </ul>
+        <p className="italic mt-2">Recommendation: Use in conjunction with Top P. Lower values (10-30) for more predictable responses, higher values (40-60) for more variety while maintaining coherence.</p>
+      </div>
+    )
+  },
+  maxTokens: {
+    title: "Max Tokens",
+    content: (
+      <div className="space-y-2 max-h-[300px] overflow-y-auto">
+        <p><strong>Range:</strong> 1 to 4000+</p>
+        <p><strong>Default:</strong> 500</p>
+        <p><strong>What it does:</strong> Sets the maximum length of the AI's response in tokens (roughly 4 characters per token in English). This limits how long the response can be.</p>
+        <p className="font-semibold mt-2">Examples:</p>
+        <ul className="list-disc pl-5 space-y-1">
+          <li><strong>100:</strong> Very short responses, about 75 words.</li>
+          <li><strong>500:</strong> Medium-length responses, about 375 words.</li>
+          <li><strong>1000:</strong> Longer, detailed responses, about 750 words.</li>
+          <li><strong>2000+:</strong> Very detailed, comprehensive responses.</li>
+        </ul>
+        <p className="italic mt-2">Recommendation: Set based on your needs. For chat interactions, 500-1000 is usually sufficient. For longer content generation, use 1500+. Remember that higher values increase API costs.</p>
+      </div>
+    )
+  }
 };
 
 const AgentConfigPage: React.FC = () => {
@@ -110,7 +216,12 @@ const AgentConfigPage: React.FC = () => {
     });
   };
 
-  // Top Q removed as it's not in the database schema
+  const handleTopKChange = (value: number[]) => {
+    setConfig({
+      ...config,
+      topK: value[0]
+    });
+  };
 
   const handleMaxTokensChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value);
@@ -160,6 +271,15 @@ const AgentConfigPage: React.FC = () => {
       return;
     }
 
+    if (config.topK < 1 || config.topK > 100) {
+      toast({
+        title: "Validation Error",
+        description: "Top K must be between 1 and 100",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (config.maxTokens <= 0) {
       toast({
         title: "Validation Error",
@@ -186,6 +306,7 @@ const AgentConfigPage: React.FC = () => {
         temperature: config.temperature,
         maxTokens: config.maxTokens,
         topP: config.topP,
+        topK: config.topK,
         model: config.model,
         prompt: config.prompt || DEFAULT_PROMPT // Fallback to default if somehow still null
       };
@@ -279,8 +400,24 @@ const AgentConfigPage: React.FC = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-center">
                     <Label htmlFor="temperature">Temperature: {config.temperature.toFixed(1)}</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full p-0">
+                          <HelpCircle className="h-4 w-4" />
+                          <span className="sr-only">Temperature info</span>
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80">
+                        <div className="space-y-2">
+                          <h4 className="font-medium leading-none">{helpContent.temperature.title}</h4>
+                          <div className="text-sm">
+                            {helpContent.temperature.content}
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   <Input
                     type="range"
@@ -299,8 +436,24 @@ const AgentConfigPage: React.FC = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-center">
                     <Label htmlFor="top-p">Top P: {config.topP.toFixed(1)}</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full p-0">
+                          <HelpCircle className="h-4 w-4" />
+                          <span className="sr-only">Top P info</span>
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80">
+                        <div className="space-y-2">
+                          <h4 className="font-medium leading-none">{helpContent.topP.title}</h4>
+                          <div className="text-sm">
+                            {helpContent.topP.content}
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   <Input
                     type="range"
@@ -318,7 +471,60 @@ const AgentConfigPage: React.FC = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="max-tokens">Max Tokens</Label>
+                  <div className="flex justify-between items-center">
+                    <Label htmlFor="top-k">Top K: {config.topK}</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full p-0">
+                          <HelpCircle className="h-4 w-4" />
+                          <span className="sr-only">Top K info</span>
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80">
+                        <div className="space-y-2">
+                          <h4 className="font-medium leading-none">{helpContent.topK.title}</h4>
+                          <div className="text-sm">
+                            {helpContent.topK.content}
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <Input
+                    type="range"
+                    id="topK"
+                    name="topK"
+                    min={1}
+                    max={100}
+                    step={1}
+                    value={config.topK}
+                    onChange={(e) => handleTopKChange([parseInt(e.target.value)])}
+                  />
+                  <p className="text-xs text-gray-500">
+                    Only consider the top K tokens with the highest probabilities.
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <Label htmlFor="max-tokens">Max Tokens</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full p-0">
+                          <HelpCircle className="h-4 w-4" />
+                          <span className="sr-only">Max Tokens info</span>
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80">
+                        <div className="space-y-2">
+                          <h4 className="font-medium leading-none">{helpContent.maxTokens.title}</h4>
+                          <div className="text-sm">
+                            {helpContent.maxTokens.content}
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                   <Input
                     id="maxTokens"
                     name="maxTokens"

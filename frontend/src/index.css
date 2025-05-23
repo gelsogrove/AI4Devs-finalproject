@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -47,16 +46,16 @@
     --popover-foreground: 210 40% 98%;
 
     --primary: 160 84% 39%;
-    --primary-foreground: 0 0% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
 
     --secondary: 160 92% 30%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary-foreground: 210 40% 98%;
 
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
 
     --accent: 160 84% 39%;
-    --accent-foreground: 0 0% 98%;
+    --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
@@ -96,10 +95,124 @@
   }
 
   .chat-bubble-user {
-    @apply bg-shopme-500 text-white rounded-2xl rounded-br-none px-4 py-2 max-w-[80%] self-end;
+    @apply bg-primary text-white p-3 rounded-lg rounded-tr-none max-w-[80%] shadow-sm;
   }
 
   .chat-bubble-bot {
-    @apply bg-gray-100 text-gray-800 rounded-2xl rounded-bl-none px-4 py-2 max-w-[80%] self-start;
+    @apply bg-gray-100 text-gray-800 p-3 rounded-lg rounded-tl-none max-w-[80%] shadow-sm;
   }
+  
+  /* Markdown styling for chat messages */
+  .chat-bubble-bot h1 {
+    @apply text-xl font-bold border-b border-gray-200 pb-1 mb-2;
+    color: #1a5653;
+  }
+  
+  .chat-bubble-bot h2 {
+    @apply text-lg font-semibold mt-3 mb-1;
+    color: #1a5653;
+  }
+  
+  .chat-bubble-bot strong {
+    @apply font-semibold;
+    color: #1a5653;
+  }
+  
+  .chat-bubble-bot ul {
+    @apply pl-5 my-2;
+  }
+  
+  .chat-bubble-bot ol {
+    @apply pl-5 my-2;
+  }
+  
+  .chat-bubble-bot li {
+    @apply mb-1;
+  }
+  
+  /* Emoji styling */
+  .chat-bubble-bot span[role="img"] {
+    @apply text-lg;
+  }
+  
+  /* Image styles in chat */
+  .chat-image {
+    @apply rounded-md overflow-hidden border border-gray-200 bg-white;
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto 0.75rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .chat-image img {
+    @apply w-full h-auto object-cover;
+    max-height: 200px;
+    display: block;
+    background-color: #f7f7f7;
+    background-image: linear-gradient(90deg, #f0f0f0 0px, #f8f8f8 40px, #f0f0f0 80px);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+  
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+  
+  .chat-image[data-status="loaded"] img {
+    background: none;
+    animation: none;
+  }
+  
+  .chat-image[data-status="error"] {
+    border-color: #ffcdd2;
+  }
+  
+  .chat-image-caption {
+    @apply text-xs text-center py-1 px-2 bg-gray-50 text-gray-700 border-t border-gray-200;
+    font-style: italic;
+  }
+  
+  .chat-image {
+    position: relative;
+  }
+  
+  .chat-image::before {
+    content: attr(data-status);
+    position: absolute;
+    top: 0;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    font-size: 10px;
+    padding: 2px 4px;
+    z-index: 10;
+    display: none;
+  }
+  
+  .chat-bubble-bot .chat-image img {
+    display: block;
+    min-height: 100px;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }

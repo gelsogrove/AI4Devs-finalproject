@@ -1,4 +1,4 @@
-import { Edit, Plus, Search, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
+import { Edit, Plus, Search, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { faqApi } from "../api/faqApi";
 import { FAQForm } from "../components/faqs/FAQForm";
@@ -52,15 +52,6 @@ export default function FAQs() {
     setCurrentPage(1);
   };
 
-  // Handle status filter
-  const handleStatusFilter = (status: string | null) => {
-    setFilters((prev) => ({
-      ...prev,
-      isPublished: status === null ? undefined : status === 'published',
-    }));
-    setCurrentPage(1);
-  };
-
   // Handle FAQ edit
   const handleEditFAQ = (faqId: string) => {
     setSelectedFAQId(faqId);
@@ -85,19 +76,6 @@ export default function FAQs() {
         console.error("Failed to delete FAQ", err);
         alert("Failed to delete FAQ. Please try again later.");
       }
-    }
-  };
-
-  // Handle toggle FAQ publication status
-  const handleToggleStatus = async (faqId: string) => {
-    try {
-      await faqApi.toggleFAQStatus(faqId);
-      // Refresh FAQ list
-      const result = await faqApi.getFAQs(filters, currentPage, 10);
-      setFaqs(result.data);
-    } catch (err) {
-      console.error("Failed to toggle FAQ status", err);
-      alert("Failed to update FAQ status. Please try again later.");
     }
   };
 
@@ -172,28 +150,6 @@ export default function FAQs() {
               ))}
             </select>
           </div>
-
-          <div className="w-full md:w-64">
-            <select
-              value={
-                filters.isPublished === undefined
-                  ? ""
-                  : filters.isPublished
-                  ? "published"
-                  : "unpublished"
-              }
-              onChange={(e) =>
-                handleStatusFilter(
-                  e.target.value === "" ? null : e.target.value
-                )
-              }
-              className="w-full border rounded-lg p-2 focus:ring-green-500 focus:border-green-500"
-            >
-              <option value="">All Status</option>
-              <option value="published">Published</option>
-              <option value="unpublished">Unpublished</option>
-            </select>
-          </div>
         </div>
       </div>
 
@@ -232,12 +188,6 @@ export default function FAQs() {
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Status
-                </th>
-                <th
-                  scope="col"
                   className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
                   Actions
@@ -262,40 +212,12 @@ export default function FAQs() {
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        faq.isPublished
-                          ? "bg-green-100 text-green-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {faq.isPublished ? "Published" : "Unpublished"}
-                    </span>
-                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button
                       onClick={() => handleEditFAQ(faq.id)}
                       className="text-indigo-600 hover:text-indigo-900 mr-4"
                     >
                       <Edit className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => handleToggleStatus(faq.id)}
-                      className={`mr-4 ${
-                        faq.isPublished
-                          ? "text-yellow-600 hover:text-yellow-900"
-                          : "text-green-600 hover:text-green-900"
-                      }`}
-                      title={
-                        faq.isPublished ? "Unpublish FAQ" : "Publish FAQ"
-                      }
-                    >
-                      {faq.isPublished ? (
-                        <ToggleRight className="h-4 w-4" />
-                      ) : (
-                        <ToggleLeft className="h-4 w-4" />
-                      )}
                     </button>
                     <button
                       onClick={() => handleDeleteFAQ(faq.id)}

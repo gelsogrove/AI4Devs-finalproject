@@ -11,10 +11,7 @@ class ServiceService {
   async createService(serviceData: CreateServiceDto) {
     try {
       const service = await prisma.service.create({
-        data: {
-          ...serviceData,
-          isActive: serviceData.isActive !== undefined ? serviceData.isActive : true,
-        },
+        data: serviceData,
       });
       return service;
     } catch (error) {
@@ -26,44 +23,33 @@ class ServiceService {
   /**
    * Get all services with optional filters
    */
-  async getServices(filters?: ServiceFilters, page = 1, limit = 10) {
+  async getServices(filters?: ServiceFilters) {
     try {
       const where: any = {};
-      
-      // Apply published status filter if provided
-      if (filters?.isActive !== undefined) {
-        where.isActive = filters.isActive;
-      }
       
       // Apply search filter if provided
       if (filters?.search) {
         where.OR = [
           { name: { contains: filters.search, mode: 'insensitive' } },
           { description: { contains: filters.search, mode: 'insensitive' } },
+          // Search in tags
+          { tags: { has: filters.search } }
         ];
       }
       
-      // Calculate pagination
-      const skip = (page - 1) * limit;
-      
-      // Get services with pagination
-      const [services, total] = await Promise.all([
-        prisma.service.findMany({
-          where,
-          skip,
-          take: limit,
-          orderBy: { createdAt: 'desc' },
-        }),
-        prisma.service.count({ where }),
-      ]);
+      // Get all services
+      const services = await prisma.service.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+      });
       
       return {
         data: services,
         pagination: {
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit),
+          page: 1,
+          limit: services.length,
+          total: services.length,
+          totalPages: 1,
         },
       };
     } catch (error) {
@@ -73,19 +59,18 @@ class ServiceService {
   }
 
   /**
-   * Get active services (isActive = true)
+   * Get all services
    */
-  async getActiveServices() {
+  async getAllServices() {
     try {
       const services = await prisma.service.findMany({
-        where: { isActive: true },
         orderBy: { createdAt: 'desc' },
       });
       
       return services;
     } catch (error) {
-      logger.error('Error getting active services:', error);
-      throw new Error('Failed to get active services');
+      logger.error('Error getting all services:', error);
+      throw new Error('Failed to get services');
     }
   }
 

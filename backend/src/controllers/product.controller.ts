@@ -7,7 +7,7 @@ import logger from '../utils/logger';
 const createProductSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters'),
   description: z.string().min(10, 'Description must be at least 10 characters'),
-  price: z.number().positive('Price must be positive'),
+  price: z.coerce.number().positive('Price must be positive'),
   imageUrl: z.string().url('Image URL must be a valid URL'),
   category: z.string().min(2, 'Category must be at least 2 characters'),
 });
@@ -15,7 +15,7 @@ const createProductSchema = z.object({
 const updateProductSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters').optional(),
   description: z.string().min(10, 'Description must be at least 10 characters').optional(),
-  price: z.number().positive('Price must be positive').optional(),
+  price: z.coerce.number().positive('Price must be positive').optional(),
   imageUrl: z.string().url('Image URL must be a valid URL').optional(),
   category: z.string().min(2, 'Category must be at least 2 characters').optional(),
 }).refine(data => Object.keys(data).length > 0, {

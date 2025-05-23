@@ -3,7 +3,6 @@ export interface FAQ {
   question: string;
   answer: string;
   category?: string;
-  isPublished: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -12,25 +11,21 @@ export interface FAQFormData {
   question: string;
   answer: string;
   category?: string;
-  isPublished: boolean;
 }
 
 export interface CreateFAQDto {
   question: string;
   answer: string;
   category?: string;
-  isPublished?: boolean;
 }
 
 export interface UpdateFAQDto {
   question?: string;
   answer?: string;
   category?: string;
-  isPublished?: boolean;
 }
 
 export interface FAQFilters {
   category?: string;
-  isPublished?: boolean;
   search?: string;
 }

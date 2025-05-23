@@ -37,4 +37,5 @@ alwaysApply: false
 * If introducing a new pattern to replace an old one, remove the old implementation
 * Never name files "improved-something" or "refactored-something"
 * Never run git push 
+* comments inside the code must be in English
 

@@ -6,7 +6,7 @@ const router = Router();
 
 router.get('/', serviceController.getServices.bind(serviceController));
 
-router.get('/active', serviceController.getActiveServices.bind(serviceController));
+router.get('/all', serviceController.getAllServices.bind(serviceController));
 
 router.get('/:id', serviceController.getServiceById.bind(serviceController));
 

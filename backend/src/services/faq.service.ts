@@ -11,10 +11,7 @@ class FAQService {
   async createFAQ(faqData: CreateFAQDto) {
     try {
       const faq = await prisma.fAQ.create({
-        data: {
-          ...faqData,
-          isPublished: faqData.isPublished !== undefined ? faqData.isPublished : true,
-        },
+        data: faqData,
       });
       return faq;
     } catch (error) {
@@ -33,11 +30,6 @@ class FAQService {
       // Apply category filter if provided
       if (filters?.category) {
         where.category = filters.category;
-      }
-      
-      // Apply published status filter if provided
-      if (filters?.isPublished !== undefined) {
-        where.isPublished = filters.isPublished;
       }
       
       // Apply search filter if provided
@@ -78,11 +70,11 @@ class FAQService {
   }
 
   /**
-   * Get public FAQs (isPublished = true) with optional category filter
+   * Get all FAQs with optional category filter
    */
-  async getPublicFAQs(category?: string) {
+  async getAllFAQs(category?: string) {
     try {
-      const where: any = { isPublished: true };
+      const where: any = {};
       
       if (category) {
         where.category = category;
@@ -95,8 +87,8 @@ class FAQService {
       
       return faqs;
     } catch (error) {
-      logger.error('Error getting public FAQs:', error);
-      throw new Error('Failed to get public FAQs');
+      logger.error('Error getting all FAQs:', error);
+      throw new Error('Failed to get FAQs');
     }
   }
 
@@ -179,36 +171,6 @@ class FAQService {
         throw error;
       }
       throw new Error('Failed to delete FAQ');
-    }
-  }
-  
-  /**
-   * Toggle FAQ publication status
-   */
-  async toggleFAQStatus(id: string) {
-    try {
-      // Get current FAQ
-      const faq = await prisma.fAQ.findUnique({
-        where: { id },
-      });
-      
-      if (!faq) {
-        throw new Error('FAQ not found');
-      }
-      
-      // Update with opposite status
-      const updatedFAQ = await prisma.fAQ.update({
-        where: { id },
-        data: { isPublished: !faq.isPublished },
-      });
-      
-      return updatedFAQ;
-    } catch (error) {
-      logger.error(`Error toggling FAQ status with ID ${id}:`, error);
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('Failed to toggle FAQ status');
     }
   }
   

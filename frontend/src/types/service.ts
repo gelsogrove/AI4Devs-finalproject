@@ -3,26 +3,26 @@ export interface Service {
   name: string;
   description: string;
   price: number;
-  isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  tags: string[];
 }
 
 export interface CreateServiceDto {
   name: string;
   description: string;
   price: number;
-  isActive?: boolean;
+  tags: string[];
 }
 
 export interface UpdateServiceDto {
   name?: string;
   description?: string;
   price?: number;
-  isActive?: boolean;
+  tags?: string[];
 }
 
 export interface ServiceFilters {
-  isActive?: boolean;
   search?: string;
+  tags?: string[];
 } 

@@ -3,3 +3,49 @@ description:
 globs:
 alwaysApply: false
 ---
+# Development Workflow
+
+## Environment Setup
+1. Frontend:
+   - Run with `npm run dev` in frontend directory
+   - Available on ports 3000-3003 (auto-selected)
+   - Use Vite for development server
+
+2. Backend:
+   - Follow environment configuration in .env
+   - Use Prisma for database operations
+   - Implement DDD architecture
+
+## Tools Usage
+1. MCP (Model Code Processor):
+   - Use for code error detection
+   - Apply for code optimization
+   - Follow suggested improvements
+
+2. AI Assistance:
+   - Use Cursor AI for development support
+   - Follow English-only communication
+   - Stay within technical context
+   - Don't execute terminal commands automatically
+
+## Documentation
+1. PDR.md:
+   - Must be in English
+   - Keep updated with project requirements
+   - Document all major decisions
+
+2. Task Management:
+   - Update task-list.md regularly
+   - Track progress and priorities
+   - Add/modify tasks as needed
+
+## Quality Assurance
+1. Code Review:
+   - Follow coding standards
+   - Check for proper error handling
+   - Ensure documentation is updated
+
+2. Testing:
+   - Write unit tests for new features
+   - Ensure all tests pass before updates
+   - Document test cases and scenarios
