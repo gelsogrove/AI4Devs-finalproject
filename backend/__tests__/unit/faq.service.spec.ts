@@ -159,14 +159,14 @@ describe('FAQ Service', () => {
     });
   });
   
-  describe('getPublicFAQs', () => {
-    it('should return only published FAQs', async () => {
+  describe('getAllFAQs', () => {
+    it('should return all FAQs', async () => {
       (prisma.fAQ.findMany as jest.Mock).mockResolvedValue([mockFAQ]);
       
-      const result = await faqService.getPublicFAQs();
+      const result = await faqService.getAllFAQs();
       
       expect(prisma.fAQ.findMany).toHaveBeenCalledWith({
-        where: { isPublished: true },
+        where: {},
         orderBy: { createdAt: 'desc' },
       });
       
@@ -176,10 +176,10 @@ describe('FAQ Service', () => {
     it('should filter by category if provided', async () => {
       (prisma.fAQ.findMany as jest.Mock).mockResolvedValue([mockFAQ]);
       
-      await faqService.getPublicFAQs('General');
+      await faqService.getAllFAQs('General');
       
       expect(prisma.fAQ.findMany).toHaveBeenCalledWith({
-        where: { isPublished: true, category: 'General' },
+        where: { category: 'General' },
         orderBy: { createdAt: 'desc' },
       });
     });
@@ -266,57 +266,6 @@ describe('FAQ Service', () => {
       
       await expect(faqService.deleteFAQ('999')).rejects.toThrow('FAQ not found');
       expect(prisma.fAQ.delete).not.toHaveBeenCalled();
-    });
-  });
-  
-  describe('toggleFAQStatus', () => {
-    it('should toggle isPublished from true to false', async () => {
-      (prisma.fAQ.findUnique as jest.Mock).mockResolvedValue(mockFAQ); // isPublished: true
-      (prisma.fAQ.update as jest.Mock).mockResolvedValue({
-        ...mockFAQ,
-        isPublished: false,
-      });
-      
-      const result = await faqService.toggleFAQStatus('123');
-      
-      expect(prisma.fAQ.findUnique).toHaveBeenCalledWith({
-        where: { id: '123' },
-      });
-      
-      expect(prisma.fAQ.update).toHaveBeenCalledWith({
-        where: { id: '123' },
-        data: { isPublished: false },
-      });
-      
-      expect(result.isPublished).toBe(false);
-    });
-    
-    it('should toggle isPublished from false to true', async () => {
-      (prisma.fAQ.findUnique as jest.Mock).mockResolvedValue({
-        ...mockFAQ,
-        isPublished: false,
-      });
-      
-      (prisma.fAQ.update as jest.Mock).mockResolvedValue({
-        ...mockFAQ,
-        isPublished: true,
-      });
-      
-      const result = await faqService.toggleFAQStatus('123');
-      
-      expect(prisma.fAQ.update).toHaveBeenCalledWith({
-        where: { id: '123' },
-        data: { isPublished: true },
-      });
-      
-      expect(result.isPublished).toBe(true);
-    });
-    
-    it('should throw an error when FAQ not found', async () => {
-      (prisma.fAQ.findUnique as jest.Mock).mockResolvedValue(null);
-      
-      await expect(faqService.toggleFAQStatus('999')).rejects.toThrow('FAQ not found');
-      expect(prisma.fAQ.update).not.toHaveBeenCalled();
     });
   });
   

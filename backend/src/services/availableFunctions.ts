@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { FAQFilters, ProductFilters, ServiceFilters } from '../domain';
 import logger from '../utils/logger';
+import embeddingService from './embedding.service';
 
 const prisma = new PrismaClient();
 
@@ -268,72 +269,59 @@ export const availableFunctions = {
    */
   getFAQs: async (filters: FAQFilters) => {
     try {
-      const { category, search, tags } = filters;
-      
-      // Base query conditions
-      const where: any = {};
-      
-      // Add category filter if provided
-      if (category) {
-        where.category = {
-          contains: category,
-          mode: 'insensitive'
-        };
-      }
-      
-      // Add tags filter if provided
-      if (tags && tags.length > 0) {
-        // Filter FAQs that have at least one of the provided tags
-        where.tags = {
-          hasSome: tags
-        };
-      }
-      
-      // Add search filter if provided
+      const { search, category } = filters;
+
       if (search) {
-        // Split search into keywords for better matching
-        const rawKeywords = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
-        
-        // Filter out stop words
-        const keywords = rawKeywords.filter(word => !stopWords.includes(word));
-        
-        // If all words were stop words, use the original keywords
-        const searchTerms = keywords.length > 0 ? keywords : rawKeywords;
-        
-        if (searchTerms.length > 0) {
-          // Create OR conditions for each keyword
-          where.OR = searchTerms.flatMap(keyword => [
-            // Contains in question - high priority
-            {
-              question: {
-                contains: keyword,
-                mode: 'insensitive'
-              }
-            },
-            // Contains in answer - medium priority
-            {
-              answer: {
-                contains: keyword,
-                mode: 'insensitive'
-              }
-            },
-            // Contains in category - lower priority
-            {
-              category: {
-                contains: keyword,
-                mode: 'insensitive'
-              }
-            },
-            // Check if any tag contains the keyword - high priority
-            {
-              tags: {
-                has: keyword
-              }
-            }
-          ]);
+        try {
+          // Use embedding search if search term is provided
+          const faqs = await embeddingService.searchFAQs(search);
+          
+          // Apply category filter if provided
+          const filteredFaqs = category
+            ? faqs.filter(faq => faq.category === category)
+            : faqs;
+
+          return {
+            total: filteredFaqs.length,
+            faqs: filteredFaqs.map(faq => ({
+              id: faq.id,
+              question: faq.question,
+              answer: faq.answer,
+              category: faq.category || '',
+              tags: Array.isArray(faq.tags) ? faq.tags : [] // Ensure tags is always an array
+            }))
+          };
+        } catch (embeddingError) {
+          // Log error and fall back to regular search
+          logger.error('Embedding search failed, falling back to text search:', embeddingError);
+          
+          // Continue with regular search below
         }
       }
+
+      // If no search term or embedding search failed, use regular filtering
+      const where: any = {};
       
+      if (category) {
+        where.category = category;
+      }
+      
+      // Add text search if search term is provided
+      if (search) {
+        where.OR = [
+          {
+            question: {
+              contains: search
+            }
+          },
+          {
+            answer: {
+              contains: search
+            }
+          }
+        ];
+      }
+
       const faqs = await prisma.fAQ.findMany({
         where,
         orderBy: {
@@ -348,7 +336,7 @@ export const availableFunctions = {
           question: faq.question,
           answer: faq.answer,
           category: faq.category || '',
-          tags: (faq as any).tags || []
+          tags: JSON.parse(faq.tagsJson || '[]')
         }))
       };
     } catch (error) {

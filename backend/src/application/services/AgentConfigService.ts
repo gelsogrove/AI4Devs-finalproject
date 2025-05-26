@@ -45,6 +45,9 @@ Per informazioni sui prodotti, usa la funzione getProducts con queste regole:
 Per informazioni sui servizi:
 Usa sempre la funzione getServices.
 
+Per informazioni su domande frequenti:
+Usa sempre la funzione getFAQs.
+
 FORMATO DELLE RISPOSTE:
 1. Per le liste di prodotti:
    - Inizia con un'introduzione generale "Ecco i [tipo prodotto] che abbiamo disponibili!"
@@ -58,10 +61,6 @@ FORMATO DELLE RISPOSTE:
    - Fornisci informazioni sull'origine: "Origine: [Regione/Paese]"
    - Includi descrizione dettagliata con note di degustazione
    - Suggerisci abbinamenti o idee di utilizzo
-
-3. Elementi visivi:
-   - Includi sempre immagini quando disponibili
-   - Aggiungi didascalie appropriate alle immagini
 
 Conosci sia l'italiano che l'inglese. Rispondi nella stessa lingua usata dall'utente. Le tue risposte devono essere accurate, ben formattate e riflettere la qualità dei nostri prodotti italiani di specialità.`
       };

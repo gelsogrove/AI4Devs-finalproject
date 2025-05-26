@@ -3,6 +3,7 @@ import { CreateFAQDto, FAQ, FAQFilters, UpdateFAQDto } from '../types/faq';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 const FAQS_ENDPOINT = API_URL ? `${API_URL}/api/faqs` : '/api/faqs';
+const EMBEDDINGS_ENDPOINT = API_URL ? `${API_URL}/api/embeddings` : '/api/embeddings';
 
 // Get authentication token from localStorage
 const getAuthHeader = () => {
@@ -72,4 +73,25 @@ export const faqApi = {
     const response = await axios.get(`${FAQS_ENDPOINT}/categories`, getAuthHeader());
     return response.data as string[];
   },
+  
+  // Generate embeddings for a specific FAQ
+  async generateEmbeddingsForFAQ(faqId: string) {
+    const response = await axios.post(`${FAQS_ENDPOINT}/embeddings/${faqId}`, {}, getAuthHeader());
+    return response.data;
+  },
+  
+  // Generate embeddings for all FAQs
+  async generateEmbeddingsForAllFAQs() {
+    const response = await axios.post(`${FAQS_ENDPOINT}/embeddings`, {}, getAuthHeader());
+    return response.data;
+  },
+  
+  // Search FAQs using semantic similarity
+  async searchFAQSemanticly(query: string) {
+    const queryParams = new URLSearchParams();
+    queryParams.append('query', query);
+    
+    const response = await axios.get(`${EMBEDDINGS_ENDPOINT}/faqs/search?${queryParams.toString()}`);
+    return response.data as FAQ[];
+  }
 }; 

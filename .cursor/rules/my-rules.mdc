@@ -38,4 +38,9 @@ alwaysApply: false
 * Never name files "improved-something" or "refactored-something"
 * Never run git push 
 * comments inside the code must be in English
+# DO NOT TOUCH the .env files 
+# FE must be on port 3000
+# BE must be in port 3001
+
+
 

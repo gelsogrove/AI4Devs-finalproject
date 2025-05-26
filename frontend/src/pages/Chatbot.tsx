@@ -1,4 +1,4 @@
-import { chatApi } from '@/api/chatApi';
+import { chatApi, ChatApiResponse } from '@/api/chatApi';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -45,14 +45,81 @@ const Chatbot: React.FC = () => {
     
     try {
       // Call the real chat API
-      const botMessage = await chatApi.sendMessage({
-        messages: [...messages, userMessage],
+      const validRoles = ['user', 'assistant', 'system', 'function', 'tool'];
+      
+      // Format messages for the API - ensure all required fields are preserved
+      const formattedMessages = [...messages, userMessage].map(msg => {
+        // Base message
+        const formattedMsg: any = {
+          role: msg.role,
+          content: msg.content
+        };
+        
+        // Add optional fields if present
+        if (msg.imageUrl) formattedMsg.imageUrl = msg.imageUrl;
+        if (msg.imageCaption) formattedMsg.imageCaption = msg.imageCaption;
+        if (msg.name) formattedMsg.name = msg.name;
+        if (msg.function_call) formattedMsg.function_call = msg.function_call;
+        if (msg.tool_calls) formattedMsg.tool_calls = msg.tool_calls;
+        if (msg.tool_call_id) formattedMsg.tool_call_id = msg.tool_call_id;
+        
+        return formattedMsg;
       });
       
-      // Debug log for the response
-      console.log('Received bot message:', botMessage);
+      // Filter out any messages with invalid roles
+      const filteredMessages = formattedMessages.filter(msg => validRoles.includes(msg.role));
       
-      setMessages(prev => [...prev, botMessage]);
+      // Log any invalid messages that are being filtered out
+      formattedMessages.forEach((msg, i) => {
+        if (!validRoles.includes(msg.role)) {
+          console.warn(`Message at index ${i} has invalid role and will be filtered:`, msg);
+        }
+      });
+      
+      const response: ChatApiResponse = await chatApi.sendMessage({
+        messages: filteredMessages,
+      });
+      
+      // Debug log per la risposta
+      console.log('Received API response:', response);
+      
+      // La risposta dell'API è un oggetto con proprietà 'message'
+      // Estrai il messaggio correttamente e aggiungi i campi necessari
+      let assistantMessage: ChatMessage;
+      
+      if (response && response.message) {
+        // Risposta in formato {message: {...}}
+        assistantMessage = {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: response.message.content || 'Sorry, I could not generate a response.',
+          timestamp: new Date().toISOString(),
+          // Copia altri campi se presenti
+          ...(response.message.function_call && { function_call: response.message.function_call }),
+          ...(response.message.tool_calls && { tool_calls: response.message.tool_calls }),
+          ...(response.message.tool_call_id && { tool_call_id: response.message.tool_call_id }),
+          ...(response.message.name && { name: response.message.name }),
+        };
+      } else {
+        // Fallback se la risposta è in formato non previsto
+        assistantMessage = {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: 'Sorry, I could not generate a response.',
+          timestamp: new Date().toISOString(),
+        };
+      }
+      
+      // Debug log per il messaggio estratto
+      console.log('Formatted assistant message:', assistantMessage);
+      
+      // Ensure the message has a content property
+      if (!assistantMessage.content) {
+        console.warn('Bot message is missing content property:', assistantMessage);
+        assistantMessage.content = 'Sorry, I could not generate a response.';
+      }
+      
+      setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Error getting chatbot response:', error);
       
@@ -151,8 +218,14 @@ const Chatbot: React.FC = () => {
                           </div>
                         )}
                         
+                        {/* Check for missing content */}
+                        {!message.content && (() => { 
+                          console.warn(`Message ${message.id} is missing content property`, message);
+                          return null;
+                        })()}
+                        
                         {/* Display text content */}
-                        {message.content.split('\n').map((line, i) => {
+                        {(message.content ?? '').split('\n').map((line, i) => {
                           // Check for markdown headers
                           if (line.startsWith('# ')) {
                             return (

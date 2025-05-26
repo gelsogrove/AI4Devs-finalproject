@@ -27,16 +27,6 @@ export const responsePatterns: ResponsePattern[] = [
     }
   },
   {
-    // Cheese query
-    matches: (text: string) => 
-      text.includes('formaggi') || 
-      text.includes('cheese'),
-    response: {
-      role: 'assistant',
-      content: `Sì, abbiamo dei formaggi italiani: Parmigiano Reggiano, Pecorino Romano.`
-    }
-  },
-  {
     // Product count query
     matches: (text: string) => 
       text.includes('quanti prodotti') || 

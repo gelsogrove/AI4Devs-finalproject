@@ -11,23 +11,34 @@ model Product {
   id          String   @id @default(uuid())
   name        String
   description String
-  price       Decimal  @db.Decimal(10, 2)
+  price       Decimal
   imageUrl    String
   category    String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   stock       Int      @default(0)
-  tags        String[]
+  tagsJson    String   @default("[]")
 }
 
 model FAQ {
-  id        String   @id @default(uuid())
+  id        String     @id @default(uuid())
   question  String
   answer    String
   category  String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  tagsJson  String     @default("[]")
+  chunks    FAQChunk[]
+}
+
+model FAQChunk {
+  id        String   @id @default(uuid())
+  content   String
+  faqId     String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  tags      String[] @default([])
+  embedding String?
+  faq       FAQ      @relation(fields: [faqId], references: [id], onDelete: Cascade)
 }
 
 model AgentConfig {
@@ -57,9 +68,9 @@ model Service {
   id          String   @id @default(uuid())
   name        String
   description String
-  price       Decimal  @db.Decimal(10, 2)
+  price       Decimal
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  tags        String[] @default([])
+  tagsJson    String   @default("[]")
   isActive    Boolean  @default(true)
 }

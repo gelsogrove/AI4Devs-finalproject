@@ -288,16 +288,6 @@ export default function Services() {
                         </div>
                       )}
                     </div>
-                    
-                    {service.tags && service.tags.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-1">
-                        {service.tags.map(tag => (
-                          <Badge key={tag} variant="outline" className="text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">

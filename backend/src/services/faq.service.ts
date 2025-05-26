@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { CreateFAQDto, FAQFilters, UpdateFAQDto } from '../domain';
 import logger from '../utils/logger';
+import embeddingService from './embedding.service';
 
 const prisma = new PrismaClient();
 
@@ -10,10 +11,24 @@ class FAQService {
    */
   async createFAQ(faqData: CreateFAQDto) {
     try {
+      // Convert tags array to JSON string
+      const dataToSave = {
+        ...faqData,
+        tagsJson: faqData.tags ? JSON.stringify(faqData.tags) : '[]'
+      };
+      
+      // Remove tags field
+      delete (dataToSave as any).tags;
+      
       const faq = await prisma.fAQ.create({
-        data: faqData,
+        data: dataToSave,
       });
-      return faq;
+      
+      // Add tags to the result
+      return {
+        ...faq,
+        tags: JSON.parse(faq.tagsJson || '[]')
+      };
     } catch (error) {
       logger.error('Error creating FAQ:', error);
       throw new Error('Failed to create FAQ');
@@ -25,19 +40,39 @@ class FAQService {
    */
   async getFAQs(filters?: FAQFilters, page = 1, limit = 10) {
     try {
+      // Use embedding search if search term is provided
+      if (filters?.search) {
+        const searchTerm = filters.search;
+        const category = filters.category;
+        
+        // Get FAQs using embedding search
+        const faqs = await embeddingService.searchFAQs(searchTerm);
+        
+        // Filter by category if needed
+        const filteredFaqs = category
+          ? faqs.filter(faq => faq.category === category)
+          : faqs;
+        
+        // Apply pagination
+        const paginatedFaqs = filteredFaqs.slice((page - 1) * limit, page * limit);
+        
+        return {
+          data: paginatedFaqs,
+          pagination: {
+            page,
+            limit,
+            total: filteredFaqs.length,
+            totalPages: Math.ceil(filteredFaqs.length / limit),
+          },
+        };
+      }
+      
+      // Standard search without embedding
       const where: any = {};
       
       // Apply category filter if provided
       if (filters?.category) {
         where.category = filters.category;
-      }
-      
-      // Apply search filter if provided
-      if (filters?.search) {
-        where.OR = [
-          { question: { contains: filters.search, mode: 'insensitive' } },
-          { answer: { contains: filters.search, mode: 'insensitive' } },
-        ];
       }
       
       // Calculate pagination
@@ -54,8 +89,14 @@ class FAQService {
         prisma.fAQ.count({ where }),
       ]);
       
+      // Add tags to each FAQ
+      const faqsWithTags = faqs.map(faq => ({
+        ...faq,
+        tags: JSON.parse(faq.tagsJson || '[]')
+      }));
+      
       return {
-        data: faqs,
+        data: faqsWithTags,
         pagination: {
           page,
           limit,
@@ -85,7 +126,11 @@ class FAQService {
         orderBy: { createdAt: 'desc' },
       });
       
-      return faqs;
+      // Add tags to each FAQ
+      return faqs.map(faq => ({
+        ...faq,
+        tags: JSON.parse(faq.tagsJson || '[]')
+      }));
     } catch (error) {
       logger.error('Error getting all FAQs:', error);
       throw new Error('Failed to get FAQs');
@@ -105,7 +150,11 @@ class FAQService {
         throw new Error('FAQ not found');
       }
       
-      return faq;
+      // Add tags to the result
+      return {
+        ...faq,
+        tags: JSON.parse(faq.tagsJson || '[]')
+      };
     } catch (error) {
       logger.error(`Error getting FAQ with ID ${id}:`, error);
       if (error instanceof Error) {
@@ -129,13 +178,26 @@ class FAQService {
         throw new Error('FAQ not found');
       }
       
+      // Prepare data for update
+      const dataToUpdate = { ...faqData };
+      
+      // Convert tags array to JSON string if provided
+      if (faqData.tags) {
+        (dataToUpdate as any).tagsJson = JSON.stringify(faqData.tags);
+        delete dataToUpdate.tags;
+      }
+      
       // Update the FAQ
       const updatedFAQ = await prisma.fAQ.update({
         where: { id },
-        data: faqData,
+        data: dataToUpdate,
       });
       
-      return updatedFAQ;
+      // Add tags to the result
+      return {
+        ...updatedFAQ,
+        tags: JSON.parse(updatedFAQ.tagsJson || '[]')
+      };
     } catch (error) {
       logger.error(`Error updating FAQ with ID ${id}:`, error);
       if (error instanceof Error) {

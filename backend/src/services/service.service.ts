@@ -10,10 +10,24 @@ class ServiceService {
    */
   async createService(serviceData: CreateServiceDto) {
     try {
+      // Convert tags array to JSON string
+      const dataToSave = {
+        ...serviceData,
+        tagsJson: serviceData.tags ? JSON.stringify(serviceData.tags) : '[]'
+      };
+      
+      // Remove tags field
+      delete (dataToSave as any).tags;
+      
       const service = await prisma.service.create({
-        data: serviceData,
+        data: dataToSave,
       });
-      return service;
+      
+      // Add tags to the result
+      return {
+        ...service,
+        tags: JSON.parse(service.tagsJson || '[]')
+      };
     } catch (error) {
       logger.error('Error creating service:', error);
       throw new Error('Failed to create service');
@@ -30,10 +44,9 @@ class ServiceService {
       // Apply search filter if provided
       if (filters?.search) {
         where.OR = [
-          { name: { contains: filters.search, mode: 'insensitive' } },
-          { description: { contains: filters.search, mode: 'insensitive' } },
-          // Search in tags
-          { tags: { has: filters.search } }
+          { name: { contains: filters.search } },
+          { description: { contains: filters.search } },
+          // Not possible to search in tags with SQLite
         ];
       }
       
@@ -43,8 +56,14 @@ class ServiceService {
         orderBy: { createdAt: 'desc' },
       });
       
+      // Add tags to each service
+      const servicesWithTags = services.map(service => ({
+        ...service,
+        tags: JSON.parse(service.tagsJson || '[]')
+      }));
+      
       return {
-        data: services,
+        data: servicesWithTags,
         pagination: {
           page: 1,
           limit: services.length,
@@ -67,7 +86,11 @@ class ServiceService {
         orderBy: { createdAt: 'desc' },
       });
       
-      return services;
+      // Add tags to each service
+      return services.map(service => ({
+        ...service,
+        tags: JSON.parse(service.tagsJson || '[]')
+      }));
     } catch (error) {
       logger.error('Error getting all services:', error);
       throw new Error('Failed to get services');
@@ -87,7 +110,11 @@ class ServiceService {
         throw new Error('Service not found');
       }
       
-      return service;
+      // Add tags to the result
+      return {
+        ...service,
+        tags: JSON.parse(service.tagsJson || '[]')
+      };
     } catch (error) {
       logger.error(`Error getting service with ID ${id}:`, error);
       if (error instanceof Error) {
@@ -111,13 +138,26 @@ class ServiceService {
         throw new Error('Service not found');
       }
       
+      // Prepare data for update
+      const dataToUpdate = { ...serviceData };
+      
+      // Convert tags array to JSON string if provided
+      if (serviceData.tags) {
+        (dataToUpdate as any).tagsJson = JSON.stringify(serviceData.tags);
+        delete dataToUpdate.tags;
+      }
+      
       // Update the service
       const updatedService = await prisma.service.update({
         where: { id },
-        data: serviceData,
+        data: dataToUpdate,
       });
       
-      return updatedService;
+      // Add tags to the result
+      return {
+        ...updatedService,
+        tags: JSON.parse(updatedService.tagsJson || '[]')
+      };
     } catch (error) {
       logger.error(`Error updating service with ID ${id}:`, error);
       if (error instanceof Error) {

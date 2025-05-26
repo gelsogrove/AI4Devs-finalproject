@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
+import embeddingService from '../services/embedding.service';
 import faqService from '../services/faq.service';
 import logger from '../utils/logger';
 
@@ -208,6 +209,34 @@ class FAQController {
       logger.error('Get categories error:', error);
       
       return res.status(500).json({ error: 'Failed to get categories' });
+    }
+  }
+
+  /**
+   * Generate embeddings for all FAQs or a specific FAQ
+   */
+  async generateEmbeddings(req: Request, res: Response) {
+    try {
+      const { faqId } = req.params;
+
+      if (faqId) {
+        // Generate embeddings for a specific FAQ
+        await embeddingService.generateEmbeddingsForFAQ(faqId);
+        return res.json({ message: `Embeddings generated for FAQ ${faqId}` });
+      } else {
+        // Get all FAQs
+        const faqs = await faqService.getAllFAQs();
+        
+        // Generate embeddings for each FAQ
+        for (const faq of faqs) {
+          await embeddingService.generateEmbeddingsForFAQ(faq.id);
+        }
+        
+        return res.json({ message: `Embeddings generated for ${faqs.length} FAQs` });
+      }
+    } catch (error) {
+      logger.error('Error generating embeddings:', error);
+      return res.status(500).json({ error: 'Failed to generate embeddings' });
     }
   }
 }

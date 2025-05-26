@@ -27,11 +27,17 @@ export class PrismaProductRepository implements ProductRepository {
           price: dto.price,
           imageUrl: dto.imageUrl,
           category: dto.category,
-          tags: dto.tags || [],
+          tagsJson: JSON.stringify(dto.tags || []),
         },
       });
 
-      return Product.fromDTO(savedProduct);
+      // Add tags to the returned product
+      const productWithTags = {
+        ...savedProduct,
+        tags: JSON.parse(savedProduct.tagsJson || '[]'),
+      };
+
+      return Product.fromDTO(productWithTags);
     } catch (error) {
       logger.error('Error saving product:', error);
       throw new Error('Failed to create product');
@@ -48,7 +54,13 @@ export class PrismaProductRepository implements ProductRepository {
         return null;
       }
       
-      return Product.fromDTO(product);
+      // Add tags to the product
+      const productWithTags = {
+        ...product,
+        tags: JSON.parse(product.tagsJson || '[]'),
+      };
+      
+      return Product.fromDTO(productWithTags);
     } catch (error) {
       logger.error(`Error finding product with ID ${id.value}:`, error);
       throw new Error('Failed to find product');
@@ -81,8 +93,9 @@ export class PrismaProductRepository implements ProductRepository {
       // Apply search filter if provided
       if (filters?.search) {
         where.OR = [
-          { name: { contains: filters.search, mode: 'insensitive' } },
-          { description: { contains: filters.search, mode: 'insensitive' } },
+          { name: { contains: filters.search } },
+          { description: { contains: filters.search } },
+          // Not possible to search in tags with SQLite, but in a real app we could add it back
         ];
       }
       
@@ -100,8 +113,14 @@ export class PrismaProductRepository implements ProductRepository {
         this.prisma.product.count({ where }),
       ]);
       
+      // Add tags to each product
+      const productsWithTags = products.map(product => ({
+        ...product,
+        tags: JSON.parse(product.tagsJson || '[]'),
+      }));
+      
       return {
-        data: products.map(p => Product.fromDTO(p)),
+        data: productsWithTags.map(p => Product.fromDTO(p)),
         pagination: {
           page: pagination.page,
           limit: pagination.limit,
@@ -127,11 +146,17 @@ export class PrismaProductRepository implements ProductRepository {
           price: dto.price,
           imageUrl: dto.imageUrl,
           category: dto.category,
-          tags: dto.tags || [],
+          tagsJson: JSON.stringify(dto.tags || []),
         },
       });
       
-      return Product.fromDTO(updatedProduct);
+      // Add tags to the returned product
+      const productWithTags = {
+        ...updatedProduct,
+        tags: JSON.parse(updatedProduct.tagsJson || '[]'),
+      };
+      
+      return Product.fromDTO(productWithTags);
     } catch (error) {
       logger.error(`Error updating product with ID ${product.id.value}:`, error);
       throw new Error('Failed to update product');
