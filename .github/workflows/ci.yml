@@ -10,8 +10,6 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    env:
-      S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
     environment: dev
     steps:
       - name: Checkout repository
@@ -33,7 +31,7 @@ jobs:
       - name: Create backend .env file
         working-directory: ./backend
         run: |
-          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env
+          echo "DATABASE_URL=postgresql://shopme:shopme@localhost:5432/shopme" > .env
           echo "OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}" >> .env
           cat .env | grep -v OPENROUTER_API_KEY
 
@@ -54,42 +52,52 @@ jobs:
         working-directory: ./backend
         run: npm run test:unit
 
-      - name: Set up Docker Compose
-        run: docker compose up -d
-
-      - name: Wait for database and debug
+      # Debug Docker version
+      - name: Debug Docker version
         run: |
-          for i in {1..30}; do
-            nc -z localhost 5432 && echo "DB is up" && break
-            echo "Waiting for DB... attempt $i"
-            sleep 2
-            if [ $i -eq 30 ]; then
-              echo "DB did not start in time"
+          docker --version
+          docker compose version
+
+      # Start Docker Compose with verbose output
+      - name: Start Docker Compose
+        run: |
+          docker compose up -d --verbose
+          docker compose ps
+          sleep 10
+
+      # Debug Docker container
+      - name: Debug Docker container
+        run: |
+          docker ps
+          docker logs $(docker ps -q --filter "name=db")
+
+      # Verify database connectivity
+      - name: Verify database connectivity
+        run: |
+          apt-get update
+          apt-get install -y postgresql-client
+          for i in {1..10}; do
+            PGPASSWORD=shopme psql -h localhost -U shopme -d shopme -c "SELECT 1 as connection_test;" && echo "✅ Database connection successful" && break
+            echo "Attempt $i: waiting for database to be ready..."
+            sleep 5
+            if [ $i -eq 10 ]; then
+              echo "❌ Could not connect to database after 10 attempts"
               exit 1
             fi
           done
-          docker ps
-          docker logs $(docker ps -q --filter "ancestor=postgres:15")
 
-      # Simplify database initialization by generating a new migration
-      - name: Initialize Prisma
+      # Deploy schema with verbose output
+      - name: Deploy database schema
         working-directory: ./backend
         run: |
+          echo "🔧 Generating Prisma client..."
           npx prisma generate
-
-      - name: Setup database for testing
-        working-directory: ./backend
-        run: |
-          # Create database schema directly
-          docker exec -i $(docker ps -q --filter "ancestor=postgres:15") psql -U shopme -d shopme << EOF
-          CREATE SCHEMA IF NOT EXISTS public;
-          EOF
           
-          # Push schema directly without migrations
-          npx prisma db push --accept-data-loss
+          echo "🔄 Pushing database schema..."
+          # Use debug mode and more detailed output
+          DEBUG=prisma:* npx prisma db push --accept-data-loss
           
-          # Skip seeding for now to avoid potential issues
-          # npx prisma db seed
+          echo "✅ Database schema pushed successfully"
 
       - name: Start backend
         working-directory: ./backend
