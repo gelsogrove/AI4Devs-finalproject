@@ -27,6 +27,17 @@ jobs:
         working-directory: ./frontend
         run: npm install
 
+      - name: Create backend .env file
+        working-directory: ./backend
+        run: |
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env
+          echo "OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}" >> .env
+
+      - name: Create frontend .env file
+        working-directory: ./frontend
+        run: |
+          echo "API_URL=${{ secrets.API_URL }}" > .env
+
       - name: Build backend
         working-directory: ./backend
         run: npm run build
