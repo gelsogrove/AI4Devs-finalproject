@@ -3,6 +3,7 @@ name: CI
 on:
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   build-and-test:
@@ -54,10 +55,6 @@ jobs:
         working-directory: ./frontend
         run: npm run build
 
-      - name: Run Prisma migrations
-        working-directory: ./backend
-        run: npx prisma migrate deploy
-
       - name: Set up Docker Compose
         run: docker-compose up -d
 
@@ -68,6 +65,10 @@ jobs:
             sleep 2
           done
           echo "DB did not start in time" && exit 1
+
+      - name: Run Prisma migrations
+        working-directory: ./backend
+        run: npx prisma migrate deploy
 
       - name: Start backend
         working-directory: ./backend

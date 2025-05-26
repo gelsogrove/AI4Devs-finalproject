@@ -2,9 +2,9 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { AgentConfigService } from '../application/services/AgentConfigService';
 import {
-    FAQResponse,
-    ProductResponse,
-    ServiceResponse
+  FAQResponse,
+  ProductResponse,
+  ServiceResponse
 } from '../domain';
 import { availableFunctions } from '../services/availableFunctions';
 import logger from '../utils/logger';
@@ -282,6 +282,34 @@ class ChatController {
         });
       }
 
+      // Define toolChoice with the correct type
+      let toolChoice: 'auto' | 'none' | { type: string; function: { name: string } } = 'auto';
+
+      // Use the existing lastUserMessage that was already defined earlier
+      if (lastUserMessage) {
+        const content = lastUserMessage.content.toLowerCase();
+        
+        // Check for gift + service terms
+        if ((content.includes('regalo') || content.includes('gift') || content.includes('cesto')) && 
+            (content.includes('servizio') || content.includes('servizi') || content.includes('service'))) {
+          logger.info(`Directing to getServices for gift service query: "${content}"`);
+          toolChoice = {
+            type: "function", 
+            function: { name: "getServices" }
+          };
+        }
+        // Check for product terms
+        else if (content.includes('prodotti') || content.includes('products') || 
+                content.includes('caffè') || content.includes('caffe') || 
+                content.includes('cheese') || content.includes('formaggio')) {
+          logger.info(`Directing to getProducts for product query: "${content}"`);
+          toolChoice = {
+            type: "function",
+            function: { name: "getProducts" }
+          };
+        }
+      }
+
       // Call OpenAI API with function calling
       const response = await aiService.generateChatCompletion(
         messages as any,
@@ -294,12 +322,7 @@ class ChatController {
             type: 'function',
             function: fn
           })),
-          toolChoice: shouldForceToolChoice(messages) ? 
-            {
-              type: "function",
-              function: { name: "getProducts" }
-            } : 
-            'auto'
+          toolChoice: toolChoice
         }
       );
 
@@ -419,6 +442,10 @@ class ChatController {
    - Group by category if multiple categories exist
    - IMPORTANT: If multiple products are returned, ALWAYS use bullet points (•) instead of numbers (1, 2, 3) to list each product
    - Start each product on a new line with double line breaks between products for better readability
+   - IMPORTANT: When formatting product names and prices, use consistent markdown formatting:
+     - Put product names in bold like this: **Product Name**
+     - DO NOT put prices in bold or asterisks
+     - Format prices as €XX.XX without any special formatting
    - If this was an alternative search (using a related term), mention what term was used
    - DO NOT include any images or image markdown at all
    - Instead of showing images, just add a text note like "(Questo prodotto è disponibile nel nostro negozio)"
@@ -480,33 +507,6 @@ IMPORTANT: Focus on the products that were returned by the function call. Don't 
       return res.status(500).json({ error: errorMessage });
     }
   }
-}
-
-function shouldForceToolChoice(messages: any[]): boolean {
-  // Get the last user message
-  const lastUserMessage = [...messages]
-    .reverse()
-    .find(msg => msg.role === 'user');
-    
-  if (!lastUserMessage) return false;
-  
-  const content = lastUserMessage.content.toLowerCase();
-  
-  // Force tool choice for product queries, especially coffee
-  const coffeeTerms = ['caffè', 'caffe', 'coffee', 'espresso'];
-  const productTerms = ['prodotti', 'products', 'avete', 'have', 'vendete', 'sell', 'vino', 'wine', 'formaggio', 'cheese', 'pasta', 'olio', 'oil'];
-  const questionPhrases = ['do you have', 'avete', 'vendete', 'ce l\'hai', 'ce l\'avete', 'disponibile', 'disponibili'];
-  
-  // Special case for coffee - always force tool choice
-  if (coffeeTerms.some(term => content.includes(term))) {
-    return true;
-  }
-  
-  // Check if the message contains product-related terms
-  const hasProductTerm = productTerms.some(term => content.includes(term));
-  const isQuestion = questionPhrases.some(phrase => content.includes(phrase)) || content.includes('?');
-  
-  return hasProductTerm && isQuestion;
 }
 
 export default new ChatController(); 

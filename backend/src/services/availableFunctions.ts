@@ -87,10 +87,10 @@ export const availableFunctions = {
                 }
               },
               // Check if any tag contains the keyword - high priority
-              // This uses the 'has' operator for arrays in Prisma
               {
-                tags: {
-                  has: keyword
+                tagsJson: {
+                  contains: keyword,
+                  mode: 'insensitive'
                 }
               }
             ];
@@ -142,7 +142,7 @@ export const availableFunctions = {
         logger.info(`First product found:`, { 
           name: products[0].name,
           category: products[0].category,
-          tags: (products[0] as any).tags || []
+          tags: JSON.parse(products[0].tagsJson || '[]')
         });
       }
       
@@ -155,7 +155,7 @@ export const availableFunctions = {
           price: p.price.toString(),
           category: p.category,
           imageUrl: p.imageUrl,
-          tags: (p as any).tags || []
+          tags: JSON.parse(p.tagsJson || '[]')
         }))
       };
     } catch (error) {
@@ -185,10 +185,14 @@ export const availableFunctions = {
       
       // Add tags filter if provided
       if (tags && tags.length > 0) {
-        // Filter services that have at least one of the provided tags
-        where.tags = {
-          hasSome: tags
-        };
+        // Since tags are stored as JSON string, we need to check if the JSON contains any of the tags
+        // This is a simplification and may not work perfectly for array containment
+        where.OR = tags.map(tag => ({
+          tagsJson: {
+            contains: tag,
+            mode: 'insensitive'
+          }
+        }));
       }
       
       // Add search filter if provided
@@ -228,8 +232,9 @@ export const availableFunctions = {
             },
             // Check if any tag contains the keyword - high priority
             {
-              tags: {
-                has: keyword
+              tagsJson: {
+                contains: keyword,
+                mode: 'insensitive'
               }
             }
           ]);
@@ -251,7 +256,7 @@ export const availableFunctions = {
           description: s.description,
           price: s.price.toString(),
           isActive: s.isActive,
-          tags: (s as any).tags || []
+          tags: JSON.parse(s.tagsJson || '[]')
         }))
       };
     } catch (error) {

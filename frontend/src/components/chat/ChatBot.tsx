@@ -51,19 +51,9 @@ export default function ChatBot({ className }: ChatBotProps) {
   // This function searches for related FAQs using semantic search
   const searchFAQs = async (query: string) => {
     try {
-      // First try semantic search
+      // Use semantic search only
       const semanticResults = await faqApi.searchFAQSemanticly(query);
-      
-      if (semanticResults.length > 0) {
-        return semanticResults;
-      }
-      
-      // Fall back to keyword search if semantic search returns no results
-      const keywordResults = await faqApi.getPublicFAQs();
-      return keywordResults.filter(faq => 
-        faq.question.toLowerCase().includes(query.toLowerCase()) || 
-        faq.answer.toLowerCase().includes(query.toLowerCase())
-      ).slice(0, 3);
+      return semanticResults;
     } catch (error) {
       console.error("Error searching FAQs:", error);
       return [];
@@ -83,85 +73,72 @@ export default function ChatBot({ className }: ChatBotProps) {
     setLoading(true);
 
     try {
-      // Find related FAQs based on user's message
+      // Find related FAQs based on user's message (just for display purposes)
       const faqs = await searchFAQs(data.message);
       setRelatedFaqs(faqs);
-
-      // Check if there's a direct FAQ match (we'll assume the first result is most relevant)
-      if (faqs.length > 0) {
-        const topFaq = faqs[0];
-        // If the similarity is high, directly answer with the FAQ
-        const faqMessage: ChatMessage = {
-          role: "assistant",
-          content: topFaq.answer,
-          timestamp: new Date().toISOString(),
-          source: `FAQ: ${topFaq.question}`,
-        };
-        setMessages((prev) => [...prev, faqMessage]);
-      } else {
-        // Otherwise, use the regular chat API
-        try {
-          // Format messages for the API - ensure all required fields are preserved
-          const apiMessages: SimpleChatMessage[] = [...messages, userMessage].map(msg => {
-            // Base message
-            const formattedMsg: SimpleChatMessage = {
-              role: msg.role,
-              content: msg.content
-            };
-            
-            // Add optional fields if present
-            if (msg.imageUrl) formattedMsg.imageUrl = msg.imageUrl;
-            if (msg.imageCaption) formattedMsg.imageCaption = msg.imageCaption;
-            if (msg.name) formattedMsg.name = msg.name;
-            if (msg.function_call) formattedMsg.function_call = msg.function_call;
-            if (msg.tool_calls) formattedMsg.tool_calls = msg.tool_calls;
-            if (msg.tool_call_id) formattedMsg.tool_call_id = msg.tool_call_id;
-            
-            return formattedMsg;
-          });
+      
+      // Always use the chat API for responses
+      try {
+        // Format messages for the API - ensure all required fields are preserved
+        const apiMessages: SimpleChatMessage[] = [...messages, userMessage].map(msg => {
+          // Base message
+          const formattedMsg: SimpleChatMessage = {
+            role: msg.role,
+            content: msg.content
+          };
           
-          // Filter out messages with invalid roles
-          const validRoles = ['user', 'assistant', 'system', 'function', 'tool'];
-          const validMessages = apiMessages.filter(msg => validRoles.includes(msg.role));
+          // Add optional fields if present
+          if (msg.imageUrl) formattedMsg.imageUrl = msg.imageUrl;
+          if (msg.imageCaption) formattedMsg.imageCaption = msg.imageCaption;
+          if (msg.name) formattedMsg.name = msg.name;
+          if (msg.function_call) formattedMsg.function_call = msg.function_call;
+          if (msg.tool_calls) formattedMsg.tool_calls = msg.tool_calls;
+          if (msg.tool_call_id) formattedMsg.tool_call_id = msg.tool_call_id;
           
-          // Log any invalid messages that are being filtered out
-          apiMessages.forEach((msg, i) => {
-            if (!validRoles.includes(msg.role)) {
-              console.warn(`Message at index ${i} has invalid role and will be filtered:`, msg);
-            }
-          });
-          
-          const response: ChatApiResponse = await chatApi.sendMessage({ messages: validMessages });
-          
-          console.log("API response:", response);
-          
-          // Create a new message with the response
-          // La risposta arriva con un wrapper 'message' che contiene il messaggio effettivo dell'assistente
-          let assistantMessage: ChatMessage;
-          
-          if (response && response.message) {
-            assistantMessage = {
-              role: "assistant",
-              content: response.message.content || "I'm sorry, I couldn't generate a response.",
-              timestamp: new Date().toISOString(),
-              // Copy other fields if they exist
-              ...(response.message.function_call && { function_call: response.message.function_call }),
-              ...(response.message.tool_calls && { tool_calls: response.message.tool_calls })
-            };
-          } else {
-            // Fallback
-            assistantMessage = {
-              role: "assistant",
-              content: "I'm sorry, I couldn't generate a response.",
-              timestamp: new Date().toISOString(),
-            };
+          return formattedMsg;
+        });
+        
+        // Filter out messages with invalid roles
+        const validRoles = ['user', 'assistant', 'system', 'function', 'tool'];
+        const validMessages = apiMessages.filter(msg => validRoles.includes(msg.role));
+        
+        // Log any invalid messages that are being filtered out
+        apiMessages.forEach((msg, i) => {
+          if (!validRoles.includes(msg.role)) {
+            console.warn(`Message at index ${i} has invalid role and will be filtered:`, msg);
           }
-          
-          setMessages((prev) => [...prev, assistantMessage]);
-        } catch (error) {
-          console.error("Chat API error:", error);
-          throw error;
+        });
+        
+        const response: ChatApiResponse = await chatApi.sendMessage({ messages: validMessages });
+        
+        console.log("API response:", response);
+        
+        // Create a new message with the response
+        // La risposta arriva con un wrapper 'message' che contiene il messaggio effettivo dell'assistente
+        let assistantMessage: ChatMessage;
+        
+        if (response && response.message) {
+          assistantMessage = {
+            role: "assistant",
+            content: response.message.content || "I'm sorry, I couldn't generate a response.",
+            timestamp: new Date().toISOString(),
+            // Copy other fields if they exist
+            ...(response.message.function_call && { function_call: response.message.function_call }),
+            ...(response.message.tool_calls && { tool_calls: response.message.tool_calls })
+          };
+        } else {
+          // Fallback
+          assistantMessage = {
+            role: "assistant",
+            content: "I'm sorry, I couldn't generate a response.",
+            timestamp: new Date().toISOString(),
+          };
         }
+        
+        setMessages((prev) => [...prev, assistantMessage]);
+      } catch (error) {
+        console.error("Chat API error:", error);
+        throw error;
       }
     } catch (error) {
       console.error("Error sending message:", error);
@@ -224,14 +201,20 @@ export default function ChatBot({ className }: ChatBotProps) {
                 key={faq.id}
                 className="bg-gray-50 p-2 rounded-md cursor-pointer hover:bg-gray-100"
                 onClick={() => {
-                  const faqMessage: ChatMessage = {
-                    role: "assistant",
-                    content: faq.answer,
+                  // Creare un messaggio utente con la domanda della FAQ
+                  const userFaqMessage: ChatMessage = {
+                    role: "user",
+                    content: faq.question,
                     timestamp: new Date().toISOString(),
-                    source: `FAQ: ${faq.question}`,
                   };
-                  setMessages((prev) => [...prev, faqMessage]);
+                  
+                  // Aggiungere il messaggio e resettare le FAQ correlate
+                  setMessages((prev) => [...prev, userFaqMessage]);
                   setRelatedFaqs([]);
+                  
+                  // Inviare la domanda attraverso l'API standard
+                  form.setValue("message", "");
+                  form.handleSubmit((data) => onSubmit({...data, message: faq.question}))();
                 }}
               >
                 <p className="text-sm font-medium">{faq.question}</p>
