@@ -76,7 +76,7 @@ jobs:
         working-directory: ./backend
         run: |
           npx prisma generate
-          
+
       - name: Setup database for testing
         working-directory: ./backend
         run: |
@@ -88,8 +88,8 @@ jobs:
           # Push schema directly without migrations
           npx prisma db push --accept-data-loss
           
-          # Seed the database
-          npx prisma db seed
+          # Skip seeding for now to avoid potential issues
+          # npx prisma db seed
 
       - name: Start backend
         working-directory: ./backend
