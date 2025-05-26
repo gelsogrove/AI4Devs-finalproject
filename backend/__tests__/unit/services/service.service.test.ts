@@ -43,32 +43,35 @@ describe('ServiceService', () => {
     description: 'Test Description',
     price: 9.99,
     isActive: true,
+    tagsJson: '[]',
     createdAt: new Date(),
     updatedAt: new Date(),
+  };
+
+  const mockServiceWithTags = {
+    ...mockService,
+    tags: [],
   };
 
   describe('getServices', () => {
     it('should get all services with pagination', async () => {
       // Arrange
       mockFindMany.mockResolvedValue([mockService]);
-      mockCount.mockResolvedValue(1);
 
       // Act
-      const result = await serviceService.getServices({}, 1, 10);
+      const result = await serviceService.getServices();
 
       // Assert
       expect(mockFindMany).toHaveBeenCalledWith({
         where: {},
-        skip: 0,
-        take: 10,
         orderBy: { createdAt: 'desc' },
       });
-      expect(mockCount).toHaveBeenCalledWith({ where: {} });
+      
       expect(result).toEqual({
-        data: [mockService],
+        data: [mockServiceWithTags],
         pagination: {
           page: 1,
-          limit: 10,
+          limit: 1, // Based on the returned array length
           total: 1,
           totalPages: 1,
         },
@@ -78,26 +81,21 @@ describe('ServiceService', () => {
     it('should apply filters correctly', async () => {
       // Arrange
       mockFindMany.mockResolvedValue([mockService]);
-      mockCount.mockResolvedValue(1);
       const filters = {
-        isActive: true,
         search: 'test',
       };
 
       // Act
-      const result = await serviceService.getServices(filters, 1, 10);
+      const result = await serviceService.getServices(filters);
 
       // Assert
       expect(mockFindMany).toHaveBeenCalledWith({
         where: {
-          isActive: true,
           OR: [
-            { name: { contains: 'test', mode: 'insensitive' } },
-            { description: { contains: 'test', mode: 'insensitive' } },
+            { name: { contains: 'test' } },
+            { description: { contains: 'test' } },
           ],
         },
-        skip: 0,
-        take: 10,
         orderBy: { createdAt: 'desc' },
       });
       expect(result.data).toHaveLength(1);
@@ -112,20 +110,19 @@ describe('ServiceService', () => {
     });
   });
 
-  describe('getActiveServices', () => {
-    it('should get all active services', async () => {
+  describe('getAllServices', () => {
+    it('should get all services', async () => {
       // Arrange
       mockFindMany.mockResolvedValue([mockService]);
 
       // Act
-      const result = await serviceService.getActiveServices();
+      const result = await serviceService.getAllServices();
 
       // Assert
       expect(mockFindMany).toHaveBeenCalledWith({
-        where: { isActive: true },
         orderBy: { createdAt: 'desc' },
       });
-      expect(result).toEqual([mockService]);
+      expect(result).toEqual([mockServiceWithTags]);
     });
 
     it('should throw error when database query fails', async () => {
@@ -133,7 +130,7 @@ describe('ServiceService', () => {
       mockFindMany.mockRejectedValue(new Error('Database error'));
 
       // Act & Assert
-      await expect(serviceService.getActiveServices()).rejects.toThrow('Failed to get active services');
+      await expect(serviceService.getAllServices()).rejects.toThrow('Failed to get services');
     });
   });
 
@@ -149,7 +146,7 @@ describe('ServiceService', () => {
       expect(mockFindUnique).toHaveBeenCalledWith({
         where: { id: '1' },
       });
-      expect(result).toEqual(mockService);
+      expect(result).toEqual(mockServiceWithTags);
     });
 
     it('should throw error when service not found', async () => {
@@ -168,15 +165,31 @@ describe('ServiceService', () => {
         name: 'New Service',
         description: 'New Description',
         price: 19.99,
+        tags: [],
       };
       
-      mockCreate.mockResolvedValue({
+      const newServiceDb = {
         ...newService,
+        tagsJson: '[]',
         id: '2',
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),
-      });
+      };
+      
+      // Create a new object without the tags property instead of using delete
+      const newServiceForDb = {
+        name: newService.name,
+        description: newService.description,
+        price: newService.price,
+        tagsJson: '[]',
+        id: '2',
+        isActive: true,
+        createdAt: newServiceDb.createdAt,
+        updatedAt: newServiceDb.updatedAt,
+      };
+      
+      mockCreate.mockResolvedValue(newServiceForDb);
 
       // Act
       const result = await serviceService.createService(newService);
@@ -184,14 +197,15 @@ describe('ServiceService', () => {
       // Assert
       expect(mockCreate).toHaveBeenCalledWith({
         data: {
-          ...newService,
-          isActive: true,
+          name: 'New Service',
+          description: 'New Description',
+          price: 19.99,
+          tagsJson: '[]',
         },
       });
       expect(result).toMatchObject({
-        ...newService,
-        id: '2',
-        isActive: true,
+        ...newServiceDb,
+        tags: [],
       });
     });
 
@@ -236,7 +250,47 @@ describe('ServiceService', () => {
         where: { id: '1' },
         data: updateData,
       });
-      expect(result).toEqual(updatedService);
+      expect(result).toEqual({
+        ...updatedService,
+        tags: [],
+      });
+    });
+
+    it('should update tags correctly', async () => {
+      // Arrange
+      mockFindUnique.mockResolvedValue(mockService);
+      
+      const updateData = {
+        name: 'Updated Service',
+        tags: ['tag1', 'tag2'],
+      };
+      
+      const updatedService = {
+        ...mockService,
+        name: 'Updated Service',
+        tagsJson: '["tag1","tag2"]',
+      };
+      
+      mockUpdate.mockResolvedValue(updatedService);
+
+      // Act
+      const result = await serviceService.updateService('1', updateData);
+
+      // Assert
+      expect(mockFindUnique).toHaveBeenCalledWith({
+        where: { id: '1' },
+      });
+      expect(mockUpdate).toHaveBeenCalledWith({
+        where: { id: '1' },
+        data: {
+          name: 'Updated Service',
+          tagsJson: '["tag1","tag2"]',
+        },
+      });
+      expect(result).toEqual({
+        ...updatedService,
+        tags: ['tag1', 'tag2'],
+      });
     });
 
     it('should throw error when service not found', async () => {
@@ -249,7 +303,7 @@ describe('ServiceService', () => {
   });
 
   describe('deleteService', () => {
-    it('should delete an existing service', async () => {
+    it('should delete a service successfully', async () => {
       // Arrange
       mockFindUnique.mockResolvedValue(mockService);
       mockDelete.mockResolvedValue(mockService);

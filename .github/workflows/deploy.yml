@@ -57,26 +57,27 @@ jobs:
             pm2 save || exit_code=1
             pm2 startup || exit_code=1
             # Nginx config
-            sudo tee /etc/nginx/sites-available/shopme <<EOF
-            server {
-                listen 80;
-                server_name _;
-                location /api/ {
-                    proxy_pass http://localhost:8080/api/;
-                    proxy_set_header Host $host;
-                    proxy_set_header X-Real-IP $remote_addr;
-                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                    proxy_set_header X-Forwarded-Proto $scheme;
-                }
-                location / {
-                    proxy_pass http://localhost:3000/;
-                    proxy_set_header Host $host;
-                    proxy_set_header X-Real-IP $remote_addr;
-                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                    proxy_set_header X-Forwarded-Proto $scheme;
-                }
-            }
-EOF
+            cat > nginx-config.txt << 'EOL'
+server {
+    listen 80;
+    server_name _;
+    location /api/ {
+        proxy_pass http://localhost:8080/api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    location / {
+        proxy_pass http://localhost:3000/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+EOL
+            sudo cp nginx-config.txt /etc/nginx/sites-available/shopme
             sudo ln -sf /etc/nginx/sites-available/shopme /etc/nginx/sites-enabled/shopme
             sudo nginx -t || exit_code=1
             sudo systemctl restart nginx || exit_code=1

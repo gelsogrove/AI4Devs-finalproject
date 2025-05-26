@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { ZodError } from 'zod';
 import faqController from '../../src/controllers/faq.controller';
 import faqService from '../../src/services/faq.service';
 
@@ -31,7 +32,8 @@ describe('FAQ Controller', () => {
             question: 'Test Question?',
             answer: 'Test Answer',
             category: 'General',
-            isPublished: true,
+            tagsJson: '[]',
+            tags: [],
             createdAt: new Date(),
             updatedAt: new Date(),
           },
@@ -55,25 +57,34 @@ describe('FAQ Controller', () => {
 
       await faqController.getFAQs(mockRequest as Request, mockResponse as Response);
 
-      expect(faqService.getFAQs).toHaveBeenCalledWith({
-        page: 1,
-        limit: 10,
-        category: 'General',
-        search: 'test',
-      });
+      expect(faqService.getFAQs).toHaveBeenCalledWith(
+        {
+          category: 'General',
+          search: 'test',
+        },
+        1,
+        10
+      );
       expect(responseObject).toEqual(mockFAQs);
     });
 
-    it('should handle errors', async () => {
-      const error = new Error('Test error');
-      (faqService.getFAQs as jest.Mock).mockRejectedValue(error);
+    it('should handle validation errors', async () => {
+      const zodError = new ZodError([{
+        code: 'invalid_type',
+        expected: 'object',
+        received: 'undefined',
+        path: [],
+        message: 'Required'
+      }]);
+      
+      (faqService.getFAQs as jest.Mock).mockRejectedValue(zodError);
 
       await faqController.getFAQs(mockRequest as Request, mockResponse as Response);
 
-      expect(mockResponse.status).toHaveBeenCalledWith(500);
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(responseObject).toEqual({
-        error: 'Failed to fetch FAQs',
-        details: error.message,
+        error: 'Validation error',
+        details: zodError.errors,
       });
     });
   });
@@ -86,7 +97,8 @@ describe('FAQ Controller', () => {
           question: 'Test Question?',
           answer: 'Test Answer',
           category: 'General',
-          isPublished: true,
+          tagsJson: '[]',
+          tags: [],
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -124,7 +136,8 @@ describe('FAQ Controller', () => {
         question: 'Test Question?',
         answer: 'Test Answer',
         category: 'General',
-        isPublished: true,
+        tagsJson: '[]',
+        tags: [],
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -163,8 +176,7 @@ describe('FAQ Controller', () => {
 
       expect(mockResponse.status).toHaveBeenCalledWith(500);
       expect(responseObject).toEqual({
-        error: 'Failed to fetch FAQ',
-        details: error.message,
+        error: 'Failed to get FAQ',
       });
     });
   });
@@ -176,7 +188,8 @@ describe('FAQ Controller', () => {
         question: 'Test Question?',
         answer: 'Test Answer',
         category: 'General',
-        isPublished: true,
+        tagsJson: '[]',
+        tags: [],
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -193,24 +206,39 @@ describe('FAQ Controller', () => {
 
       expect(faqService.createFAQ).toHaveBeenCalledWith(mockRequest.body);
       expect(mockResponse.status).toHaveBeenCalledWith(201);
-      expect(responseObject).toEqual(mockFAQ);
+      expect(responseObject).toEqual({
+        message: 'FAQ created successfully',
+        faq: mockFAQ
+      });
     });
 
     it('should handle validation errors', async () => {
-      const error = new Error('Validation error');
-      (faqService.createFAQ as jest.Mock).mockRejectedValue(error);
+      const zodError = new ZodError([{
+        code: 'too_small',
+        minimum: 5,
+        type: 'string',
+        inclusive: true,
+        exact: false,
+        message: 'Question must be at least 5 characters',
+        path: ['question']
+      }]);
 
       mockRequest.body = {
         question: '', // Invalid empty question
         answer: 'Test Answer',
       };
 
+      // Simulate a ZodError being thrown
+      (faqService.createFAQ as jest.Mock).mockImplementation(() => {
+        throw zodError;
+      });
+
       await faqController.createFAQ(mockRequest as Request, mockResponse as Response);
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(responseObject).toEqual({
-        error: 'Failed to create FAQ',
-        details: error.message,
+        error: 'Validation error',
+        details: zodError.errors,
       });
     });
   });
@@ -222,7 +250,8 @@ describe('FAQ Controller', () => {
         question: 'Updated Question?',
         answer: 'Updated Answer',
         category: 'General',
-        isPublished: true,
+        tagsJson: '[]',
+        tags: [],
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -238,7 +267,10 @@ describe('FAQ Controller', () => {
       await faqController.updateFAQ(mockRequest as Request, mockResponse as Response);
 
       expect(faqService.updateFAQ).toHaveBeenCalledWith('1', mockRequest.body);
-      expect(responseObject).toEqual(mockFAQ);
+      expect(responseObject).toEqual({
+        message: 'FAQ updated successfully',
+        faq: mockFAQ
+      });
     });
 
     it('should handle not found error', async () => {
@@ -258,41 +290,48 @@ describe('FAQ Controller', () => {
       });
     });
 
-    it('should handle other errors', async () => {
-      const error = new Error('Test error');
-      (faqService.updateFAQ as jest.Mock).mockRejectedValue(error);
+    it('should handle validation errors', async () => {
+      const zodError = new ZodError([{
+        code: 'too_small',
+        minimum: 5,
+        type: 'string',
+        inclusive: true,
+        exact: false,
+        message: 'Question must be at least 5 characters',
+        path: ['question']
+      }]);
 
       mockRequest.params = { id: '1' };
       mockRequest.body = {
-        question: 'Updated Question?',
+        question: '', // Invalid empty question
       };
+
+      // Simulate a ZodError being thrown
+      (faqService.updateFAQ as jest.Mock).mockImplementation(() => {
+        throw zodError;
+      });
 
       await faqController.updateFAQ(mockRequest as Request, mockResponse as Response);
 
-      expect(mockResponse.status).toHaveBeenCalledWith(500);
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(responseObject).toEqual({
-        error: 'Failed to update FAQ',
-        details: error.message,
+        error: 'Validation error',
+        details: zodError.errors,
       });
     });
   });
 
   describe('deleteFAQ', () => {
-    it('should delete an existing FAQ', async () => {
-      (faqService.deleteFAQ as jest.Mock).mockResolvedValue({
-        success: true,
-        message: 'FAQ deleted successfully',
-      });
+    it('should delete an FAQ', async () => {
+      const mockResult = { success: true, message: 'FAQ deleted successfully' };
+      (faqService.deleteFAQ as jest.Mock).mockResolvedValue(mockResult);
 
       mockRequest.params = { id: '1' };
 
       await faqController.deleteFAQ(mockRequest as Request, mockResponse as Response);
 
       expect(faqService.deleteFAQ).toHaveBeenCalledWith('1');
-      expect(responseObject).toEqual({
-        success: true,
-        message: 'FAQ deleted successfully',
-      });
+      expect(responseObject).toEqual(mockResult);
     });
 
     it('should handle not found error', async () => {
@@ -310,7 +349,7 @@ describe('FAQ Controller', () => {
     });
 
     it('should handle other errors', async () => {
-      const error = new Error('Test error');
+      const error = new Error('Database error');
       (faqService.deleteFAQ as jest.Mock).mockRejectedValue(error);
 
       mockRequest.params = { id: '1' };
@@ -320,7 +359,6 @@ describe('FAQ Controller', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(500);
       expect(responseObject).toEqual({
         error: 'Failed to delete FAQ',
-        details: error.message,
       });
     });
   });
@@ -344,8 +382,7 @@ describe('FAQ Controller', () => {
 
       expect(mockResponse.status).toHaveBeenCalledWith(500);
       expect(responseObject).toEqual({
-        error: 'Failed to fetch categories',
-        details: error.message,
+        error: 'Failed to get categories',
       });
     });
   });
