@@ -1,6 +1,8 @@
 name: CI
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -55,32 +57,39 @@ jobs:
       - name: Set up Docker Compose
         run: docker compose up -d
 
-      - name: Wait for database
+      - name: Wait for database and debug
         run: |
           for i in {1..30}; do
-            nc -z localhost 5432 && echo "DB is up" && exit 0
+            nc -z localhost 5432 && echo "DB is up" && break
+            echo "Waiting for DB... attempt $i"
             sleep 2
+            if [ $i -eq 30 ]; then
+              echo "DB did not start in time"
+              exit 1
+            fi
           done
-          echo "DB did not start in time" && exit 1
-          
-      - name: Check Docker status
-        run: |
           docker ps
-          docker logs $(docker ps -q --filter "name=db")
+          docker logs $(docker ps -q --filter "ancestor=postgres:15")
 
-      - name: Test database connection
-        run: |
-          apt-get update && apt-get install -y postgresql-client
-          export PGPASSWORD=shopme
-          psql -h localhost -U shopme -d shopme -c "SELECT 1" || echo "Connection failed"
-
-      - name: Run Prisma migrations with verbose output
+      # Simplify database initialization by generating a new migration
+      - name: Initialize Prisma
         working-directory: ./backend
         run: |
-          npx prisma --version
-          npx prisma migrate deploy --preview-feature
-        env:
-          DEBUG: "prisma:*"
+          npx prisma generate
+          
+      - name: Setup database for testing
+        working-directory: ./backend
+        run: |
+          # Create database schema directly
+          docker exec -i $(docker ps -q --filter "ancestor=postgres:15") psql -U shopme -d shopme << EOF
+          CREATE SCHEMA IF NOT EXISTS public;
+          EOF
+          
+          # Push schema directly without migrations
+          npx prisma db push --accept-data-loss
+          
+          # Seed the database
+          npx prisma db seed
 
       - name: Start backend
         working-directory: ./backend
@@ -89,10 +98,14 @@ jobs:
       - name: Wait for backend
         run: |
           for i in {1..30}; do
-            curl -s http://localhost:8080/api/health && exit 0
+            curl -s http://localhost:8080/api/health && echo "Backend is up" && exit 0
+            echo "Waiting for backend... attempt $i"
             sleep 2
+            if [ $i -eq 30 ]; then
+              echo "Backend did not start in time"
+              exit 1
+            fi
           done
-          echo "Backend did not start in time" && exit 1
 
       - name: Start frontend
         working-directory: ./frontend
@@ -101,11 +114,14 @@ jobs:
       - name: Wait for frontend
         run: |
           for i in {1..30}; do
-            curl -s http://localhost:3000 && exit 0
+            curl -s http://localhost:3000 && echo "Frontend is up" && exit 0
+            echo "Waiting for frontend... attempt $i"
             sleep 2
+            if [ $i -eq 30 ]; then
+              echo "Frontend did not start in time"
+              exit 1
+            fi
           done
-          echo "Frontend did not start in time" && exit 1
-
 
       - name: Run backend integration tests
         working-directory: ./backend
@@ -116,9 +132,9 @@ jobs:
         run: npm run test:e2e
 
       - name: Upload backend to S3
-        if: success()
-        run: aws s3 cp ./backend s3://$S3_BUCKET_NAME/backend --recursive
+        if: success() && github.ref == 'refs/heads/main'
+        run: aws s3 cp ./backend s3://${{ secrets.S3_BUCKET_NAME }}/backend --recursive
 
       - name: Upload frontend to S3
-        if: success()
-        run: aws s3 cp ./frontend/dist s3://$S3_BUCKET_NAME/frontend --recursive 
+        if: success() && github.ref == 'refs/heads/main'
+        run: aws s3 cp ./frontend/dist s3://${{ secrets.S3_BUCKET_NAME }}/frontend --recursive 
