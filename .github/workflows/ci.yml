@@ -33,6 +33,7 @@ jobs:
         run: |
           echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env
           echo "OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}" >> .env
+          cat .env | grep -v OPENROUTER_API_KEY
 
       - name: Create frontend .env file
         working-directory: ./frontend
@@ -61,10 +62,25 @@ jobs:
             sleep 2
           done
           echo "DB did not start in time" && exit 1
+          
+      - name: Check Docker status
+        run: |
+          docker ps
+          docker logs $(docker ps -q --filter "name=db")
 
-      - name: Run Prisma migrations
+      - name: Test database connection
+        run: |
+          apt-get update && apt-get install -y postgresql-client
+          export PGPASSWORD=shopme
+          psql -h localhost -U shopme -d shopme -c "SELECT 1" || echo "Connection failed"
+
+      - name: Run Prisma migrations with verbose output
         working-directory: ./backend
-        run: npx prisma migrate deploy
+        run: |
+          npx prisma --version
+          npx prisma migrate deploy --preview-feature
+        env:
+          DEBUG: "prisma:*"
 
       - name: Start backend
         working-directory: ./backend
