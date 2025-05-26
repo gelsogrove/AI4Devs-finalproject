@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+    environment: dev
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
