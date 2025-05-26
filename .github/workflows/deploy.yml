@@ -6,11 +6,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    env:
-      S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
-      EC2_HOST: ${{ secrets.EC2_HOST }}
-      EC2_USER: ${{ secrets.EC2_USER }}
-      # EC2_SSH_KEY will be added as a secret
+    environment: prod
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -20,70 +16,60 @@ jobs:
         with:
           node-version: 20
 
-      - name: Download backend from S3
-        run: aws s3 cp s3://$S3_BUCKET_NAME/backend ./backend --recursive
+      - name: Create Nginx config file
+        run: |
+          cat > nginx.conf << EOF
+          server {
+              listen 80;
+              server_name _;
+              
+              location /api/ {
+                  proxy_pass http://localhost:8080/api/;
+                  proxy_set_header Host \$host;
+                  proxy_set_header X-Real-IP \$remote_addr;
+                  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto \$scheme;
+              }
+              
+              location / {
+                  proxy_pass http://localhost:3000/;
+                  proxy_set_header Host \$host;
+                  proxy_set_header X-Real-IP \$remote_addr;
+                  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto \$scheme;
+              }
+          }
+          EOF
 
-      - name: Download frontend from S3
-        run: aws s3 cp s3://$S3_BUCKET_NAME/frontend ./frontend --recursive
+      - name: Download from S3
+        run: |
+          aws s3 cp s3://${{ secrets.S3_BUCKET_NAME }}/backend ./backend --recursive
+          aws s3 cp s3://${{ secrets.S3_BUCKET_NAME }}/frontend ./frontend --recursive
 
       - name: Prepare SSH key
         run: |
-          echo "$EC2_SSH_KEY" > ec2_key.pem
+          echo "${{ secrets.EC2_SSH_KEY }}" > ec2_key.pem
           chmod 600 ec2_key.pem
-        env:
-          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
 
-      - name: Deploy to EC2 (with error handling)
+      - name: Upload files to EC2
         run: |
-          set -e
-          ssh -i ec2_key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST '
-            set -e
-            trap "echo DEPLOY FAILED; exit 1" ERR
-            mkdir -p /home/shopme/backend
-            mkdir -p /home/shopme/frontend
-            rm -rf /home/shopme/backend/*
-            rm -rf /home/shopme/frontend/*
-            exit_code=0
-            # Download from S3
-            aws s3 cp s3://$S3_BUCKET_NAME/backend /home/shopme/backend --recursive || exit_code=1
-            aws s3 cp s3://$S3_BUCKET_NAME/frontend /home/shopme/frontend --recursive || exit_code=1
-            # Backend setup
-            cd /home/shopme/backend && npm install && npm run build || exit_code=1
-            # Frontend setup (if needed)
-            cd /home/shopme/frontend || exit_code=1
-            # PM2
+          scp -i ec2_key.pem -o StrictHostKeyChecking=no -r ./backend ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/shopme/
+          scp -i ec2_key.pem -o StrictHostKeyChecking=no -r ./frontend ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/shopme/
+          scp -i ec2_key.pem -o StrictHostKeyChecking=no nginx.conf ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/shopme/
+
+      - name: Deploy application
+        run: |
+          ssh -i ec2_key.pem -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "
+            cd /home/shopme/backend && npm install && npm run build
+
+            # PM2 setup
             pm2 delete backend || true
-            pm2 start npm --name backend -- start -- --port 8080 || exit_code=1
-            pm2 save || exit_code=1
-            pm2 startup || exit_code=1
-            # Nginx config
-            cat > nginx-config.txt << 'EOL'
-server {
-    listen 80;
-    server_name _;
-    location /api/ {
-        proxy_pass http://localhost:8080/api/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-    location / {
-        proxy_pass http://localhost:3000/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-EOL
-            sudo cp nginx-config.txt /etc/nginx/sites-available/shopme
+            pm2 start npm --name backend -- start -- --port 8080
+            pm2 save
+            pm2 startup
+
+            # Nginx setup
+            sudo cp /home/shopme/nginx.conf /etc/nginx/sites-available/shopme
             sudo ln -sf /etc/nginx/sites-available/shopme /etc/nginx/sites-enabled/shopme
-            sudo nginx -t || exit_code=1
-            sudo systemctl restart nginx || exit_code=1
-            if [ $exit_code -ne 0 ]; then
-              echo "DEPLOY FAILED, check logs."
-              exit 1
-            fi
-            echo "DEPLOY SUCCESSFUL"
-          ' 
+            sudo nginx -t && sudo systemctl restart nginx
+          " 
