@@ -52,12 +52,40 @@ jobs:
         working-directory: ./backend
         run: npm run test:unit
 
-      # Debug Docker version
-      - name: Debug Docker version
+      # Debug environment
+      - name: Debug environment
         run: |
+          pwd
+          ls -la
+          find . -name "docker-compose.yml" || echo "No docker-compose.yml found"
           docker --version
           docker compose version
-          ls -la
+
+      # Create docker-compose.yml file
+      - name: Create docker-compose.yml file
+        run: |
+          cat > docker-compose.yml << EOF
+          name: ShopMe-DB
+          version: '3.8'
+          services:
+            db:
+              image: postgres:15
+              restart: always
+              environment:
+                POSTGRES_USER: shopme
+                POSTGRES_PASSWORD: shopme
+                POSTGRES_DB: shopme
+              ports:
+                - '5432:5432'
+              healthcheck:
+                test: ["CMD-SHELL", "pg_isready -U shopme"]
+                interval: 10s
+                timeout: 5s
+                retries: 5
+          volumes:
+            db_data:
+          EOF
+          
           cat docker-compose.yml
 
       # Start Docker Compose
@@ -70,8 +98,8 @@ jobs:
       # Debug Docker container
       - name: Debug Docker container
         run: |
-          docker ps
-          docker logs $(docker ps -q --filter "name=db") || echo "No logs found"
+          docker ps -a
+          docker logs $(docker ps -qa) || echo "No logs found"
 
       # Verify database connectivity
       - name: Verify database connectivity
