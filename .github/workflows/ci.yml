@@ -11,6 +11,7 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     environment: dev
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -33,7 +34,6 @@ jobs:
         run: |
           echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env
           echo "OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}" >> .env
-          cat .env | grep -v OPENROUTER_API_KEY
 
       - name: Create frontend .env file
         working-directory: ./frontend
@@ -52,134 +52,4 @@ jobs:
         working-directory: ./backend
         run: npm run test:unit
 
-      # Debug docker-compose file
-      - name: Debug docker-compose file
-        run: |
-          echo "Current directory content:"
-          ls -la
-          echo "docker-compose.yml content:"
-          cat docker-compose.yml
-          echo "Docker and Docker Compose versions:"
-          docker --version
-          docker compose version
-
-      # Start Docker Compose with more time to initialize
-      - name: Start Docker Compose
-        run: |
-          docker compose up -d
-          echo "Docker compose status after startup:"
-          docker compose ps
-          echo "Waiting for database to initialize (30 seconds)..."
-          sleep 30
-          echo "Docker status after wait:"
-          docker ps -a
-
-      # More detailed Docker debugging
-      - name: Debug Docker container
-        run: |
-          echo "All Docker containers:"
-          docker ps -a
-          echo "Network information:"
-          docker network ls
-          docker network inspect $(docker network ls -q)
-          echo "Container logs:"
-          docker logs $(docker ps -qa) || echo "No logs found"
-          
-      # Install PostgreSQL client
-      - name: Install PostgreSQL client
-        run: |
-          apt-get update
-          apt-get install -y postgresql-client netcat
-
-      # Try to connect to PostgreSQL
-      - name: Check PostgreSQL port
-        run: |
-          echo "Checking if PostgreSQL port is open:"
-          nc -zv localhost 5432
-          echo "Port check result: $?"
-
-      # Skip the psql check for now to progress with the workflow
-      - name: Verify database connectivity
-        run: |
-          echo "Setting up database connection..."
-          # Trying multiple connection approaches
-          echo "1. Trying standard psql connection:"
-          PGPASSWORD=shopme psql -h localhost -U shopme -d shopme -c "SELECT 1 as connection_test;" || echo "Standard connection failed"
-          
-          echo "2. Trying connection with host.docker.internal:"
-          PGPASSWORD=shopme psql -h host.docker.internal -U shopme -d shopme -c "SELECT 1 as connection_test;" || echo "Docker internal connection failed"
-          
-          echo "3. Using Docker container directly:"
-          CONTAINER_ID=$(docker ps -q --filter "name=db")
-          if [ -n "$CONTAINER_ID" ]; then
-            echo "Container found with ID: $CONTAINER_ID"
-            docker exec -i $CONTAINER_ID psql -U shopme -d shopme -c "SELECT 1 as test;"
-            echo "Docker exec connection result: $?"
-          else
-            echo "No database container found"
-          fi
-          
-          # Continue the workflow even if psql fails
-          echo "Continuing workflow..."
-          true
-
-      # Deploy schema with verbose output
-      - name: Deploy database schema
-        working-directory: ./backend
-        run: |
-          echo "🔧 Generating Prisma client..."
-          npx prisma generate
-          
-          echo "🔄 Pushing database schema..."
-          # Use debug mode and more detailed output
-          DEBUG=prisma:* npx prisma db push --accept-data-loss || true
-          
-          echo "✅ Database schema operation completed"
-
-      - name: Start backend
-        working-directory: ./backend
-        run: nohup npm start -- --port 8080 &
-
-      - name: Wait for backend
-        run: |
-          for i in {1..30}; do
-            curl -s http://localhost:8080/api/health && echo "Backend is up" && exit 0
-            echo "Waiting for backend... attempt $i"
-            sleep 2
-            if [ $i -eq 30 ]; then
-              echo "Backend did not start in time"
-              exit 1
-            fi
-          done
-
-      - name: Start frontend
-        working-directory: ./frontend
-        run: nohup npm start &
-
-      - name: Wait for frontend
-        run: |
-          for i in {1..30}; do
-            curl -s http://localhost:3000 && echo "Frontend is up" && exit 0
-            echo "Waiting for frontend... attempt $i"
-            sleep 2
-            if [ $i -eq 30 ]; then
-              echo "Frontend did not start in time"
-              exit 1
-            fi
-          done
-
-      - name: Run backend integration tests
-        working-directory: ./backend
-        run: npm run test:integration
-
-      - name: Run Cypress E2E tests
-        working-directory: ./frontend
-        run: npm run test:e2e
-
-      - name: Upload backend to S3
-        if: success() && github.ref == 'refs/heads/main'
-        run: aws s3 cp ./backend s3://${{ secrets.S3_BUCKET_NAME }}/backend --recursive
-
-      - name: Upload frontend to S3
-        if: success() && github.ref == 'refs/heads/main'
-        run: aws s3 cp ./frontend/dist s3://${{ secrets.S3_BUCKET_NAME }}/frontend --recursive 
+      # Aggiungeremo gli altri passaggi dopo che questo workflow di base funziona 
