@@ -12,6 +12,23 @@ jobs:
     runs-on: ubuntu-latest
     environment: dev
     
+    # Configurazione del servizio PostgreSQL
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: ${{ secrets.DB_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.DB_NAME }}
+        ports:
+          - 5432:5432
+        # Health check per assicurarsi che Postgres sia avviato
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -51,5 +68,17 @@ jobs:
       - name: Run backend unit tests
         working-directory: ./backend
         run: npm run test:unit
+        
+      # Setup database schema
+      - name: Setup database schema
+        working-directory: ./backend
+        run: |
+          npx prisma generate
+          npx prisma db push --accept-data-loss
+          
+      # Run backend integration tests
+      - name: Run backend integration tests
+        working-directory: ./backend
+        run: npm run test:integration
 
       # Aggiungeremo gli altri passaggi dopo che questo workflow di base funziona 
