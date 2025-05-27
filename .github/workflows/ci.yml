@@ -46,15 +46,12 @@ jobs:
         working-directory: ./frontend
         run: npm install
 
-      - name: Create backend .env file for integration tests
+      - name: Create backend .env file
         working-directory: ./backend
         run: |
-          # Configurazione per i test di integrazione - database reale, non mockato
           echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env
           echo "OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}" >> .env
           echo "NODE_ENV=test" >> .env
-          echo "USE_MOCKS=false" >> .env
-          echo "TEST_WITH_REAL_DB=true" >> .env
 
       - name: Create frontend .env file
         working-directory: ./frontend
@@ -97,7 +94,5 @@ jobs:
       - name: Run backend integration tests
         working-directory: ./backend
         run: |
-          echo "Running integration tests with real database..."
-          USE_MOCKS=false TEST_WITH_REAL_DB=true npm run test:integration
-
-      # Aggiungeremo gli altri passaggi dopo che questo workflow di base funziona 
+          echo "Running integration tests..."
+          npm run test:integration 
