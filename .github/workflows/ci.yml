@@ -46,11 +46,15 @@ jobs:
         working-directory: ./frontend
         run: npm install
 
-      - name: Create backend .env file
+      - name: Create backend .env file for integration tests
         working-directory: ./backend
         run: |
+          # Configurazione per i test di integrazione - database reale, non mockato
           echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env
           echo "OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}" >> .env
+          echo "NODE_ENV=test" >> .env
+          echo "USE_MOCKS=false" >> .env
+          echo "TEST_WITH_REAL_DB=true" >> .env
 
       - name: Create frontend .env file
         working-directory: ./frontend
@@ -69,16 +73,31 @@ jobs:
         working-directory: ./backend
         run: npm run test:unit
         
-      # Setup database schema
-      - name: Setup database schema
+      # Setup database schema per test di integrazione
+      - name: Setup test database schema
         working-directory: ./backend
         run: |
+          echo "Generating Prisma client..."
           npx prisma generate
+          
+          echo "Setting up test database schema..."
           npx prisma db push --accept-data-loss
           
-      # Run backend integration tests
+          echo "Seeding test database with data..."
+          npx prisma db seed
+
+      # Verifica che il database sia accessibile
+      - name: Verify database connectivity
+        run: |
+          apt-get update
+          apt-get install -y postgresql-client
+          PGPASSWORD=${{ secrets.DB_PASSWORD }} psql -h localhost -U ${{ secrets.DB_USER }} -d ${{ secrets.DB_NAME }} -c "SELECT current_database(), current_timestamp;"
+          
+      # Run backend integration tests with real database
       - name: Run backend integration tests
         working-directory: ./backend
-        run: npm run test:integration
+        run: |
+          echo "Running integration tests with real database..."
+          USE_MOCKS=false TEST_WITH_REAL_DB=true npm run test:integration
 
       # Aggiungeremo gli altri passaggi dopo che questo workflow di base funziona 
