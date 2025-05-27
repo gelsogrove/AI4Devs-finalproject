@@ -57,11 +57,13 @@ jobs:
         run: |
           docker --version
           docker compose version
+          ls -la
+          cat docker-compose.yml
 
-      # Start Docker Compose with verbose output
+      # Start Docker Compose
       - name: Start Docker Compose
         run: |
-          docker compose up -d --verbose
+          docker compose up -d
           docker compose ps
           sleep 10
 
@@ -69,7 +71,7 @@ jobs:
       - name: Debug Docker container
         run: |
           docker ps
-          docker logs $(docker ps -q --filter "name=db")
+          docker logs $(docker ps -q --filter "name=db") || echo "No logs found"
 
       # Verify database connectivity
       - name: Verify database connectivity
