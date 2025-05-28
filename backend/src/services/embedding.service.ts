@@ -26,8 +26,6 @@ type FAQChunkWithFAQ = {
     id: string;
     question: string;
     answer: string;
-    category: string | null;
-    tagsJson: string;
     createdAt: Date;
     updatedAt: Date;
   };
@@ -149,8 +147,6 @@ class EmbeddingService {
         id: faq.id,
         question: faq.question,
         answer: faq.answer,
-        category: faq.category || '',
-        tags: JSON.parse(faq.tagsJson || '[]'),
         createdAt: faq.createdAt,
         updatedAt: faq.updatedAt
       }));
@@ -183,8 +179,6 @@ class EmbeddingService {
         id: faq.id,
         question: faq.question,
         answer: faq.answer,
-        category: faq.category || '',
-        tags: JSON.parse(faq.tagsJson || '[]'),
         createdAt: faq.createdAt,
         updatedAt: faq.updatedAt
       }));
@@ -216,6 +210,142 @@ class EmbeddingService {
     
     // Handle potential NaN or Infinity values
     return isNaN(similarity) || !isFinite(similarity) ? 0 : similarity;
+  }
+
+  /**
+   * Generate embeddings for a single service and store in database
+   */
+  async generateEmbeddingsForService(serviceId: string): Promise<void> {
+    try {
+      // Get service from database
+      const service = await prisma.service.findUnique({
+        where: { id: serviceId },
+      });
+
+      if (!service) {
+        throw new Error('Service not found');
+      }
+
+      // Only generate embeddings for active services
+      if (!service.isActive) {
+        logger.info(`Skipping inactive service ${serviceId}`);
+        return;
+      }
+
+      // Generate embedding for combined name, description and price
+      const combinedText = `${service.name} - ${service.description} - Price: €${service.price}`;
+      
+      // Generate embedding using OpenAI
+      const embedding = await aiService.generateEmbedding(combinedText);
+      
+      // Update service with embedding
+      await prisma.service.update({
+        where: { id: serviceId },
+        data: {
+          embedding: JSON.stringify(embedding), // Store as JSON string
+        },
+      });
+
+      logger.info(`Generated embeddings for service ${serviceId}`);
+
+    } catch (error) {
+      logger.error(`Error generating embeddings for service ${serviceId}:`, error);
+      throw new Error('Failed to generate embeddings for service');
+    }
+  }
+
+  /**
+   * Clear all service embeddings
+   */
+  async clearServiceEmbeddings(): Promise<void> {
+    try {
+      await prisma.service.updateMany({
+        data: {
+          embedding: null,
+        },
+      });
+
+      logger.info('Cleared all service embeddings');
+    } catch (error) {
+      logger.error('Error clearing service embeddings:', error);
+      throw new Error('Failed to clear service embeddings');
+    }
+  }
+
+  /**
+   * Search services using embeddings
+   */
+  async searchServices(query: string, limit = 5): Promise<any[]> {
+    try {
+      // Generate embedding for the search query
+      const queryEmbedding = await aiService.generateEmbedding(query);
+      
+      // Get all active services with embeddings
+      const services = await prisma.service.findMany({
+        where: {
+          isActive: true,
+          embedding: { not: null }
+        }
+      });
+
+      // If no services found, fall back to text search
+      if (!services || services.length === 0) {
+        logger.info('No services with embeddings found, falling back to text search');
+        return this.textSearchServices(query, limit);
+      }
+
+      // Calculate cosine similarity between query and each service
+      const servicesWithSimilarity = services.map(service => {
+        try {
+          const serviceEmbedding = JSON.parse(service.embedding || '[]');
+          const similarity = this.cosineSimilarity(queryEmbedding, serviceEmbedding);
+          return { ...service, similarity };
+        } catch (error) {
+          logger.error(`Error parsing embedding for service ${service.id}:`, error);
+          return { ...service, similarity: 0 };
+        }
+      });
+
+      // Sort by similarity and get top services
+      const topServices = servicesWithSimilarity
+        .sort((a, b) => b.similarity - a.similarity)
+        .slice(0, limit);
+      
+      // If no services with similarity > 0, fall back to text search
+      if (topServices.length === 0 || topServices[0].similarity === 0) {
+        logger.info('No relevant services found, falling back to text search');
+        return this.textSearchServices(query, limit);
+      }
+
+      return topServices;
+    } catch (error) {
+      logger.error('Error searching services:', error);
+      // Fallback to text search if embedding search fails
+      return this.textSearchServices(query, limit);
+    }
+  }
+
+  /**
+   * Fallback text search for services
+   */
+  private async textSearchServices(query: string, limit = 5): Promise<any[]> {
+    try {
+      const services = await prisma.service.findMany({
+        where: {
+          isActive: true,
+          OR: [
+            { name: { contains: query } },
+            { description: { contains: query } }
+          ]
+        },
+        take: limit
+      });
+      
+      return services;
+    } catch (error) {
+      logger.error('Error in service text search fallback:', error);
+      return [];
+    }
   }
 }
 

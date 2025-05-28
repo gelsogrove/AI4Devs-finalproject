@@ -25,7 +25,6 @@ export const faqApi = {
     // Build query string from filters
     const queryParams = new URLSearchParams();
     
-    if (filters?.category) queryParams.append('category', filters.category);
     if (filters?.search) queryParams.append('search', filters.search);
     
     queryParams.append('page', page.toString());
@@ -36,11 +35,8 @@ export const faqApi = {
   },
   
   // Get public FAQs
-  async getPublicFAQs(category?: string) {
-    const queryParams = new URLSearchParams();
-    if (category) queryParams.append('category', category);
-    
-    const response = await axios.get(`${FAQS_ENDPOINT}/public?${queryParams.toString()}`);
+  async getPublicFAQs() {
+    const response = await axios.get(`${FAQS_ENDPOINT}/public`);
     return response.data as FAQ[];
   },
   
@@ -66,12 +62,6 @@ export const faqApi = {
   async deleteFAQ(id: string) {
     const response = await axios.delete(`${FAQS_ENDPOINT}/${id}`, getAuthHeader());
     return response.data;
-  },
-  
-  // Get all FAQ categories
-  async getCategories() {
-    const response = await axios.get(`${FAQS_ENDPOINT}/categories`, getAuthHeader());
-    return response.data as string[];
   },
   
   // Generate embeddings for a specific FAQ

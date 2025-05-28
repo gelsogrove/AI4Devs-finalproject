@@ -4,7 +4,6 @@ export interface Service {
   description: string;
   price: number;
   isActive: boolean;
-  tags: string[];
   createdAt: Date;
   updatedAt: Date;
 } 

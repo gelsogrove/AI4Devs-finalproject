@@ -6,6 +6,7 @@ export interface Product {
   imageUrl: string;
   category: string;
   tags: string[];
+  stock?: number;
   createdAt: string | Date;
   updatedAt: string | Date;
 }
@@ -17,6 +18,7 @@ export interface ProductFormData {
   imageUrl: string;
   category: string;
   tags: string[];
+  stock?: number;
 }
 
 export interface CreateProductDto {
@@ -26,6 +28,7 @@ export interface CreateProductDto {
   imageUrl: string;
   category: string;
   tags?: string[];
+  stock?: number;
 }
 
 export interface UpdateProductDto {
@@ -35,6 +38,7 @@ export interface UpdateProductDto {
   imageUrl?: string;
   category?: string;
   tags?: string[];
+  stock?: number;
 }
 
 export interface ProductFilters {

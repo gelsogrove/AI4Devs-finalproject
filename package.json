@@ -4,10 +4,20 @@
   "description": "ShopMe MVP Project",
   "private": true,
   "scripts": {
+    "dev": "./scripts/restart-all.sh",
+    "start": "./scripts/restart-all.sh",
+    "stop": "./scripts/stop-all.sh",
+    "restart": "./scripts/restart-all.sh",
+    "export-chatbot": "./scripts/export-chatbot.sh",
     "dev:frontend": "cd frontend && npm run dev",
     "dev:backend": "cd backend && npm run dev",
     "dev:all": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "test:e2e": "./scripts/run-e2e-tests.sh"
+    "restart:backend": "cd backend && npm run restart",
+    "restart:frontend": "cd frontend && ./restart-frontend.sh",
+    "kill": "lsof -ti:8080,3000,3001,3002,3003,3004,3005,5173 | xargs kill -9 2>/dev/null || echo 'No processes found'",
+    "test:e2e": "./scripts/run-e2e-tests.sh",
+    "health": "curl -s http://localhost:8080/api/health && echo '\\n✅ Backend healthy'",
+    "test:integration": "curl -s http://localhost:8080/api/chat/integration-test | jq '.successRate' && echo '% success rate'"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
+import embeddingService from '../services/embedding.service';
 import serviceService from '../services/service.service';
 import logger from '../utils/logger';
 
@@ -13,7 +14,7 @@ const createServiceSchema = z.object({
   ]).refine((val) => !isNaN(val) && val > 0, {
     message: 'Price must be a positive number',
   }),
-  tags: z.array(z.string()).optional(),
+  isActive: z.boolean().optional(),
 });
 
 const updateServiceSchema = z.object({
@@ -25,13 +26,15 @@ const updateServiceSchema = z.object({
   ]).refine((val) => !isNaN(val) && val > 0, {
     message: 'Price must be a positive number',
   }).optional(),
-  tags: z.array(z.string()).optional(),
+  isActive: z.boolean().optional(),
 }).refine(data => Object.keys(data).length > 0, {
   message: 'At least one field must be provided',
 });
 
 const filtersSchema = z.object({
   search: z.string().optional(),
+  page: z.coerce.number().positive().optional(),
+  limit: z.coerce.number().positive().max(100).optional(),
 });
 
 class ServiceController {
@@ -41,10 +44,10 @@ class ServiceController {
   async getServices(req: Request, res: Response) {
     try {
       // Parse and validate filters
-      const { search } = filtersSchema.parse(req.query);
+      const { search, page = 1, limit = 10 } = filtersSchema.parse(req.query);
       
       // Get services
-      const result = await serviceService.getServices({ search });
+      const result = await serviceService.getServices({ search }, page, limit);
       
       return res.json(result);
     } catch (error) {
@@ -67,6 +70,19 @@ class ServiceController {
     } catch (error) {
       logger.error('Error in getAllServices controller:', error);
       return res.status(500).json({ error: 'Failed to get services' });
+    }
+  }
+
+  /**
+   * Get all active services
+   */
+  async getActiveServices(req: Request, res: Response) {
+    try {
+      const services = await serviceService.getActiveServices();
+      return res.json(services);
+    } catch (error) {
+      logger.error('Error in getActiveServices controller:', error);
+      return res.status(500).json({ error: 'Failed to get active services' });
     }
   }
 
@@ -153,6 +169,32 @@ class ServiceController {
       
       logger.error(`Error in deleteService controller for ID ${req.params.id}:`, error);
       return res.status(500).json({ error: 'Failed to delete service' });
+    }
+  }
+
+  /**
+   * Generate embeddings for all active services
+   */
+  async generateEmbeddings(req: Request, res: Response) {
+    try {
+      // Get all active services
+      const services = await serviceService.getActiveServices();
+      
+      // Clear existing embeddings first
+      await embeddingService.clearServiceEmbeddings();
+      
+      // Generate embeddings for each active service
+      for (const service of services) {
+        await embeddingService.generateEmbeddingsForService(service.id);
+      }
+      
+      return res.json({ 
+        message: `Embeddings generated for ${services.length} active services`,
+        count: services.length
+      });
+    } catch (error) {
+      logger.error('Error generating service embeddings:', error);
+      return res.status(500).json({ error: 'Failed to generate embeddings' });
     }
   }
 }

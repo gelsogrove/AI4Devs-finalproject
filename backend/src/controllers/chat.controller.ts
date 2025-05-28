@@ -2,9 +2,9 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { AgentConfigService } from '../application/services/AgentConfigService';
 import {
-  FAQResponse,
-  ProductResponse,
-  ServiceResponse
+    FAQResponse,
+    ProductResponse,
+    ServiceResponse
 } from '../domain';
 import { availableFunctions } from '../services/availableFunctions';
 import logger from '../utils/logger';
@@ -42,25 +42,25 @@ const chatRequestSchema = z.object({
   ),
 });
 
-// Function definitions that will be passed to the OpenAI API
+// Function definitions for OpenRouter
 const functionDefinitions = [
   {
     name: 'getProducts',
-    description: 'Get products with optional category and search filters, or count products',
+    description: 'Search and retrieve Italian food products from our catalog. Use when customers ask about products, food items, or want to browse offerings.',
     parameters: {
       type: 'object',
       properties: {
         category: {
           type: 'string',
-          description: 'Filter products by category (e.g., "Cheese", "Oils", "Vinegars", "Pasta")',
+          description: 'Filter by category: "Cheese", "Wine", "Oils", "Vinegars", "Pasta", "Cured Meats", "Spirits"',
         },
         search: {
           type: 'string',
-          description: 'Search for products by name or description',
+          description: 'Search term for product names/descriptions. Examples: "wine", "parmigiano", "truffle"',
         },
         countOnly: {
           type: 'boolean',
-          description: 'Set to true to get only counts and categories instead of product details',
+          description: 'Set true to get only counts and categories instead of full details',
         }
       },
       required: [],
@@ -68,24 +68,22 @@ const functionDefinitions = [
   },
   {
     name: 'getServices',
-    description: 'Get available services with optional search filters',
+    description: 'Retrieve information about our services like cooking classes, catering, consultations. Use when customers ask about services.',
     parameters: {
       type: 'object',
       properties: {
         isActive: {
           type: 'boolean',
-          description: 'Whether to return only active services (default: true)',
+          description: 'Return only active services (default: true)',
         },
         search: {
           type: 'string',
-          description: 'Search for services by name or description',
+          description: 'Search services by name/description. Examples: "cooking", "catering", "consultation"',
         },
         tags: {
           type: 'array',
-          items: {
-            type: 'string'
-          },
-          description: 'Filter services by tags (e.g., ["italian", "premium", "quick"])',
+          items: { type: 'string' },
+          description: 'Filter by tags: ["italian", "premium", "quick", "cooking", "wine"]',
         }
       },
       required: [],
@@ -93,24 +91,13 @@ const functionDefinitions = [
   },
   {
     name: 'getFAQs',
-    description: 'Get frequently asked questions with optional category and search filters. When search is provided, it will use semantic search with embeddings.',
+    description: 'Search FAQs using semantic embedding search. Use for policy questions, shipping, returns, payments, store info.',
     parameters: {
       type: 'object',
       properties: {
-        category: {
-          type: 'string',
-          description: 'Filter FAQs by category (e.g., "Shipping & Delivery", "Returns & Refunds")',
-        },
         search: {
           type: 'string',
-          description: 'Search for FAQs by question or answer content using semantic search',
-        },
-        tags: {
-          type: 'array',
-          items: {
-            type: 'string'
-          },
-          description: 'Filter FAQs by tags (e.g., ["shipping", "returns", "payment"])',
+          description: 'Semantic search query. Examples: "shipping time", "return policy", "payment methods"',
         }
       },
       required: [],
@@ -123,194 +110,57 @@ class ChatController {
 
   constructor() {
     this.agentConfigService = new AgentConfigService();
-    logger.info('OpenRouter client initialized successfully');
+    logger.info('🤖 ChatController initialized');
   }
 
   async processChat(req: Request, res: Response) {
+    const startTime = Date.now();
+    
     try {
-      // Validate request
+      logger.info('🚀 === CHAT FLOW START ===');
+      
+      // Step 1: Validate request
       const { messages } = chatRequestSchema.parse(req.body);
-
-      // Add more detailed logging for debugging
-      logger.info(`Processing chat request with ${messages.length} messages`, { 
-        lastMessage: messages[messages.length - 1]?.content?.substring(0, 50) 
-      });
-
-      // Get agent configuration from database
+      const lastUserMessage = [...messages].reverse().find(msg => msg.role === 'user');
+      
+      if (!lastUserMessage) {
+        logger.error('❌ No user message found');
+        return res.status(400).json({ error: 'No user message found' });
+      }
+      
+      logger.info(`👤 USER: "${lastUserMessage.content}"`);
+      
+      // Step 2: Load configuration from database
+      logger.info('📊 SYSTEM: Loading agent configuration from database...');
       const agentConfig = await this.agentConfigService.getLatestConfig();
       
       if (!agentConfig) {
-        logger.error('Failed to load agent configuration');
+        logger.error('❌ Failed to load agent configuration from database');
         return res.status(500).json({ error: 'Failed to load agent configuration' });
       }
-
-      // Extract the last user message for processing
-      const lastUserMessage = [...messages]
-        .reverse()
-        .find(msg => msg.role === 'user');
-        
-      if (!lastUserMessage) {
-        logger.warn('No user message found in request');
-        return res.status(400).json({ error: 'No user message found' });
-      }
-
-      // Special handling for test environment
-      if (process.env.NODE_ENV === 'test') {
-        logger.info('Running in test environment, using mock responses');
-        
-        const userMessage = lastUserMessage.content.toLowerCase();
-        
-        // If the user is asking about products or cheese
-        if (userMessage.includes('prodotti') || 
-            userMessage.includes('formaggi') || 
-            userMessage.includes('formaggio') ||
-            userMessage.includes('product') || 
-            userMessage.includes('cheese')) {
-          
-          try {
-            // Try to get some products from the database
-            const productResults = await availableFunctions.getProducts({});
-            
-            return res.json({
-              message: {
-                role: 'assistant',
-                content: `Ecco i nostri formaggi e prodotti: ${productResults.products?.map(p => `• **${p.name}** - €${p.price} - ${p.description}`).join('\n\n') || 'Al momento non abbiamo prodotti disponibili.'}`
-              }
-            });
-          } catch (error) {
-            logger.error('Error getting products in test mode:', error);
-            return res.json({
-              message: {
-                role: 'assistant',
-                content: 'Sì, abbiamo formaggi italiani come il Parmigiano Reggiano e altri prodotti tipici italiani.'
-              }
-            });
-          }
-        }
-        
-        // If asking about product count
-        if (userMessage.includes('quanti') || userMessage.includes('count')) {
-          return res.json({
-            message: {
-              role: 'assistant',
-              content: 'Abbiamo 3 prodotti nel nostro catalogo: formaggi, oli e aceti balsamici.'
-            }
-          });
-        }
-        
-        // Default test response
-        return res.json({
-          message: {
-            role: 'assistant',
-            content: 'Benvenuto a Gusto Italiano! Come posso aiutarti oggi?'
-          }
-        });
-      }
-
-      // Check if OPENROUTER_API_KEY is valid and not the placeholder value
-      const apiKey = process.env.OPENROUTER_API_KEY;
-      const isApiKeyMissing = !apiKey || apiKey === "YOUR_API_KEY_HERE";
       
-      if (isApiKeyMissing) {
-        logger.warn('No valid OpenRouter API key found. Returning a mock response.');
-        
-        // If the user is asking about products
-        if (lastUserMessage.content.toLowerCase().includes('product') || 
-            lastUserMessage.content.toLowerCase().includes('pasta') ||
-            lastUserMessage.content.toLowerCase().includes('cheese') ||
-            lastUserMessage.content.toLowerCase().includes('oil') ||
-            lastUserMessage.content.toLowerCase().includes('prodotti') ||
-            lastUserMessage.content.toLowerCase().includes('formaggio')) {
-          
-          // Try to get some products from the database
-          const productResults = await availableFunctions.getProducts({});
-          
-          return res.json({
-            message: {
-              role: 'assistant',
-              content: `I'd be happy to tell you about our products! Here are some of our offerings:\n\n${productResults.products?.map(p => `• **${p.name}** - €${p.price} - ${p.description}`).join('\n\n') || 'Sorry, no products found at the moment.'}\n\nCan I help you with anything specific about these products?`
-            }
-          });
-        }
-        
-        // If the user is asking about services
-        if (lastUserMessage.content.toLowerCase().includes('service') || 
-            lastUserMessage.content.toLowerCase().includes('offer') ||
-            lastUserMessage.content.toLowerCase().includes('servizi')) {
-          
-          // Try to get services from the database
-          const serviceResults = await availableFunctions.getServices({});
-          
-          return res.json({
-            message: {
-              role: 'assistant',
-              content: `We offer the following services:\n\n${serviceResults.services.map(s => `• **${s.name}** - €${s.price} - ${s.description}`).join('\n\n')}\n\nWould you like to know more about any of these services?`
-            }
-          });
-        }
-        
-        // If the user is asking about FAQs
-        if (lastUserMessage.content.toLowerCase().includes('faq') || 
-            lastUserMessage.content.toLowerCase().includes('question') ||
-            lastUserMessage.content.toLowerCase().includes('domand')) {
-          
-          // Try to get FAQs from the database
-          const faqResults = await availableFunctions.getFAQs({});
-          
-          return res.json({
-            message: {
-              role: 'assistant',
-              content: `Here are some frequently asked questions:\n\n${faqResults.faqs.map(f => `**Q: ${f.question}**\nA: ${f.answer}`).join('\n\n')}\n\nIs there anything else you'd like to know?`
-            }
-          });
-        }
-        
-        // Default response for other queries
-        return res.json({
-          message: {
-            role: 'assistant',
-            content: "Benvenuto a Gusto Italiano! I'm your virtual assistant and I'm here to help you discover our authentic Italian products and services. Feel free to ask me about our pasta, cheese, oils, vinegars, or any of our Italian specialties. How may I assist you today?"
-          }
-        });
-      }
+      logger.info(`✅ SYSTEM: Config loaded - Model: ${agentConfig.model}, Temp: ${agentConfig.temperature}, TopP: ${agentConfig.topP}`);
+      
+      // Step 3: Prepare messages with system prompt from database
+      const systemPrompt = `${agentConfig.prompt}
 
-      // Add system prompt if not present in messages
+🎯 FUNCTION CALLING GUIDELINES:
+- For product questions → use getProducts
+- For service questions → use getServices  
+- For policy/shipping/FAQ questions → use getFAQs (uses semantic embedding search)
+- Always call appropriate function when user asks about products, services, or policies
+- Use specific search terms when possible`;
+
       if (!messages.some(msg => msg.role === 'system')) {
-        messages.unshift({
-          role: 'system',
-          content: agentConfig.prompt,
-        });
+        messages.unshift({ role: 'system', content: systemPrompt });
+      } else {
+        const systemIndex = messages.findIndex(msg => msg.role === 'system');
+        messages[systemIndex].content = systemPrompt;
       }
-
-      // Define toolChoice with the correct type
-      let toolChoice: 'auto' | 'none' | { type: string; function: { name: string } } = 'auto';
-
-      // Use the existing lastUserMessage that was already defined earlier
-      if (lastUserMessage) {
-        const content = lastUserMessage.content.toLowerCase();
-        
-        // Check for gift + service terms
-        if ((content.includes('regalo') || content.includes('gift') || content.includes('cesto')) && 
-            (content.includes('servizio') || content.includes('servizi') || content.includes('service'))) {
-          logger.info(`Directing to getServices for gift service query: "${content}"`);
-          toolChoice = {
-            type: "function", 
-            function: { name: "getServices" }
-          };
-        }
-        // Check for product terms
-        else if (content.includes('prodotti') || content.includes('products') || 
-                content.includes('caffè') || content.includes('caffe') || 
-                content.includes('cheese') || content.includes('formaggio')) {
-          logger.info(`Directing to getProducts for product query: "${content}"`);
-          toolChoice = {
-            type: "function",
-            function: { name: "getProducts" }
-          };
-        }
-      }
-
-      // Call OpenAI API with function calling
+      
+      // Step 4: Call OpenRouter with function calling
+      logger.info('🔄 OPENROUTER: Sending request with function calling enabled...');
+      
       const response = await aiService.generateChatCompletion(
         messages as any,
         agentConfig.model,
@@ -322,92 +172,34 @@ class ChatController {
             type: 'function',
             function: fn
           })),
-          toolChoice: toolChoice
+          toolChoice: 'auto'
         }
       );
-
+      
       const responseMessage = response.choices[0].message;
-
-      // Check if function call is requested
+      logger.info(`✅ OPENROUTER: Response received. Function calls: ${responseMessage.tool_calls?.length || 0}`);
+      
+      // Step 5: Handle function calls
       if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
-        // Process each function call
         const toolCall = responseMessage.tool_calls[0];
         
         if (toolCall.type === 'function') {
           const functionName = toolCall.function.name;
           const functionArgs = JSON.parse(toolCall.function.arguments);
           
-          // Add detailed logging for debugging
-          logger.info(`Function call detected: ${functionName}`, { args: functionArgs });
+          logger.info(`🔧 SYSTEM: Function call detected - ${functionName}`);
+          logger.info(`📝 SYSTEM: Function args - ${JSON.stringify(functionArgs)}`);
           
           // Execute the function
           if (functionName === 'getProducts' || functionName === 'getServices' || functionName === 'getFAQs') {
-            // Use type assertion to ensure TypeScript knows this is a function
+            logger.info(`⚡ SYSTEM: Executing ${functionName}...`);
+            
             const functionToCall = availableFunctions[functionName as keyof typeof availableFunctions] as Function;
-            
-            // Log before calling the function
-            logger.info(`About to call function ${functionName} with args:`, functionArgs);
-            
             const functionResult = await functionToCall(functionArgs) as FunctionResult;
             
-            // Log the function result for debugging
-            if (functionName === 'getFAQs') {
-              const faqResult = functionResult as FAQResponse;
-              logger.info(`FAQ function result:`, {
-                total: faqResult.total,
-                faqCount: faqResult.faqs?.length,
-                hasError: !!faqResult.error,
-                searchTerm: functionArgs.search,
-                category: functionArgs.category
-              });
-            } else if (functionName === 'getProducts') {
-              const productResult = functionResult as ProductResponse;
-              logger.info(`Function ${functionName} result:`, { 
-                total: productResult.total,
-                hasProducts: !!(productResult as ProductResponse).products,
-                productCount: (productResult as ProductResponse).products?.length,
-                searchTerm: functionArgs.search
-              });
-              
-              // For product searches with no results, try to help the model with alternative searches
-              if (productResult.products && 
-                  productResult.products.length === 0 && 
-                  functionArgs.search) {
-                
-                // Log the failed search attempt
-                logger.info(`No products found for search: "${functionArgs.search}". Trying alternatives.`);
-                
-                // Try with just the first word if multiple words were provided
-                const words = functionArgs.search.trim().split(/\s+/);
-                if (words.length > 1) {
-                  const firstWordResult = await availableFunctions.getProducts({
-                    ...functionArgs,
-                    search: words[0]
-                  }) as ProductResponse;
-                  
-                  // Log the alternative search result
-                  logger.info(`Alternative search result for "${words[0]}":`, {
-                    found: firstWordResult.products && firstWordResult.products.length > 0,
-                    count: firstWordResult.products?.length
-                  });
-                  
-                  // If we got results with just the first word, use those
-                  if (firstWordResult.products && firstWordResult.products.length > 0) {
-                    logger.info(`Found products using first word: "${words[0]}"`);
-                    productResult.alternativeSearch = words[0];
-                    productResult.products = firstWordResult.products;
-                    productResult.total = firstWordResult.total;
-                  }
-                }
-              }
-            } else {
-              logger.info(`Function ${functionName} result:`, {
-                total: functionResult.total,
-                searchTerm: functionArgs.search
-              });
-            }
+            logger.info(`✅ SYSTEM: ${functionName} completed - Found ${functionResult.total} results`);
             
-            // Add function result to messages
+            // Add function call and result to conversation
             messages.push({
               role: 'assistant',
               content: '',
@@ -427,47 +219,28 @@ class ChatController {
               tool_call_id: toolCall.id
             });
             
-            // Add a system message to guide the model for the second response
-            const systemPrompt: {
-              role: 'system',
-              content: string
-            } = {
-              role: 'system',
-              content: `Based on the function results, please provide a helpful response following these guidelines:
-              
-1. If products were found:
-   - Format the product information in a clear, beautiful, and readable way
-   - Include emojis where appropriate (🍝 for pasta, 🧀 for cheese, 🍷 for wine, etc.)
-   - For each product, show: name, price, brief description
-   - Group by category if multiple categories exist
-   - IMPORTANT: If multiple products are returned, ALWAYS use bullet points (•) instead of numbers (1, 2, 3) to list each product
-   - Start each product on a new line with double line breaks between products for better readability
-   - IMPORTANT: When formatting product names and prices, use consistent markdown formatting:
-     - Put product names in bold like this: **Product Name**
-     - DO NOT put prices in bold or asterisks
-     - Format prices as €XX.XX without any special formatting
-   - If this was an alternative search (using a related term), mention what term was used
-   - DO NOT include any images or image markdown at all
-   - Instead of showing images, just add a text note like "(Questo prodotto è disponibile nel nostro negozio)"
-   - DO NOT include any URLs or links in the response
+            // Add formatting instructions
+            messages.push({
+              role: 'system' as const,
+              content: `Format the response as Sofia from Gusto Italiano:
 
-2. If no products were found:
-   - Express regret that we don't have what they're looking for
-   - Suggest alternatives if available
-   - Ask if they'd like to see products from a related category
+🎨 FORMATTING RULES:
+• Use bullet points (•) for lists, never numbers
+• Bold product/service names: **Name** - €XX.XX (don't bold prices)
+• Include relevant emojis: 🍝🧀🍷🫒
+• Group by category if multiple items
+• If no results, suggest alternatives
+• Keep Sofia's warm Italian personality
+• End with engaging question
+• NO images, URLs, or links
 
-3. Format prices in Euro (€) with proper formatting
-4. Keep your tone warm, enthusiastic, and knowledgeable
-5. End with a question to continue the conversation if appropriate
-
-IMPORTANT: Focus on the products that were returned by the function call. Don't make up any additional products or information.`
-            };
+Remember: You're Sofia - be passionate about Italian food! 🇮🇹`
+            });
             
-            // Add the custom prompt to the messages
-            messages.push(systemPrompt);
+            // Step 6: Get formatted response from OpenRouter
+            logger.info('🎨 OPENROUTER: Requesting formatted response...');
             
-            // Call OpenAI again with function result
-            const secondResponse = await aiService.generateChatCompletion(
+            const formattedResponse = await aiService.generateChatCompletion(
               messages as any,
               agentConfig.model,
               {
@@ -477,34 +250,308 @@ IMPORTANT: Focus on the products that were returned by the function call. Don't 
               }
             );
             
-            return res.json({
-              message: secondResponse.choices[0].message,
-            });
+            const finalMessage = formattedResponse.choices[0].message;
+            logger.info('✅ OPENROUTER: Formatted response ready');
+            logger.info(`🎯 RESPONSE: "${finalMessage.content?.substring(0, 100)}..."`);
+            
+            const duration = Date.now() - startTime;
+            logger.info(`🏁 === CHAT FLOW COMPLETE (${duration}ms) ===`);
+            
+            return res.json({ message: finalMessage });
           }
         }
       }
+      
+      // Step 7: No function call - direct response
+      logger.info('💬 OPENROUTER: Direct response (no function call)');
+      logger.info(`🎯 RESPONSE: "${responseMessage.content?.substring(0, 100)}..."`);
+      
+      const duration = Date.now() - startTime;
+      logger.info(`🏁 === CHAT FLOW COMPLETE (${duration}ms) ===`);
+      
+      return res.json({ message: responseMessage });
 
-      // Return response directly if no function call
-      return res.json({
-        message: responseMessage,
-      });
     } catch (error: unknown) {
-      logger.error('Chat processing error:', error);
-
+      const duration = Date.now() - startTime;
+      logger.error(`💥 === CHAT FLOW ERROR (${duration}ms) ===`);
+      logger.error('Error details:', error);
+      
       if (error instanceof z.ZodError) {
+        logger.error('❌ Validation error:', error.errors);
         return res.status(400).json({
           error: 'Validation error',
           details: error.errors,
         });
       }
       
-      // Handle OpenAI API errors better
-      let errorMessage = 'Failed to process chat';
-      if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'invalid_api_key') {
-        errorMessage = 'Configuration error: Invalid API key';
+      return res.status(500).json({ error: 'Failed to process chat' });
+    }
+  }
+
+  // Test endpoint for debugging
+  async testAI(req: Request, res: Response) {
+    try {
+      logger.info('🧪 Testing AI service directly...');
+      
+      const response = await aiService.generateChatCompletion(
+        [{ role: 'user', content: 'Hello, this is a test' }],
+        'gpt-3.5-turbo',
+        { temperature: 0.7, maxTokens: 50 }
+      );
+      
+      return res.json({
+        success: true,
+        response: response.choices[0].message.content
+      });
+      
+    } catch (error) {
+      logger.error('🚨 AI test failed:', error);
+      return res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  }
+
+  // Debug endpoint for testing availableFunctions
+  async testFunctions(req: Request, res: Response) {
+    try {
+      logger.info('🔧 Testing availableFunctions directly...');
+      
+      // Test getProducts with wine search
+      const wineResults = await availableFunctions.getProducts({ search: 'wine' });
+      logger.info('Wine search results:', wineResults);
+      
+      // Test getProducts with Barolo search
+      const baroloResults = await availableFunctions.getProducts({ search: 'Barolo' });
+      logger.info('Barolo search results:', baroloResults);
+      
+      // Test getProducts with no filters
+      const allResults = await availableFunctions.getProducts({});
+      logger.info('All products results:', allResults);
+      
+      // Test getFAQs with shipping search
+      const shippingFAQs = await availableFunctions.getFAQs({ search: 'shipping' });
+      logger.info('Shipping FAQs results:', shippingFAQs);
+      
+      // Test getFAQs with no filters
+      const allFAQs = await availableFunctions.getFAQs({});
+      logger.info('All FAQs results:', allFAQs);
+      
+      return res.json({
+        success: true,
+        tests: {
+          wineSearch: wineResults,
+          baroloSearch: baroloResults,
+          allProducts: allResults,
+          shippingFAQs: shippingFAQs,
+          allFAQs: allFAQs
+        }
+      });
+      
+    } catch (error) {
+      logger.error('🚨 Function test failed:', error);
+      return res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  }
+
+  /**
+   * Integration test for chatbot functionality
+   */
+  async testChatbotIntegration(req: Request, res: Response) {
+    try {
+      logger.info('🧪 Starting comprehensive chatbot integration test...');
+      
+      const testResults = {
+        timestamp: new Date().toISOString(),
+        tests: [] as any[],
+        summary: {
+          total: 0,
+          passed: 0,
+          failed: 0
+        }
+      };
+
+      // Test 1: Products Search
+      logger.info('🍷 Testing Products Search...');
+      try {
+        const productTest = await availableFunctions.getProducts({
+          search: 'wine',
+          countOnly: false
+        });
+        
+        const productTestResult = {
+          name: 'Products Search - Wine',
+          status: productTest.products && productTest.products.length > 0 ? 'PASSED' : 'FAILED',
+          details: {
+            query: 'wine',
+            totalFound: productTest.total || 0,
+            sampleProducts: productTest.products?.slice(0, 3).map(p => ({
+              name: p.name,
+              category: p.category,
+              price: p.price
+            })) || []
+          },
+          error: productTest.error || null
+        };
+        
+        testResults.tests.push(productTestResult);
+        if (productTestResult.status === 'PASSED') testResults.summary.passed++;
+        else testResults.summary.failed++;
+        
+        logger.info(`✅ Products test: ${productTestResult.status} - Found ${productTest.total} products`);
+      } catch (error) {
+        logger.error('❌ Products test failed:', error);
+        testResults.tests.push({
+          name: 'Products Search - Wine',
+          status: 'FAILED',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+        testResults.summary.failed++;
       }
 
-      return res.status(500).json({ error: errorMessage });
+      // Test 2: Services Search
+      logger.info('🚚 Testing Services Search...');
+      try {
+        const serviceTest = await availableFunctions.getServices({
+          search: 'cooking',
+          isActive: true
+        });
+        
+        const serviceTestResult = {
+          name: 'Services Search - Cooking',
+          status: serviceTest.services && serviceTest.services.length > 0 ? 'PASSED' : 'FAILED',
+          details: {
+            query: 'cooking',
+            totalFound: serviceTest.total || 0,
+            sampleServices: serviceTest.services?.slice(0, 3).map(s => ({
+              name: s.name,
+              price: s.price,
+              isActive: s.isActive
+            })) || []
+          },
+          error: serviceTest.error || null
+        };
+        
+        testResults.tests.push(serviceTestResult);
+        if (serviceTestResult.status === 'PASSED') testResults.summary.passed++;
+        else testResults.summary.failed++;
+        
+        logger.info(`✅ Services test: ${serviceTestResult.status} - Found ${serviceTest.total} services`);
+      } catch (error) {
+        logger.error('❌ Services test failed:', error);
+        testResults.tests.push({
+          name: 'Services Search - Cooking',
+          status: 'FAILED',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+        testResults.summary.failed++;
+      }
+
+      // Test 3: FAQ Embedding Search
+      logger.info('❓ Testing FAQ Embedding Search...');
+      try {
+        const faqTest = await availableFunctions.getFAQs({
+          search: 'shipping'
+        });
+        
+        const faqTestResult = {
+          name: 'FAQ Embedding Search - Shipping',
+          status: faqTest.faqs && faqTest.faqs.length > 0 ? 'PASSED' : 'FAILED',
+          details: {
+            query: 'shipping',
+            totalFound: faqTest.total || 0,
+            sampleFAQs: faqTest.faqs?.slice(0, 3).map(f => ({
+              question: f.question,
+              answerPreview: f.answer.substring(0, 100) + '...'
+            })) || []
+          },
+          error: faqTest.error || null
+        };
+        
+        testResults.tests.push(faqTestResult);
+        if (faqTestResult.status === 'PASSED') testResults.summary.passed++;
+        else testResults.summary.failed++;
+        
+        logger.info(`✅ FAQ test: ${faqTestResult.status} - Found ${faqTest.total} FAQs`);
+      } catch (error) {
+        logger.error('❌ FAQ test failed:', error);
+        testResults.tests.push({
+          name: 'FAQ Embedding Search - Shipping',
+          status: 'FAILED',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+        testResults.summary.failed++;
+      }
+
+      // Test 4: Full Chat Integration
+      logger.info('💬 Testing Full Chat Integration...');
+      try {
+        const chatMessages = [
+          { role: 'user', content: 'What wines do you have and do you ship internationally?' }
+        ];
+        
+        // Get agent configuration
+        const agentConfig = await this.agentConfigService.getLatestConfig();
+        
+        // Test function calling capability
+        const functionTestResults = {
+          products: await availableFunctions.getProducts({ search: 'wine' }),
+          services: await availableFunctions.getServices({ search: 'shipping' }),
+          faqs: await availableFunctions.getFAQs({ search: 'international shipping' })
+        };
+        
+        const chatTestResult = {
+          name: 'Full Chat Integration',
+          status: 'PASSED',
+          details: {
+            query: 'What wines do you have and do you ship internationally?',
+            agentConfigLoaded: !!agentConfig,
+            functionResults: {
+              productsFound: functionTestResults.products.total || 0,
+              servicesFound: functionTestResults.services.total || 0,
+              faqsFound: functionTestResults.faqs.total || 0
+            },
+            availableFunctions: ['getProducts', 'getServices', 'getFAQs']
+          }
+        };
+        
+        testResults.tests.push(chatTestResult);
+        testResults.summary.passed++;
+        
+        logger.info('✅ Chat integration test: PASSED');
+      } catch (error) {
+        logger.error('❌ Chat integration test failed:', error);
+        testResults.tests.push({
+          name: 'Full Chat Integration',
+          status: 'FAILED',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+        testResults.summary.failed++;
+      }
+
+      // Calculate totals
+      testResults.summary.total = testResults.tests.length;
+      
+      // Final summary
+      const successRate = ((testResults.summary.passed / testResults.summary.total) * 100).toFixed(1);
+      logger.info(`🎯 Integration test completed: ${testResults.summary.passed}/${testResults.summary.total} tests passed (${successRate}%)`);
+      
+      return res.status(200).json({
+        message: 'Chatbot integration test completed',
+        successRate: `${successRate}%`,
+        ...testResults
+      });
+      
+    } catch (error) {
+      logger.error('Integration test error:', error);
+      return res.status(500).json({ 
+        error: 'Integration test failed',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   }
 }

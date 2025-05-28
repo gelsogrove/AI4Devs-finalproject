@@ -18,10 +18,8 @@ describe('FAQ API Integration Tests', () => {
     id: '123-test-faq',
     question: 'Test Question',
     answer: 'Test Answer',
-    category: 'Test Category',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    tagsJson: '[]'
   };
 
   const faqListResponse = {
@@ -53,8 +51,8 @@ describe('FAQ API Integration Tests', () => {
     (faqService.getFAQById as jest.Mock).mockResolvedValue(mockFaq);
     (faqService.createFAQ as jest.Mock).mockResolvedValue({...mockFaq, id: 'new-faq-id'});
     (faqService.updateFAQ as jest.Mock).mockResolvedValue({ ...mockFaq, question: 'Updated Question' });
-    (faqService.deleteFAQ as jest.Mock).mockResolvedValue({ id: mockFaq.id });
-    (faqService.getCategories as jest.Mock).mockResolvedValue(['Test Category', 'Another Category']);
+    (faqService.deleteFAQ as jest.Mock).mockResolvedValue({ success: true, message: 'FAQ deleted successfully' });
+    (faqService.getCategories as jest.Mock).mockResolvedValue(['General', 'Products']);
 
     // Create test user and get auth token
     const testUser = await createTestUser();
@@ -65,7 +63,6 @@ describe('FAQ API Integration Tests', () => {
       data: {
         question: 'Test Question?',
         answer: 'This is a test answer.',
-        category: 'Test Category',
       },
     });
     testFaqId = testFaq.id;
@@ -79,7 +76,7 @@ describe('FAQ API Integration Tests', () => {
     // Clean up test data
     await prisma.fAQ.deleteMany({
       where: {
-        category: 'Test Category',
+        question: 'Test Question?',
       },
     });
     await prisma.user.deleteMany({
@@ -130,7 +127,6 @@ describe('FAQ API Integration Tests', () => {
       const newFaq = {
         question: 'New Test Question?',
         answer: 'This is a new test answer.',
-        category: 'Test Category',
       };
 
       const response = await request(app)

@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -24,10 +24,8 @@ model FAQ {
   id        String     @id @default(uuid())
   question  String
   answer    String
-  category  String?
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
-  tagsJson  String     @default("[]")
   chunks    FAQChunk[]
 }
 
@@ -49,7 +47,6 @@ model AgentConfig {
   model       String   @default("gpt-4-turbo")
   prompt      String
   updatedAt   DateTime @updatedAt
-  topK        Int      @default(40)
 }
 
 model User {
@@ -71,6 +68,6 @@ model Service {
   price       Decimal
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  tagsJson    String   @default("[]")
   isActive    Boolean  @default(true)
+  embedding   String?
 }

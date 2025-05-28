@@ -13,9 +13,8 @@ const agentConfigSchema = z.object({
   temperature: z.number().min(0).max(1),
   maxTokens: z.number().min(1).max(4000),
   topP: z.number().min(0).max(1),
-  topK: z.number().min(1).max(100),
-  model: z.string(),
-  prompt: z.string().min(1, { message: "Prompt is required" }),
+  model: z.string().min(1),
+  prompt: z.string().min(1),
 });
 
 class AgentController {

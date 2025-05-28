@@ -39,7 +39,7 @@ const SplashModal: React.FC<SplashModalProps> = ({ isOpen, onClose }) => {
               </li>
               <li className="flex gap-2">
                 <span className="text-shopme-600">•</span>
-                <span>Test the chatbot with function calling capabilities</span>
+                <span>Test the chatbot with function calling capabilities and embedding capabilities</span>
               </li>
                
             </ul>
@@ -47,7 +47,7 @@ const SplashModal: React.FC<SplashModalProps> = ({ isOpen, onClose }) => {
           
           <p className="text-sm text-gray-600">
             This MVP demonstrates how ShopMe integrates with WhatsApp to create a seamless shopping experience. 
-            The actual WhatsApp integration is simulated in this demo.
+            The actual WhatsApp integration is NOT simulated in this demo.
           </p>
         </div>
         

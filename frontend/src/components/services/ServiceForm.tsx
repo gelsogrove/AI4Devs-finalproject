@@ -1,8 +1,6 @@
-import { XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { serviceApi } from "../../api/serviceApi";
 import { CreateServiceDto, UpdateServiceDto } from "../../types/service";
-import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { MarkdownViewer } from "../ui/markdown-viewer";
@@ -32,12 +30,8 @@ export function ServiceForm({
     name: "",
     description: "",
     price: 0,
-    tags: [],
     isActive: true
   });
-
-  // For tag input
-  const [tagInput, setTagInput] = useState("");
   
   // For markdown preview
   const [activeTab, setActiveTab] = useState<string>("edit");
@@ -53,7 +47,6 @@ export function ServiceForm({
             name: service.name,
             description: service.description,
             price: service.price,
-            tags: service.tags || [],
             isActive: service.isActive !== undefined ? service.isActive : true
           });
         } catch (err) {
@@ -101,30 +94,6 @@ export function ServiceForm({
     setForm(prev => ({
       ...prev,
       isActive: checked
-    }));
-  };
-
-  const addTag = () => {
-    if (tagInput.trim() && !form.tags.includes(tagInput.trim().toLowerCase())) {
-      setForm(prev => ({
-        ...prev,
-        tags: [...prev.tags, tagInput.trim().toLowerCase()]
-      }));
-      setTagInput('');
-    }
-  };
-
-  const handleTagInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      addTag();
-    }
-  };
-
-  const removeTag = (tagToRemove: string) => {
-    setForm(prev => ({
-      ...prev,
-      tags: prev.tags.filter(tag => tag !== tagToRemove)
     }));
   };
 
@@ -311,43 +280,6 @@ Code block
               {form.isActive ? "Active" : "Inactive"}
             </label>
           </div>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <label className="block text-sm font-medium">Tags</label>
-        <div className="flex gap-2">
-          <Input
-            type="text"
-            value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
-            onKeyDown={handleTagInputKeyDown}
-            placeholder="Add a tag"
-            className="flex-1"
-          />
-          <Button 
-            type="button"
-            onClick={addTag}
-            variant="secondary"
-          >
-            Add
-          </Button>
-        </div>
-        
-        {/* Display tags */}
-        <div className="flex flex-wrap gap-2 mt-2">
-          {form.tags.map((tag) => (
-            <Badge key={tag} variant="secondary" className="text-sm py-1 px-2 gap-1">
-              {tag}
-              <button
-                type="button"
-                onClick={() => removeTag(tag)}
-                className="ml-1 text-gray-500 hover:text-gray-700 focus:outline-none"
-              >
-                <XCircle className="h-3 w-3" />
-              </button>
-            </Badge>
-          ))}
         </div>
       </div>
 

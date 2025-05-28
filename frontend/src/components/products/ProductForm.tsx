@@ -35,6 +35,7 @@ export function ProductForm({
     imageUrl: "",
     category: "",
     tags: [],
+    stock: 0,
   });
 
   // Load product data if editing an existing product
@@ -51,6 +52,7 @@ export function ProductForm({
             imageUrl: product.imageUrl,
             category: product.category,
             tags: product.tags || [],
+            stock: product.stock || 0,
           });
         } catch (err) {
           setError("Failed to load product data");
@@ -78,7 +80,7 @@ export function ProductForm({
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    const newValue = name === "price" ? parseFloat(value) || 0 : value;
+    const newValue = name === "price" || name === "stock" ? parseFloat(value) || 0 : value;
     
     setForm((prev) => ({
       ...prev,
@@ -245,6 +247,29 @@ export function ProductForm({
           />
           {validationErrors.price && (
             <p className="text-sm text-destructive">{validationErrors.price}</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <label 
+            htmlFor="stock" 
+            className="block text-sm font-medium"
+          >
+            Stock
+          </label>
+          <Input
+            type="number"
+            id="stock"
+            name="stock"
+            value={form.stock}
+            onChange={handleChange}
+            className={validationErrors.stock ? "border-red-500" : ""}
+            step="1"
+            min="0"
+            required
+          />
+          {validationErrors.stock && (
+            <p className="text-sm text-destructive">{validationErrors.stock}</p>
           )}
         </div>
 

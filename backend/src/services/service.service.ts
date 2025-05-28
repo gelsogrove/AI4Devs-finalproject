@@ -10,24 +10,11 @@ class ServiceService {
    */
   async createService(serviceData: CreateServiceDto) {
     try {
-      // Convert tags array to JSON string
-      const dataToSave = {
-        ...serviceData,
-        tagsJson: serviceData.tags ? JSON.stringify(serviceData.tags) : '[]'
-      };
-      
-      // Remove tags field
-      delete (dataToSave as any).tags;
-      
       const service = await prisma.service.create({
-        data: dataToSave,
+        data: serviceData,
       });
       
-      // Add tags to the result
-      return {
-        ...service,
-        tags: JSON.parse(service.tagsJson || '[]')
-      };
+      return service;
     } catch (error) {
       logger.error('Error creating service:', error);
       throw new Error('Failed to create service');
@@ -37,7 +24,7 @@ class ServiceService {
   /**
    * Get all services with optional filters
    */
-  async getServices(filters?: ServiceFilters) {
+  async getServices(filters?: ServiceFilters, page = 1, limit = 10) {
     try {
       const where: any = {};
       
@@ -46,29 +33,30 @@ class ServiceService {
         where.OR = [
           { name: { contains: filters.search } },
           { description: { contains: filters.search } },
-          // Not possible to search in tags with SQLite
         ];
       }
       
-      // Get all services
-      const services = await prisma.service.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-      });
+      // Calculate pagination
+      const skip = (page - 1) * limit;
       
-      // Add tags to each service
-      const servicesWithTags = services.map(service => ({
-        ...service,
-        tags: JSON.parse(service.tagsJson || '[]')
-      }));
+      // Get services with pagination
+      const [services, total] = await Promise.all([
+        prisma.service.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: { createdAt: 'desc' },
+        }),
+        prisma.service.count({ where }),
+      ]);
       
       return {
-        data: servicesWithTags,
+        data: services,
         pagination: {
-          page: 1,
-          limit: services.length,
-          total: services.length,
-          totalPages: 1,
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
         },
       };
     } catch (error) {
@@ -86,14 +74,27 @@ class ServiceService {
         orderBy: { createdAt: 'desc' },
       });
       
-      // Add tags to each service
-      return services.map(service => ({
-        ...service,
-        tags: JSON.parse(service.tagsJson || '[]')
-      }));
+      return services;
     } catch (error) {
       logger.error('Error getting all services:', error);
       throw new Error('Failed to get services');
+    }
+  }
+
+  /**
+   * Get all active services
+   */
+  async getActiveServices() {
+    try {
+      const services = await prisma.service.findMany({
+        where: { isActive: true },
+        orderBy: { createdAt: 'desc' },
+      });
+      
+      return services;
+    } catch (error) {
+      logger.error('Error getting active services:', error);
+      throw new Error('Failed to get active services');
     }
   }
 
@@ -110,11 +111,7 @@ class ServiceService {
         throw new Error('Service not found');
       }
       
-      // Add tags to the result
-      return {
-        ...service,
-        tags: JSON.parse(service.tagsJson || '[]')
-      };
+      return service;
     } catch (error) {
       logger.error(`Error getting service with ID ${id}:`, error);
       if (error instanceof Error) {
@@ -138,26 +135,13 @@ class ServiceService {
         throw new Error('Service not found');
       }
       
-      // Prepare data for update
-      const dataToUpdate = { ...serviceData };
-      
-      // Convert tags array to JSON string if provided
-      if (serviceData.tags) {
-        (dataToUpdate as any).tagsJson = JSON.stringify(serviceData.tags);
-        delete dataToUpdate.tags;
-      }
-      
       // Update the service
       const updatedService = await prisma.service.update({
         where: { id },
-        data: dataToUpdate,
+        data: serviceData,
       });
       
-      // Add tags to the result
-      return {
-        ...updatedService,
-        tags: JSON.parse(updatedService.tagsJson || '[]')
-      };
+      return updatedService;
     } catch (error) {
       logger.error(`Error updating service with ID ${id}:`, error);
       if (error instanceof Error) {

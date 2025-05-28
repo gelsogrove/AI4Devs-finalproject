@@ -34,7 +34,6 @@ export interface FAQResponse {
     question: string;
     answer: string;
     category: string;
-    tags: string[];
   }>;
   error?: string;
 }

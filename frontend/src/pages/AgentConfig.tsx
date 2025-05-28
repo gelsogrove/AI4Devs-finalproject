@@ -4,9 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
 } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -82,7 +82,6 @@ const initialConfig: IAgentConfig = {
   temperature: 0.7,
   maxTokens: 500,
   topP: 0.9,
-  topK: 40,
   model: 'gpt-4-turbo',
   prompt: DEFAULT_PROMPT,
   updatedAt: new Date().toISOString()
@@ -123,24 +122,6 @@ const helpContent = {
           <li><strong>1.0:</strong> Considers all possible tokens based on their probability.</li>
         </ul>
         <p className="italic mt-2">Recommendation: Works well with Temperature. For most use cases, a value between 0.7-0.9 provides good results. Lower values (0.3-0.5) for more factual responses.</p>
-      </div>
-    )
-  },
-  topK: {
-    title: "Top K",
-    content: (
-      <div className="space-y-2 max-h-[300px] overflow-y-auto">
-        <p><strong>Range:</strong> 1 to 100</p>
-        <p><strong>Default:</strong> 40</p>
-        <p><strong>What it does:</strong> Limits token selection to the K most likely next tokens. The model will only choose from these top K tokens when generating each word.</p>
-        <p className="font-semibold mt-2">Examples:</p>
-        <ul className="list-disc pl-5 space-y-1">
-          <li><strong>5:</strong> Very restrictive, only the 5 most likely tokens are considered.</li>
-          <li><strong>20:</strong> Moderately restrictive, good for focused responses.</li>
-          <li><strong>40:</strong> Balanced setting for most use cases.</li>
-          <li><strong>80:</strong> Allows for more diversity in responses.</li>
-        </ul>
-        <p className="italic mt-2">Recommendation: Use in conjunction with Top P. Lower values (10-30) for more predictable responses, higher values (40-60) for more variety while maintaining coherence.</p>
       </div>
     )
   },
@@ -214,13 +195,6 @@ const AgentConfigPage: React.FC = () => {
     });
   };
 
-  const handleTopKChange = (value: number[]) => {
-    setConfig({
-      ...config,
-      topK: value[0]
-    });
-  };
-
   const handleMaxTokensChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value);
     setConfig({
@@ -269,15 +243,6 @@ const AgentConfigPage: React.FC = () => {
       return;
     }
 
-    if (config.topK < 1 || config.topK > 100) {
-      toast({
-        title: "Validation Error",
-        description: "Top K must be between 1 and 100",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (config.maxTokens <= 0) {
       toast({
         title: "Validation Error",
@@ -304,7 +269,6 @@ const AgentConfigPage: React.FC = () => {
         temperature: config.temperature,
         maxTokens: config.maxTokens,
         topP: config.topP,
-        topK: config.topK,
         model: config.model,
         prompt: config.prompt || DEFAULT_PROMPT // Fallback to default if somehow still null
       };
@@ -465,41 +429,6 @@ const AgentConfigPage: React.FC = () => {
                   />
                   <p className="text-xs text-gray-500">
                     Nucleus sampling: Only consider tokens with the top P% probability mass.
-                  </p>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <Label htmlFor="top-k">Top K: {config.topK}</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full p-0">
-                          <HelpCircle className="h-4 w-4" />
-                          <span className="sr-only">Top K info</span>
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80">
-                        <div className="space-y-2">
-                          <h4 className="font-medium leading-none">{helpContent.topK.title}</h4>
-                          <div className="text-sm">
-                            {helpContent.topK.content}
-                          </div>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <Input
-                    type="range"
-                    id="topK"
-                    name="topK"
-                    min={1}
-                    max={100}
-                    step={1}
-                    value={config.topK}
-                    onChange={(e) => handleTopKChange([parseInt(e.target.value)])}
-                  />
-                  <p className="text-xs text-gray-500">
-                    Only consider the top K tokens with the highest probabilities.
                   </p>
                 </div>
                 

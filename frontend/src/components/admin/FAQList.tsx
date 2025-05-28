@@ -2,7 +2,6 @@ import { Edit, Plus, Search, Trash2, Zap } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { faqApi } from "../../api/faqApi";
 import { FAQ, FAQFilters } from "../../types/faq";
-import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { SlidePanel } from "../ui/SlidePanel";
 import { toast } from "../ui/use-toast";
@@ -19,7 +18,6 @@ export function FAQList() {
   const [isEditing, setIsEditing] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [categories, setCategories] = useState<string[]>([]);
   const [generatingEmbeddings, setGeneratingEmbeddings] = useState(false);
 
   // Add function to generate embeddings for all FAQs
@@ -58,23 +56,9 @@ export function FAQList() {
     }
   }, [filters, currentPage]);
 
-  // Load categories
-  const loadCategories = useCallback(async () => {
-    try {
-      const result = await faqApi.getCategories();
-      setCategories(result);
-    } catch (err) {
-      console.error("Failed to load categories", err);
-    }
-  }, []);
-
   useEffect(() => {
     loadFaqs();
   }, [loadFaqs]);
-
-  useEffect(() => {
-    loadCategories();
-  }, [loadCategories]);
 
   // Apply filters
   const applyFilters = () => {
@@ -131,24 +115,6 @@ export function FAQList() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     applyFilters();
-  };
-
-  // Generate embeddings for a specific FAQ
-  const handleGenerateEmbeddingForFaq = async (faqId: string) => {
-    try {
-      await faqApi.generateEmbeddingsForFAQ(faqId);
-      toast({
-        title: "Embedding generated",
-        description: "Embedding for this FAQ has been generated successfully.",
-      });
-    } catch (err) {
-      console.error("Failed to generate embedding", err);
-      toast({
-        title: "Error",
-        description: "Failed to generate embedding. Please try again.",
-        variant: "destructive",
-      });
-    }
   };
 
   return (
@@ -229,12 +195,6 @@ export function FAQList() {
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Category
-                </th>
-                <th
-                  scope="col"
                   className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
                   Actions
@@ -252,32 +212,21 @@ export function FAQList() {
                       {faq.answer}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {faq.category ? (
-                      <Badge className="bg-blue-100 text-blue-800">
-                        {faq.category}
-                      </Badge>
-                    ) : (
-                      <span className="text-gray-400 text-sm">
-                        No category
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => handleEditFaq(faq.id)}
-                      className="text-indigo-600 hover:text-indigo-900 mr-2"
-                      title="Edit"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteFaq(faq.id)}
-                      className="text-red-600 hover:text-red-900"
-                      title="Delete"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                  <td className="px-6 py-4 text-right text-sm font-medium">
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => handleEditFaq(faq.id)}
+                        className="text-indigo-600 hover:text-indigo-900 mr-4"
+                      >
+                        <Edit className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteFaq(faq.id)}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -288,47 +237,54 @@ export function FAQList() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="mt-6 flex justify-center">
-          <nav className="inline-flex rounded-md shadow">
-            {Array.from({ length: totalPages }, (_, i) => (
-              <button
-                key={i + 1}
-                onClick={() => setCurrentPage(i + 1)}
-                className={`px-4 py-2 text-sm font-medium ${
-                  currentPage === i + 1
-                    ? "bg-green-600 text-white"
-                    : "bg-white text-gray-700 hover:bg-gray-50"
-                } ${i === 0 ? "rounded-l-md" : ""} ${
-                  i === totalPages - 1 ? "rounded-r-md" : ""
-                }`}
-              >
-                {i + 1}
-              </button>
-            ))}
-          </nav>
+        <div className="flex justify-center mt-6">
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              variant="outline"
+            >
+              Previous
+            </Button>
+            <span className="flex items-center px-4 py-2 text-sm text-gray-700">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+              variant="outline"
+            >
+              Next
+            </Button>
+          </div>
         </div>
       )}
 
-      {/* Create/Edit FAQ Slide Panel */}
+      {/* Edit FAQ Slide Panel */}
       <SlidePanel
-        title={isCreating ? "Create FAQ" : "Edit FAQ"}
-        isOpen={isCreating || isEditing}
-        onClose={() => {
-          setIsCreating(false);
-          setIsEditing(false);
-          setSelectedFaqId(null);
-        }}
+        isOpen={isEditing}
+        onClose={() => setIsEditing(false)}
+        title="Edit FAQ"
+      >
+        {selectedFaqId && (
+          <FAQForm
+            faqId={selectedFaqId}
+            onSave={handleSave}
+            onCancel={() => setIsEditing(false)}
+          />
+        )}
+      </SlidePanel>
+
+      {/* Create FAQ Slide Panel */}
+      <SlidePanel
+        isOpen={isCreating}
+        onClose={() => setIsCreating(false)}
+        title="Create FAQ"
       >
         <FAQForm
-          faqId={selectedFaqId || undefined}
-          isNew={isCreating}
+          isNew
           onSave={handleSave}
-          onCancel={() => {
-            setIsCreating(false);
-            setIsEditing(false);
-            setSelectedFaqId(null);
-          }}
-          categories={categories}
+          onCancel={() => setIsCreating(false)}
         />
       </SlidePanel>
     </div>

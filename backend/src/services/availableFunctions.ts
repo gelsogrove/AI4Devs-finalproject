@@ -27,8 +27,7 @@ export const availableFunctions = {
       // Add category filter if provided
       if (category) {
         where.category = {
-          contains: category,
-          mode: 'insensitive'
+          contains: category
         };
       }
       
@@ -54,43 +53,37 @@ export const availableFunctions = {
               // Exact match - highest priority
               {
                 name: {
-                  equals: keyword,
-                  mode: 'insensitive'
+                  equals: keyword
                 }
               },
               // Starts with - high priority
               {
                 name: {
-                  startsWith: keyword,
-                  mode: 'insensitive'
+                  startsWith: keyword
                 }
               },
               // Contains in name - medium priority
               {
                 name: {
-                  contains: keyword,
-                  mode: 'insensitive'
+                  contains: keyword
                 }
               },
               // Contains in description - lower priority
               {
                 description: {
-                  contains: keyword,
-                  mode: 'insensitive'
+                  contains: keyword
                 }
               },
               // Contains in category - also important
               {
                 category: {
-                  contains: keyword,
-                  mode: 'insensitive'
+                  contains: keyword
                 }
               },
               // Check if any tag contains the keyword - high priority
               {
                 tagsJson: {
-                  contains: keyword,
-                  mode: 'insensitive'
+                  contains: keyword
                 }
               }
             ];
@@ -173,26 +166,42 @@ export const availableFunctions = {
    */
   getServices: async (filters: ServiceFilters) => {
     try {
-      const { search, tags, isActive } = filters;
+      const { search, isActive } = filters;
       
-      // Base query conditions
+      if (search) {
+        try {
+          // Use embedding search if search term is provided
+          const services = await embeddingService.searchServices(search);
+
+          // Filter by isActive if specified
+          const filteredServices = typeof isActive === 'boolean' 
+            ? services.filter(s => s.isActive === isActive)
+            : services;
+
+          return {
+            total: filteredServices.length,
+            services: filteredServices.map(s => ({
+              id: s.id,
+              name: s.name,
+              description: s.description,
+              price: s.price.toString(),
+              isActive: s.isActive
+            }))
+          };
+        } catch (embeddingError) {
+          // Log error and fall back to regular search
+          logger.error('Service embedding search failed, falling back to text search:', embeddingError);
+          
+          // Continue with regular search below
+        }
+      }
+
+      // If no search term or embedding search failed, use regular filtering
       const where: any = {};
       
       // Add isActive filter if provided
       if (typeof isActive === 'boolean') {
         where.isActive = isActive;
-      }
-      
-      // Add tags filter if provided
-      if (tags && tags.length > 0) {
-        // Since tags are stored as JSON string, we need to check if the JSON contains any of the tags
-        // This is a simplification and may not work perfectly for array containment
-        where.OR = tags.map(tag => ({
-          tagsJson: {
-            contains: tag,
-            mode: 'insensitive'
-          }
-        }));
       }
       
       // Add search filter if provided
@@ -212,29 +221,19 @@ export const availableFunctions = {
             // Exact match - highest priority
             {
               name: {
-                equals: keyword,
-                mode: 'insensitive'
+                equals: keyword
               }
             },
             // Contains in name - medium priority
             {
               name: {
-                contains: keyword,
-                mode: 'insensitive'
+                contains: keyword
               }
             },
             // Contains in description - lower priority
             {
               description: {
-                contains: keyword,
-                mode: 'insensitive'
-              }
-            },
-            // Check if any tag contains the keyword - high priority
-            {
-              tagsJson: {
-                contains: keyword,
-                mode: 'insensitive'
+                contains: keyword
               }
             }
           ]);
@@ -255,8 +254,7 @@ export const availableFunctions = {
           name: s.name,
           description: s.description,
           price: s.price.toString(),
-          isActive: s.isActive,
-          tags: JSON.parse(s.tagsJson || '[]')
+          isActive: s.isActive
         }))
       };
     } catch (error) {
@@ -274,26 +272,19 @@ export const availableFunctions = {
    */
   getFAQs: async (filters: FAQFilters) => {
     try {
-      const { search, category } = filters;
+      const { search } = filters;
 
       if (search) {
         try {
           // Use embedding search if search term is provided
           const faqs = await embeddingService.searchFAQs(search);
-          
-          // Apply category filter if provided
-          const filteredFaqs = category
-            ? faqs.filter(faq => faq.category === category)
-            : faqs;
 
           return {
-            total: filteredFaqs.length,
-            faqs: filteredFaqs.map(faq => ({
+            total: faqs.length,
+            faqs: faqs.map(faq => ({
               id: faq.id,
               question: faq.question,
-              answer: faq.answer,
-              category: faq.category || '',
-              tags: Array.isArray(faq.tags) ? faq.tags : [] // Ensure tags is always an array
+              answer: faq.answer
             }))
           };
         } catch (embeddingError) {
@@ -306,10 +297,6 @@ export const availableFunctions = {
 
       // If no search term or embedding search failed, use regular filtering
       const where: any = {};
-      
-      if (category) {
-        where.category = category;
-      }
       
       // Add text search if search term is provided
       if (search) {
@@ -339,9 +326,7 @@ export const availableFunctions = {
         faqs: faqs.map(faq => ({
           id: faq.id,
           question: faq.question,
-          answer: faq.answer,
-          category: faq.category || '',
-          tags: JSON.parse(faq.tagsJson || '[]')
+          answer: faq.answer
         }))
       };
     } catch (error) {

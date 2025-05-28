@@ -38,8 +38,6 @@ describe('FAQ Edit and Create Functionality', () => {
               id: '1',
               question: 'Do you ship internationally?',
               answer: 'Yes, we ship to most countries worldwide.',
-              category: 'Shipping & Delivery',
-              isPublished: true,
               createdAt: '2023-01-01T00:00:00.000Z',
               updatedAt: '2023-01-01T00:00:00.000Z'
             }
@@ -53,12 +51,6 @@ describe('FAQ Edit and Create Functionality', () => {
         }
       }).as('getFaqs');
 
-      // Mock FAQ categories API response
-      cy.intercept('GET', '/api/faqs/categories', {
-        statusCode: 200,
-        body: ['Shipping & Delivery', 'Returns & Refunds']
-      }).as('getFaqCategories');
-
       // Mock single FAQ fetch
       cy.intercept('GET', '/api/faqs/1', {
         statusCode: 200,
@@ -66,8 +58,6 @@ describe('FAQ Edit and Create Functionality', () => {
           id: '1',
           question: 'Do you ship internationally?',
           answer: 'Yes, we ship to most countries worldwide.',
-          category: 'Shipping & Delivery',
-          isPublished: true,
           createdAt: '2023-01-01T00:00:00.000Z',
           updatedAt: '2023-01-01T00:00:00.000Z'
         }
@@ -80,8 +70,6 @@ describe('FAQ Edit and Create Functionality', () => {
           id: '1',
           question: 'Do you ship internationally?',
           answer: 'Yes, we ship to most countries worldwide including Europe, Asia, and Australia.',
-          category: 'Shipping & Delivery',
-          isPublished: true,
           createdAt: '2023-01-01T00:00:00.000Z',
           updatedAt: '2023-01-03T00:00:00.000Z'
         }
@@ -107,7 +95,7 @@ describe('FAQ Edit and Create Functionality', () => {
       cy.get('textarea[name="answer"]').clear().type('Yes, we ship to most countries worldwide including Europe, Asia, and Australia.');
       
       // Submit the form - use the actual button text from the component
-      cy.contains('button', 'Update FAQ').click({ force: true });
+      cy.contains('button', 'Save FAQ').click({ force: true });
       cy.wait('@updateFaq');
       
       // Verify that the request was successful and no error message is shown
@@ -134,12 +122,6 @@ describe('FAQ Edit and Create Functionality', () => {
         }
       }).as('getFaqs');
 
-      // Mock FAQ categories API response
-      cy.intercept('GET', '/api/faqs/categories', {
-        statusCode: 200,
-        body: ['Shipping & Delivery', 'Returns & Refunds']
-      }).as('getFaqCategories');
-
       // Mock create FAQ API
       cy.intercept('POST', '/api/faqs', {
         statusCode: 201,
@@ -147,8 +129,6 @@ describe('FAQ Edit and Create Functionality', () => {
           id: '1',
           question: 'What shipping carriers do you use?',
           answer: 'We primarily use FedEx and UPS for domestic shipments and DHL for international shipments.',
-          category: 'Shipping & Delivery',
-          isPublished: true,
           createdAt: '2023-01-03T00:00:00.000Z',
           updatedAt: '2023-01-03T00:00:00.000Z'
         }
@@ -170,11 +150,9 @@ describe('FAQ Edit and Create Functionality', () => {
       // Fill the form
       cy.get('input[name="question"]').type('What shipping carriers do you use?');
       cy.get('textarea[name="answer"]').type('We primarily use FedEx and UPS for domestic shipments and DHL for international shipments.');
-      cy.get('select[name="category"]').select('Shipping & Delivery');
-      cy.get('input[name="isPublished"]').check();
       
       // Submit the form - use the actual button text from the component
-      cy.contains('button', 'Create FAQ').click({ force: true });
+      cy.contains('button', 'Save FAQ').click({ force: true });
       cy.wait('@createFaq');
       
       // Verify that the request was successful and no error message is shown

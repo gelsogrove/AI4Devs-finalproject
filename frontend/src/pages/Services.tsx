@@ -1,10 +1,11 @@
-import { Edit, Filter, Plus, Search, Trash2 } from "lucide-react";
+import { Edit, Plus, Search, Trash2, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { serviceApi } from "../api/serviceApi";
 import { ServiceForm } from "../components/services/ServiceForm";
-import { Badge } from "../components/ui/badge";
+import { Button } from "../components/ui/button";
 import { MarkdownViewer } from "../components/ui/markdown-viewer";
 import { SlidePanel } from "../components/ui/SlidePanel";
+import { toast } from "../components/ui/use-toast";
 import { Service, ServiceFilters } from "../types/service";
 
 export default function Services() {
@@ -18,12 +19,29 @@ export default function Services() {
   const [isEditing, setIsEditing] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [expandedDescription, setExpandedDescription] = useState<string | null>(null);
+  const [generatingEmbeddings, setGeneratingEmbeddings] = useState(false);
 
-  // Collect all unique tags from services
-  const allTags = [...new Set(services.flatMap(service => service.tags || []))].sort();
+  // Add function to generate embeddings for all active services
+  const handleGenerateEmbeddings = async () => {
+    try {
+      setGeneratingEmbeddings(true);
+      await serviceApi.generateEmbeddingsForAllServices();
+      toast({
+        title: "Embeddings generated",
+        description: "Embeddings for all active services have been generated successfully.",
+      });
+    } catch (err) {
+      console.error("Failed to generate embeddings", err);
+      toast({
+        title: "Error",
+        description: "Failed to generate embeddings. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingEmbeddings(false);
+    }
+  };
 
   // Load services when page loads or filters change
   useEffect(() => {
@@ -44,26 +62,11 @@ export default function Services() {
     loadServices();
   }, [filters, currentPage]);
 
-  // Apply filters
-  const applyFilters = () => {
-    const newFilters: ServiceFilters = { search: searchTerm };
-    
-    if (selectedTags.length > 0) {
-      newFilters.tags = selectedTags;
-    }
-    
-    setFilters(newFilters);
-    setCurrentPage(1);
-    setShowFilters(false);
-  };
-
   // Reset filters
   const resetFilters = () => {
     setSearchTerm("");
-    setSelectedTags([]);
     setFilters({});
     setCurrentPage(1);
-    setShowFilters(false);
   };
 
   // Handle search
@@ -71,15 +74,6 @@ export default function Services() {
     e.preventDefault();
     setFilters((prev) => ({ ...prev, search: searchTerm }));
     setCurrentPage(1);
-  };
-
-  // Toggle tag selection
-  const toggleTag = (tag: string) => {
-    setSelectedTags(prev => 
-      prev.includes(tag) 
-        ? prev.filter(t => t !== tag) 
-        : [...prev, tag]
-    );
   };
 
   // Handle service edit
@@ -144,12 +138,23 @@ export default function Services() {
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Services</h1>
-        <button
-          onClick={handleCreateService}
-          className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg flex items-center"
-        >
-          <Plus className="mr-2 h-4 w-4" /> Add Service
-        </button>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleGenerateEmbeddings}
+            className="bg-purple-600 hover:bg-purple-700"
+            disabled={generatingEmbeddings}
+          >
+            <Zap className="mr-2 h-4 w-4" />
+            {generatingEmbeddings ? "Generating..." : "Generate Embeddings"}
+          </Button>
+          <Button
+            onClick={handleCreateService}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Service
+          </Button>
+        </div>
       </div>
 
       {/* Search and Filters */}
@@ -173,54 +178,10 @@ export default function Services() {
           </div>
         </form>
         
-        <button 
-          onClick={() => setShowFilters(!showFilters)}
-          className="px-4 py-2 bg-gray-100 rounded-lg flex items-center hover:bg-gray-200"
-        >
-          <Filter className="h-5 w-5 mr-2" />
-          Filters {selectedTags.length > 0 && <span className="ml-1 bg-green-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">!</span>}
-        </button>
+        <Button onClick={resetFilters} variant="ghost">
+          Reset
+        </Button>
       </div>
-
-      {/* Filters panel */}
-      {showFilters && (
-        <div className="mb-6 p-4 border rounded-lg bg-gray-50">
-          <h3 className="font-medium mb-3">Filter Services</h3>
-          
-          {allTags.length > 0 && (
-            <div className="mb-4">
-              <h4 className="text-sm font-medium mb-2">Tags</h4>
-              <div className="flex flex-wrap gap-2">
-                {allTags.map(tag => (
-                  <Badge
-                    key={tag}
-                    variant={selectedTags.includes(tag) ? "default" : "outline"}
-                    className="cursor-pointer"
-                    onClick={() => toggleTag(tag)}
-                  >
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          <div className="flex justify-end gap-2 mt-4">
-            <button 
-              onClick={resetFilters}
-              className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100"
-            >
-              Reset
-            </button>
-            <button 
-              onClick={applyFilters}
-              className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700"
-            >
-              Apply Filters
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Error message */}
       {error && (
@@ -257,6 +218,12 @@ export default function Services() {
                 </th>
                 <th
                   scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Status
+                </th>
+                <th
+                  scope="col"
                   className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
                   Actions
@@ -269,9 +236,6 @@ export default function Services() {
                   <td className="px-6 py-4">
                     <div className="text-sm font-medium text-gray-900 flex items-center">
                       {service.name}
-                      {service.isActive === false && (
-                        <Badge className="ml-2 bg-gray-200 text-gray-700">Inactive</Badge>
-                      )}
                     </div>
                     
                     <div 
@@ -294,18 +258,27 @@ export default function Services() {
                       {formatPrice(service.price)}
                     </span>
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                      service.isActive 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {service.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button
                       onClick={() => handleEditService(service.id)}
                       className="text-indigo-600 hover:text-indigo-900 mr-4"
                     >
-                      <Edit className="h-4 w-4" />
+                      <Edit className="h-5 w-5" />
                     </button>
                     <button
                       onClick={() => handleDeleteService(service.id)}
                       className="text-red-600 hover:text-red-900"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-5 w-5" />
                     </button>
                   </td>
                 </tr>

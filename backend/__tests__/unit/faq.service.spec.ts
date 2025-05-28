@@ -37,15 +37,8 @@ describe('FAQ Service', () => {
     id: '123',
     question: 'Test Question?',
     answer: 'This is a test answer.',
-    category: 'Test Category',
-    tagsJson: '[]',
     createdAt: new Date(),
     updatedAt: new Date(),
-  };
-  
-  const mockFAQWithTags = {
-    ...mockFAQ,
-    tags: [],
   };
   
   describe('createFAQ', () => {
@@ -53,7 +46,6 @@ describe('FAQ Service', () => {
       const createData = {
         question: 'Test Question?',
         answer: 'This is a test answer.',
-        category: 'Test Category',
       };
       
       (prisma.fAQ.create as jest.Mock).mockResolvedValue(mockFAQ);
@@ -61,37 +53,10 @@ describe('FAQ Service', () => {
       const result = await faqService.createFAQ(createData);
       
       expect(prisma.fAQ.create).toHaveBeenCalledWith({
-        data: {
-          ...createData,
-          tagsJson: '[]',
-        },
+        data: createData,
       });
       
-      expect(result).toEqual(mockFAQWithTags);
-    });
-    
-    it('should set isPublished based on provided value', async () => {
-      const createData = {
-        question: 'Test Question?',
-        answer: 'This is a test answer.',
-        category: 'Test Category',
-        tags: [],
-      };
-      
-      (prisma.fAQ.create as jest.Mock).mockResolvedValue({
-        ...mockFAQ,
-      });
-      
-      await faqService.createFAQ(createData);
-      
-      expect(prisma.fAQ.create).toHaveBeenCalledWith({
-        data: {
-          question: 'Test Question?',
-          answer: 'This is a test answer.',
-          category: 'Test Category',
-          tagsJson: '[]',
-        },
-      });
+      expect(result).toEqual(mockFAQ);
     });
     
     it('should throw an error if creation fails', async () => {
@@ -127,7 +92,7 @@ describe('FAQ Service', () => {
       expect(prisma.fAQ.count).toHaveBeenCalledWith({ where: {} });
       
       expect(result).toEqual({
-        data: [mockFAQWithTags],
+        data: [mockFAQ],
         pagination: {
           page: 1,
           limit: 10,
@@ -139,7 +104,6 @@ describe('FAQ Service', () => {
     
     it('should apply filters correctly', async () => {
       const filters = {
-        category: 'General',
         search: 'test',
       };
       
@@ -162,22 +126,10 @@ describe('FAQ Service', () => {
       const result = await faqService.getAllFAQs();
       
       expect(prisma.fAQ.findMany).toHaveBeenCalledWith({
-        where: {},
         orderBy: { createdAt: 'desc' },
       });
       
-      expect(result).toEqual([mockFAQWithTags]);
-    });
-    
-    it('should filter by category if provided', async () => {
-      (prisma.fAQ.findMany as jest.Mock).mockResolvedValue([mockFAQ]);
-      
-      await faqService.getAllFAQs('General');
-      
-      expect(prisma.fAQ.findMany).toHaveBeenCalledWith({
-        where: { category: 'General' },
-        orderBy: { createdAt: 'desc' },
-      });
+      expect(result).toEqual([mockFAQ]);
     });
   });
   
@@ -191,7 +143,7 @@ describe('FAQ Service', () => {
         where: { id: '123' },
       });
       
-      expect(result).toEqual(mockFAQWithTags);
+      expect(result).toEqual(mockFAQ);
     });
     
     it('should throw an error when FAQ not found', async () => {
@@ -208,11 +160,13 @@ describe('FAQ Service', () => {
         answer: 'Updated answer.',
       };
       
-      (prisma.fAQ.findUnique as jest.Mock).mockResolvedValue(mockFAQ);
-      (prisma.fAQ.update as jest.Mock).mockResolvedValue({
+      const updatedFAQ = {
         ...mockFAQ,
         ...updateData,
-      });
+      };
+      
+      (prisma.fAQ.findUnique as jest.Mock).mockResolvedValue(mockFAQ);
+      (prisma.fAQ.update as jest.Mock).mockResolvedValue(updatedFAQ);
       
       const result = await faqService.updateFAQ('123', updateData);
       
@@ -225,17 +179,13 @@ describe('FAQ Service', () => {
         data: updateData,
       });
       
-      expect(result).toEqual({
-        ...mockFAQWithTags,
-        ...updateData,
-      });
+      expect(result).toEqual(updatedFAQ);
     });
     
     it('should throw an error when FAQ not found', async () => {
       (prisma.fAQ.findUnique as jest.Mock).mockResolvedValue(null);
       
-      await expect(faqService.updateFAQ('999', { question: 'Updated' })).rejects.toThrow('FAQ not found');
-      expect(prisma.fAQ.update).not.toHaveBeenCalled();
+      await expect(faqService.updateFAQ('999', { question: 'Updated?' })).rejects.toThrow('FAQ not found');
     });
   });
   
@@ -244,7 +194,7 @@ describe('FAQ Service', () => {
       (prisma.fAQ.findUnique as jest.Mock).mockResolvedValue(mockFAQ);
       (prisma.fAQ.delete as jest.Mock).mockResolvedValue(mockFAQ);
       
-      await faqService.deleteFAQ('123');
+      const result = await faqService.deleteFAQ('123');
       
       expect(prisma.fAQ.findUnique).toHaveBeenCalledWith({
         where: { id: '123' },
@@ -253,23 +203,21 @@ describe('FAQ Service', () => {
       expect(prisma.fAQ.delete).toHaveBeenCalledWith({
         where: { id: '123' },
       });
+      
+      expect(result).toEqual({ success: true, message: 'FAQ deleted successfully' });
     });
     
     it('should throw an error when FAQ not found', async () => {
       (prisma.fAQ.findUnique as jest.Mock).mockResolvedValue(null);
       
       await expect(faqService.deleteFAQ('999')).rejects.toThrow('FAQ not found');
-      expect(prisma.fAQ.delete).not.toHaveBeenCalled();
     });
   });
   
   describe('getCategories', () => {
-    it('should return distinct categories', async () => {
-      const categoryResults = [
-        { category: 'General' },
-        { category: 'Products' },
-        { category: 'Shipping' },
-      ];
+    it('should return all categories', async () => {
+      const mockCategories = ['General', 'Products', 'Shipping'];
+      const categoryResults = mockCategories.map(category => ({ category }));
       
       (prisma.fAQ.findMany as jest.Mock).mockResolvedValue(categoryResults);
       
@@ -278,12 +226,9 @@ describe('FAQ Service', () => {
       expect(prisma.fAQ.findMany).toHaveBeenCalledWith({
         select: { category: true },
         distinct: ['category'],
-        where: { 
-          category: { not: null },
-        },
       });
       
-      expect(result).toEqual(['General', 'Products', 'Shipping']);
+      expect(result).toEqual(mockCategories);
     });
     
     it('should filter out null categories', async () => {

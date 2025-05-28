@@ -162,7 +162,7 @@ const Chatbot: React.FC = () => {
                   AI
                 </div>
                 <div>
-                  <h3 className="font-medium">ShopMe  Assistant</h3>
+                  <h3 className="font-medium">Gusto Italiano</h3>
                   <p className="text-xs text-gray-500">Online</p>
                 </div>
               </div>
@@ -351,23 +351,65 @@ const Chatbot: React.FC = () => {
                     variant="outline" 
                     className="w-full justify-start text-left h-auto py-2"
                     onClick={() => {
-                      setInput("Do you have any Italian wine?");
+                      setInput("I am looking for a good Italian wine any suggestions?");
                       setTimeout(() => sendMessage(), 100);
                     }}
                   >
-                   Do you have any Italian wine?
+                  I am looking for a good Italian wine, any suggestions?
                   </Button>
                 </li>
+
                 <li>
                   <Button 
                     variant="outline" 
                     className="w-full justify-start text-left h-auto py-2"
                     onClick={() => {
-                      setInput("Are your products authentic Italian?");
+                      setInput("Do you have wine less than  20Euro?");
                       setTimeout(() => sendMessage(), 100);
                     }}
                   >
-                  Are your products authentic Italian?  </Button>
+                 Do you have wine less than 20Euro?
+                  </Button>
+                </li>
+
+
+                <li>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start text-left h-auto py-2"
+                    onClick={() => {
+                      setInput("which king of pasta do you have?");
+                      setTimeout(() => sendMessage(), 100);
+                    }}
+                  >
+                  Which kind of pasta do you sell?
+                  </Button>
+                </li>
+
+                <li>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start text-left h-auto py-2"
+                    onClick={() => {
+                      setInput("How much does it cost the Mozzarella di Bufala?");
+                      setTimeout(() => sendMessage(), 100);
+                    }}
+                  >
+                 How much does it cost the Mozzarella di Bufala?
+                  </Button>
+                </li>
+
+
+                <li>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start text-left h-auto py-2"
+                    onClick={() => {
+                      setInput("Are your products genuinely made in Italy?");
+                      setTimeout(() => sendMessage(), 100);
+                    }}
+                  >
+                 Are your products genuinely made in Italy? </Button>
                 </li>
                 <li>
                   <Button 
@@ -398,18 +440,18 @@ const Chatbot: React.FC = () => {
                     variant="outline" 
                     className="w-full justify-start text-left h-auto py-2"
                     onClick={() => {
-                      setInput("Do you have a recipe for ham and melon?");
+                      setInput("Do you ship internationally?");
                       setTimeout(() => sendMessage(), 100);
                     }}
                   >
-                    Do you have a recipe for ham and melon?
+                    Do you ship internationally?
                   </Button>
                 </li>
               </ul>
               
               <div className="mt-6 text-xs text-gray-500">
                 <p className="font-medium mb-1">About the Chatbot</p>
-                <p>This chatbot connects to a real AI service with function calling capabilities to search products and services in our database.</p>
+                <p>This chatbot connects to a real AI service with function calling and embedding capabilities to search products services and FAQs in our database.</p>
                
               </div>
             </CardContent>

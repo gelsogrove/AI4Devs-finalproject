@@ -65,7 +65,7 @@
       },
       "AgentConfig": {
         "type": "object",
-        "required": ["temperature", "maxTokens", "topP", "topK", "model", "prompt"],
+        "required": ["temperature", "maxTokens", "topP", "model", "prompt"],
         "properties": {
           "id": { "type": "string", "format": "uuid" },
           "temperature": { "type": "number", "format": "float" },
@@ -75,11 +75,6 @@
             "format": "float",
             "minimum": 0,
             "maximum": 1
-          },
-          "topK": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 100
           },
           "model": { "type": "string" },
           "prompt": { "type": "string" },
@@ -933,11 +928,6 @@
                     "format": "float",
                     "minimum": 0,
                     "maximum": 1
-                  },
-                  "topK": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 100
                   },
                   "model": {
                     "type": "string"

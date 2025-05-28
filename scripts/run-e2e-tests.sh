@@ -20,7 +20,7 @@ echo_msg() {
 echo_msg "Cleaning up ports..."
 
 # Check and kill processes on common ports (3000, 3001, 3003)
-for PORT in 3000 3001 3003; do
+for PORT in 3000 3001 3003 8080; do
   PID=$(lsof -t -i:$PORT -sTCP:LISTEN)
   if [ -n "$PID" ]; then
     echo_msg "Killing process on port $PORT (PID: $PID)"
@@ -44,7 +44,7 @@ BACKEND_PID=$!
 echo_msg "Waiting for backend to be ready..."
 attempt=0
 max_attempts=30
-while ! curl -s http://localhost:3001/api/health > /dev/null; do
+while ! curl -s http://localhost:8080/api/health > /dev/null; do
   attempt=$((attempt+1))
   if [ $attempt -eq $max_attempts ]; then
     echo_msg "${RED}Backend failed to start${NC}"

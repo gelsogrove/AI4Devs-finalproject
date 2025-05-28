@@ -3,7 +3,6 @@ import { useCallback, useEffect, useState } from "react";
 import { faqApi } from "../../api/faqApi";
 import { FAQ, FAQFilters } from "../../types/faq";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
-import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 
 export function PublicFAQs() {
@@ -109,14 +108,7 @@ export function PublicFAQs() {
             {faqs.map((faq) => (
               <AccordionItem key={faq.id} value={faq.id}>
                 <AccordionTrigger className="text-left">
-                  <div className="flex flex-col items-start">
-                    <span className="text-base font-medium">{faq.question}</span>
-                    {faq.category && (
-                      <Badge className="mt-1 bg-blue-100 text-blue-800">
-                        {faq.category}
-                      </Badge>
-                    )}
-                  </div>
+                  <span className="text-base font-medium">{faq.question}</span>
                 </AccordionTrigger>
                 <AccordionContent>
                   <div className="prose prose-sm max-w-none">

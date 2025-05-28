@@ -173,8 +173,6 @@ describe('Product and FAQ Lists', () => {
               id: '1',
               question: 'Do you ship internationally?',
               answer: 'Yes, we ship to most countries worldwide.',
-              category: 'Shipping & Delivery',
-              isPublished: true,
               createdAt: '2023-01-01T00:00:00.000Z',
               updatedAt: '2023-01-01T00:00:00.000Z'
             },
@@ -182,8 +180,6 @@ describe('Product and FAQ Lists', () => {
               id: '2',
               question: 'What is your return policy?',
               answer: 'We accept returns within 30 days of purchase.',
-              category: 'Returns & Refunds',
-              isPublished: true,
               createdAt: '2023-01-02T00:00:00.000Z',
               updatedAt: '2023-01-02T00:00:00.000Z'
             }
@@ -196,12 +192,6 @@ describe('Product and FAQ Lists', () => {
           }
         }
       }).as('getFaqs');
-
-      // Mock FAQ categories API response
-      cy.intercept('GET', '/api/faqs/categories', {
-        statusCode: 200,
-        body: ['Shipping & Delivery', 'Returns & Refunds']
-      }).as('getFaqCategories');
 
       // Navigate to FAQs page
       cy.visit('/faqs');
@@ -217,42 +207,6 @@ describe('Product and FAQ Lists', () => {
       cy.get('table').should('be.visible');
       cy.contains('Do you ship internationally?').should('be.visible');
       cy.contains('What is your return policy?').should('be.visible');
-    });
-
-    it('should filter FAQs by category', () => {
-      cy.wait('@getFaqs');
-      
-      // Intercept filtered FAQs request
-      cy.intercept('GET', '/api/faqs*category=Shipping+%26+Delivery*', {
-        statusCode: 200,
-        body: {
-          data: [
-            {
-              id: '1',
-              question: 'Do you ship internationally?',
-              answer: 'Yes, we ship to most countries worldwide.',
-              category: 'Shipping & Delivery',
-              isPublished: true,
-              createdAt: '2023-01-01T00:00:00.000Z',
-              updatedAt: '2023-01-01T00:00:00.000Z'
-            }
-          ],
-          pagination: {
-            page: 1,
-            limit: 10,
-            total: 1,
-            totalPages: 1
-          }
-        }
-      }).as('getFilteredFaqs');
-      
-      // Select category from dropdown
-      cy.get('select').eq(0).select('Shipping & Delivery');
-      cy.wait('@getFilteredFaqs');
-      
-      // Check only filtered FAQ is displayed
-      cy.contains('Do you ship internationally?').should('be.visible');
-      cy.contains('What is your return policy?').should('not.exist');
     });
 
     it('should show add FAQ button for admins', () => {
@@ -272,8 +226,6 @@ describe('Product and FAQ Lists', () => {
           id: '1',
           question: 'Do you ship internationally?',
           answer: 'Yes, we ship to most countries worldwide.',
-          category: 'Shipping & Delivery',
-          isPublished: true,
           createdAt: '2023-01-01T00:00:00.000Z',
           updatedAt: '2023-01-01T00:00:00.000Z'
         }

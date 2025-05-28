@@ -27,43 +27,187 @@ async function seedProducts() {
   // Delete existing products
   await prisma.product.deleteMany({});
   
-  // Create new products
+  // Create new products - 20 Italian products
   const products = [
     {
-      name: 'Parmigiano Reggiano DOP',
-      description: 'Authentic Italian Parmigiano Reggiano aged for 24 months. Perfect for grating over pasta or enjoying with a good wine.',
+      name: 'Parmigiano Reggiano DOP 24 Months',
+      description: 'Authentic Italian Parmigiano Reggiano aged for 24 months from Emilia-Romagna. Perfect for grating over pasta or enjoying with a good wine. Rich, nutty flavor with crystalline texture.',
       price: 15.90,
       imageUrl: '/images/products/parmigiano.jpg',
       category: 'Cheese',
       stock: 25,
-      tagsJson: JSON.stringify(['italian', 'cheese', 'premium'])
+      tagsJson: JSON.stringify(['italian', 'cheese', 'premium', 'dop', 'aged', 'emilia-romagna'])
     },
     {
-      name: 'Extra Virgin Olive Oil',
-      description: 'Cold-pressed Italian olive oil from Tuscany. Fruity and slightly peppery.',
+      name: 'Extra Virgin Olive Oil Toscano IGP',
+      description: 'Cold-pressed Italian olive oil from Tuscany hills. Fruity and slightly peppery with notes of artichoke and almond. Perfect for salads and finishing dishes.',
       price: 12.50,
       imageUrl: '/images/products/olive-oil.jpg',
       category: 'Oils',
       stock: 30,
-      tagsJson: JSON.stringify(['italian', 'oil', 'premium'])
+      tagsJson: JSON.stringify(['italian', 'oil', 'premium', 'tuscany', 'igp', 'cold-pressed'])
     },
     {
-      name: 'Balsamic Vinegar of Modena',
-      description: 'Traditional balsamic vinegar aged in wooden barrels for at least 12 years.',
+      name: 'Aceto Balsamico di Modena IGP',
+      description: 'Traditional balsamic vinegar aged in wooden barrels for at least 12 years. Sweet and tangy with complex flavors. Perfect for salads, cheese, and desserts.',
       price: 18.75,
       imageUrl: '/images/products/balsamic.jpg',
       category: 'Vinegars',
       stock: 15,
-      tagsJson: JSON.stringify(['italian', 'vinegar', 'premium'])
+      tagsJson: JSON.stringify(['italian', 'vinegar', 'premium', 'modena', 'igp', 'aged'])
     },
     {
-      name: 'Spaghetti',
-      description: 'Bronze-drawn spaghetti from Gragnano, the pasta capital of Italy.',
+      name: 'Spaghetti di Gragnano IGP',
+      description: 'Bronze-drawn spaghetti from Gragnano, the pasta capital of Italy. Rough texture holds sauce perfectly. Made with durum wheat semolina.',
       price: 3.25,
       imageUrl: '/images/products/spaghetti.jpg',
       category: 'Pasta',
       stock: 50,
-      tagsJson: JSON.stringify(['italian', 'pasta', 'basic'])
+      tagsJson: JSON.stringify(['italian', 'pasta', 'gragnano', 'igp', 'bronze-drawn', 'durum-wheat'])
+    },
+    {
+      name: 'Prosciutto di Parma DOP',
+      description: 'Authentic Parma ham aged for 18 months. Sweet, delicate flavor with perfect marbling. Sliced to order for maximum freshness.',
+      price: 24.90,
+      imageUrl: '/images/products/prosciutto.jpg',
+      category: 'Cured Meats',
+      stock: 20,
+      tagsJson: JSON.stringify(['italian', 'cured-meat', 'premium', 'parma', 'dop', 'aged'])
+    },
+    {
+      name: 'Gorgonzola DOP Dolce',
+      description: 'Creamy blue cheese from Lombardy with mild, sweet flavor. Perfect for risottos, pizza, or paired with honey and walnuts.',
+      price: 8.90,
+      imageUrl: '/images/products/gorgonzola.jpg',
+      category: 'Cheese',
+      stock: 18,
+      tagsJson: JSON.stringify(['italian', 'cheese', 'blue-cheese', 'lombardy', 'dop', 'creamy'])
+    },
+    {
+      name: 'Chianti Classico DOCG',
+      description: 'Premium red wine from Tuscany made with Sangiovese grapes. Full-bodied with notes of cherry, violet, and spice. Perfect with red meat and aged cheeses.',
+      price: 19.50,
+      imageUrl: '/images/products/chianti.jpg',
+      category: 'Wine',
+      stock: 12,
+      tagsJson: JSON.stringify(['italian', 'wine', 'red', 'tuscany', 'docg', 'sangiovese'])
+    },
+    {
+      name: 'Mozzarella di Bufala Campana DOP',
+      description: 'Fresh buffalo mozzarella from Campania. Creamy texture with delicate, slightly tangy flavor. Best enjoyed within 2-3 days.',
+      price: 6.75,
+      imageUrl: '/images/products/mozzarella-bufala.jpg',
+      category: 'Cheese',
+      stock: 15,
+      tagsJson: JSON.stringify(['italian', 'cheese', 'fresh', 'campania', 'dop', 'buffalo'])
+    },
+    {
+      name: 'Risotto Carnaroli Rice',
+      description: 'Premium Italian rice variety perfect for risotto. High starch content creates creamy texture while maintaining firm bite. From Piedmont region.',
+      price: 4.50,
+      imageUrl: '/images/products/carnaroli-rice.jpg',
+      category: 'Rice & Grains',
+      stock: 35,
+      tagsJson: JSON.stringify(['italian', 'rice', 'carnaroli', 'risotto', 'piedmont', 'premium'])
+    },
+    {
+      name: 'Nduja Calabrese Piccante',
+      description: 'Spicy spreadable salami from Calabria. Made with pork and Calabrian chilies. Perfect on bread, pizza, or to add heat to pasta dishes.',
+      price: 7.25,
+      imageUrl: '/images/products/nduja.jpg',
+      category: 'Cured Meats',
+      stock: 22,
+      tagsJson: JSON.stringify(['italian', 'cured-meat', 'spicy', 'calabria', 'spreadable', 'chili'])
+    },
+    {
+      name: 'Pecorino Romano DOP',
+      description: 'Sharp, salty sheep cheese from Lazio. Aged for 8 months. Essential for authentic Cacio e Pepe and Carbonara. Grated fresh to order.',
+      price: 11.80,
+      imageUrl: '/images/products/pecorino-romano.jpg',
+      category: 'Cheese',
+      stock: 28,
+      tagsJson: JSON.stringify(['italian', 'cheese', 'sheep', 'lazio', 'dop', 'sharp'])
+    },
+    {
+      name: 'Limoncello di Sorrento IGP',
+      description: 'Traditional lemon liqueur from Sorrento lemons. Sweet and aromatic, perfect as digestif. Serve chilled in small glasses.',
+      price: 16.90,
+      imageUrl: '/images/products/limoncello.jpg',
+      category: 'Spirits',
+      stock: 14,
+      tagsJson: JSON.stringify(['italian', 'liqueur', 'lemon', 'sorrento', 'igp', 'digestif'])
+    },
+    {
+      name: 'Tagliatelle all\'Uovo',
+      description: 'Fresh egg pasta from Emilia-Romagna. Made with semolina flour and farm eggs. Perfect with ragù Bolognese or truffle sauce.',
+      price: 5.20,
+      imageUrl: '/images/products/tagliatelle.jpg',
+      category: 'Pasta',
+      stock: 40,
+      tagsJson: JSON.stringify(['italian', 'pasta', 'fresh', 'egg', 'emilia-romagna', 'tagliatelle'])
+    },
+    {
+      name: 'Amaretto di Saronno',
+      description: 'Traditional almond liqueur from Lombardy. Sweet with bitter almond notes. Perfect for desserts or as after-dinner drink.',
+      price: 21.50,
+      imageUrl: '/images/products/amaretto.jpg',
+      category: 'Spirits',
+      stock: 16,
+      tagsJson: JSON.stringify(['italian', 'liqueur', 'almond', 'lombardy', 'sweet', 'traditional'])
+    },
+    {
+      name: 'Bresaola della Valtellina IGP',
+      description: 'Air-dried beef from Alpine valleys. Lean, tender, and flavorful. Served thinly sliced with lemon, olive oil, and arugula.',
+      price: 18.90,
+      imageUrl: '/images/products/bresaola.jpg',
+      category: 'Cured Meats',
+      stock: 12,
+      tagsJson: JSON.stringify(['italian', 'cured-meat', 'beef', 'valtellina', 'igp', 'alpine'])
+    },
+    {
+      name: 'Barolo DOCG',
+      description: 'King of Italian wines from Piedmont. Made with Nebbiolo grapes. Full-bodied with complex tannins and notes of rose, tar, and cherry.',
+      price: 45.00,
+      imageUrl: '/images/products/barolo.jpg',
+      category: 'Wine',
+      stock: 8,
+      tagsJson: JSON.stringify(['italian', 'wine', 'red', 'piedmont', 'docg', 'nebbiolo', 'premium'])
+    },
+    {
+      name: 'Mortadella di Bologna IGP',
+      description: 'Traditional pork cold cut from Bologna with pistachios. Smooth texture with delicate flavor. Perfect for sandwiches or antipasti.',
+      price: 9.75,
+      imageUrl: '/images/products/mortadella.jpg',
+      category: 'Cured Meats',
+      stock: 25,
+      tagsJson: JSON.stringify(['italian', 'cured-meat', 'pork', 'bologna', 'igp', 'pistachios'])
+    },
+    {
+      name: 'Gnocchi di Patate',
+      description: 'Traditional potato dumplings from Northern Italy. Made with potatoes, flour, and eggs. Perfect with sage butter or tomato sauce.',
+      price: 4.80,
+      imageUrl: '/images/products/gnocchi.jpg',
+      category: 'Pasta',
+      stock: 30,
+      tagsJson: JSON.stringify(['italian', 'pasta', 'potato', 'dumplings', 'northern-italy', 'traditional'])
+    },
+    {
+      name: 'Prosecco di Valdobbiadene DOCG',
+      description: 'Premium sparkling wine from Veneto. Crisp and fresh with notes of apple, pear, and citrus. Perfect for celebrations and aperitifs.',
+      price: 13.90,
+      imageUrl: '/images/products/prosecco.jpg',
+      category: 'Wine',
+      stock: 20,
+      tagsJson: JSON.stringify(['italian', 'wine', 'sparkling', 'veneto', 'docg', 'aperitif'])
+    },
+    {
+      name: 'Tartufo Nero Estivo',
+      description: 'Summer black truffles from Umbria. Earthy, aromatic flavor perfect for pasta, risotto, and eggs. Preserved in olive oil.',
+      price: 32.50,
+      imageUrl: '/images/products/truffle.jpg',
+      category: 'Specialty',
+      stock: 6,
+      tagsJson: JSON.stringify(['italian', 'truffle', 'black', 'umbria', 'luxury', 'preserved'])
     }
   ];
   
@@ -78,40 +222,57 @@ async function seedProducts() {
 
 async function seedFAQs() {
   // Delete existing FAQs
-  await prisma.fAQChunk.deleteMany({});
   await prisma.fAQ.deleteMany({});
   
-  // Create new FAQs
+  // Create new FAQs - 12 comprehensive FAQs
   const faqs = [
     {
       question: 'What are your shipping costs?',
-      answer: 'We offer free shipping on orders over €50. For orders under €50, shipping costs are €5.99 within Italy and €12.99 for international orders.',
-      category: 'Shipping & Delivery',
-      tagsJson: JSON.stringify(['shipping', 'costs'])
+      answer: 'We offer free shipping on orders over €50. For orders under €50, shipping costs are €5.99 within Italy and €12.99 for international orders to EU countries. Shipping to non-EU countries starts at €19.99.'
     },
     {
       question: 'How long does shipping take?',
-      answer: 'Domestic orders (Italy) typically arrive within 1-3 business days. International orders may take 5-10 business days, depending on the destination country and customs processing.',
-      category: 'Shipping & Delivery',
-      tagsJson: JSON.stringify(['shipping', 'delivery', 'time'])
-    },
-    {
-      question: 'What is your return policy?',
-      answer: 'We accept returns within 14 days of delivery. Products must be unused and in their original packaging. Please contact our customer service to initiate a return.',
-      category: 'Returns & Refunds',
-      tagsJson: JSON.stringify(['returns', 'policy'])
+      answer: 'Orders within Italy are delivered in 1-3 business days. EU countries receive orders in 3-5 business days. International shipping to non-EU countries takes 5-10 business days. Express shipping options are available.'
     },
     {
       question: 'Do you ship internationally?',
-      answer: 'Yes, we ship to most countries worldwide. Some restrictions apply for perishable items. Please note that international orders may be subject to customs duties and taxes.',
-      category: 'Shipping & Delivery',
-      tagsJson: JSON.stringify(['shipping', 'international'])
+      answer: 'Yes! We ship to over 50 countries worldwide. Shipping costs vary by destination. Some products may have restrictions due to customs regulations. Contact us for specific country information.'
     },
     {
-      question: 'How do I track my order?',
-      answer: 'Once your order ships, you will receive a confirmation email with a tracking number. You can use this number on our website or the carrier\'s website to track your package.',
-      category: 'Orders',
-      tagsJson: JSON.stringify(['orders', 'tracking'])
+      question: 'What is your return policy?',
+      answer: 'We accept returns within 30 days of delivery for non-perishable items in original packaging. Perishable items can only be returned if damaged or defective. Return shipping costs are covered by us for defective items.'
+    },
+    {
+      question: 'How do I return an item?',
+      answer: 'Contact our customer service team at support@gustoitaliano.com with your order number. We\'ll provide a return authorization and prepaid shipping label for eligible items. Refunds are processed within 5-7 business days.'
+    },
+    {
+      question: 'Can I exchange an item?',
+      answer: 'Yes, exchanges are possible for non-perishable items within 30 days. The replacement item must be of equal or lesser value. If the new item costs more, you\'ll pay the difference. Contact us to arrange an exchange.'
+    },
+    {
+      question: 'Are your products authentic?',
+      answer: 'Absolutely! We work directly with certified Italian producers and importers. All our DOP, IGP, and DOCG products come with authenticity certificates. We guarantee the origin and quality of every item we sell.'
+    },
+    {
+      question: 'How should I store my Italian products?',
+      answer: 'Storage varies by product type. Dry goods should be kept in a cool, dry place. Cheeses need refrigeration and should be wrapped in cheese paper. Wines should be stored horizontally in a cool, dark place. Check individual product pages for specific storage instructions.'
+    },
+    {
+      question: 'What payment methods do you accept?',
+      answer: 'We accept all major credit cards (Visa, Mastercard, American Express), PayPal, Apple Pay, Google Pay, and bank transfers. For orders over €200, we also offer payment in 3 installments through Klarna.'
+    },
+    {
+      question: 'Do you have a loyalty program?',
+      answer: 'Yes! Our "Gusto Club" loyalty program gives you 1 point for every €1 spent. Collect 100 points to get a €5 discount. Members also receive exclusive offers, early access to new products, and invitations to special events.'
+    },
+    {
+      question: 'Can you create custom gift baskets?',
+      answer: 'Absolutely! Our Personal Shopping Service can create custom gift baskets tailored to any preference or budget. Choose from our curated selections or let us create something unique. Perfect for corporate gifts or special occasions.'
+    },
+    {
+      question: 'How fresh are your products?',
+      answer: 'We receive fresh deliveries from Italy 2-3 times per week. All products have clear expiration dates, and we guarantee at least 75% of shelf life remaining on delivery. Fresh items like mozzarella are shipped the same day they arrive from Italy.'
     }
   ];
   
@@ -128,28 +289,49 @@ async function seedServices() {
   // Delete existing services
   await prisma.service.deleteMany({});
   
-  // Create new services
+  // Create new services - 7 comprehensive services
   const services = [
     {
       name: 'Italian Cooking Class',
-      description: 'Learn the secrets of traditional Italian cooking from our expert chefs. Classes are held weekly and include all ingredients and equipment.',
+      description: 'Learn the secrets of traditional Italian cooking from our expert chefs. Classes are held weekly and include all ingredients and equipment. Choose from pasta making, risotto mastery, or regional specialties.',
       price: 79.99,
-      isActive: true,
-      tagsJson: JSON.stringify(['cooking', 'class', 'experience'])
+      isActive: true
     },
     {
       name: 'Cheese & Wine Tasting',
-      description: 'Guided tasting of 5 premium Italian cheeses paired with complementary wines. Perfect for a date night or gathering with friends.',
+      description: 'Guided tasting of 5 premium Italian cheeses paired with complementary wines. Learn about terroir, aging processes, and perfect pairings. Perfect for a date night or gathering with friends.',
       price: 49.99,
-      isActive: true,
-      tagsJson: JSON.stringify(['tasting', 'cheese', 'wine', 'experience'])
+      isActive: true
     },
     {
       name: 'Corporate Gift Baskets',
-      description: 'Custom gift baskets for corporate clients. Choose from our selection of premium Italian products or create a custom selection.',
+      description: 'Custom gift baskets for corporate clients. Choose from our selection of premium Italian products or create a custom selection. Includes elegant packaging and personalized cards.',
       price: 129.99,
-      isActive: true,
-      tagsJson: JSON.stringify(['gift', 'corporate', 'basket'])
+      isActive: true
+    },
+    {
+      name: 'Personal Shopping Service',
+      description: 'Let our Italian food experts curate a personalized selection based on your preferences and dietary requirements. Includes detailed product information and serving suggestions.',
+      price: 25.00,
+      isActive: true
+    },
+    {
+      name: 'Monthly Italian Delicacies Box',
+      description: 'Subscription service featuring 6-8 carefully selected Italian products each month. Discover new regions, producers, and seasonal specialties. Cancel anytime.',
+      price: 59.99,
+      isActive: true
+    },
+    {
+      name: 'Virtual Cooking Workshop',
+      description: 'Online cooking classes with live instruction from Italian chefs. Ingredient kits shipped to your door. Interactive sessions with Q&A. Available in English and Italian.',
+      price: 39.99,
+      isActive: true
+    },
+    {
+      name: 'Italian Food & Culture Tour Planning',
+      description: 'Comprehensive planning service for food tours in Italy. Includes restaurant recommendations, market visits, cooking class bookings, and cultural insights from our Italian partners.',
+      price: 199.99,
+      isActive: true
     }
   ];
   
@@ -185,37 +367,62 @@ async function seedAgentConfig() {
   await prisma.agentConfig.deleteMany({});
   
   // Create initial agent config
-  await prisma.agentConfig.create({
+  const agentConfig = await prisma.agentConfig.create({
     data: {
-      model: 'anthropic/claude-3-haiku-20240307',
       temperature: 0.7,
-      maxTokens: 1000,
-      topP: 0.95,
-      topK: 40,
-      prompt: `You are a helpful customer service chatbot for 'Gusto Italiano', an Italian specialty food shop.
+      maxTokens: 500,
+      topP: 0.9,
+      model: 'openai/gpt-4o-mini',
+      prompt: `You are Sofia, the friendly virtual assistant for Gusto Italiano, an Italian specialty foods store.
 
-Your name is Sofia, and you're friendly, knowledgeable, and passionate about Italian cuisine.
+YOUR IDENTITY:
+- You are passionate about authentic Italian cuisine and culture
+- You have extensive knowledge about regional Italian specialties, cooking techniques, and food pairings
+- You speak with warmth and enthusiasm, occasionally using simple Italian expressions (with translations)
 
-When speaking with customers:
-- Be warm and conversational with a touch of Italian charm
-- Use Italian phrases occasionally (with translations) to create authentic atmosphere
-- Show deep knowledge about our products, especially cheeses, olive oils, pastas, and wines
-- Provide helpful cooking tips and pairing suggestions
-- Address the customer by name if known
-- Keep your responses concise but informative
+YOUR MAIN GOALS:
+1. Help customers find products they'll love based on their preferences and needs
+2. Provide expert information about Italian cuisine, ingredients, cooking methods, and product origins
+3. Deliver exceptional customer service with a personal, engaging touch
+4. Build customer loyalty by creating an authentic Italian shopping experience
 
-Our shop offers:
-- Fine Italian cheeses (Parmigiano Reggiano, Pecorino, Mozzarella di Bufala)
-- Premium olive oils and balsamic vinegars
-- Artisanal pastas and sauces
-- Italian wines and spirits
-- Specialty cured meats
-- Cooking classes and tasting events
+CRITICAL RULES - FUNCTION CALLS ARE MANDATORY:
+- You MUST ALWAYS call the appropriate function before answering ANY question
+- NEVER provide information without first calling a function to get current data
+- If a customer asks about products, call getProducts() first
+- If a customer asks about services, call getServices() first  
+- If a customer asks about policies, shipping, returns, or common questions, call getFAQs() first
+- DO NOT use your internal knowledge - ONLY use data from function calls
 
-We ship throughout Italy and the EU with free shipping on orders over €50.
-Return policy: Unopened, non-perishable items can be returned within 14 days.
+FUNCTION CALLING CAPABILITIES:
+You have access to the following functions that you MUST use to get accurate information:
 
-If asked about prices, mention that you can check specific prices but the customer should also visit our online shop for the most current pricing and promotions.`
+1. getProducts(category?, search?, countOnly?)
+   - Call this when users ask about products, want to browse, or ask for specific items
+   - Use 'search' parameter for specific product queries
+   - Set 'countOnly' to true when you only need to know if products exist or quantities
+   - Examples: "What pasta do you sell?", "Do you have Parmigiano?", "Show me your cheeses"
+
+2. getServices(isActive?, search?)
+   - Call this when users ask about services offered by the store
+   - Use 'search' parameter to find specific services
+   - Examples: "What services do you offer?", "Do you provide cooking classes?"
+
+3. getFAQs(search?)
+   - Call this when users ask common questions about policies, shipping, returns, loyalty programs
+   - Use 'search' parameter to find specific information
+   - Examples: "What's your return policy?", "How long does shipping take?", "Do you have a loyalty program?"
+
+RESPONSE GUIDELINES:
+- Always call the appropriate function before providing information
+- Be warm and personable, using the customer's name when available
+- Provide expert recommendations based on actual available products
+- Share cooking tips, pairing suggestions, and cultural insights
+- When you don't know something, be honest and offer to connect them with specialists
+
+Remember: Your knowledge comes from the database through function calls, not from hardcoded information. Always retrieve fresh, accurate data to provide the best customer experience.
+
+Buon appetito!`
     }
   });
   

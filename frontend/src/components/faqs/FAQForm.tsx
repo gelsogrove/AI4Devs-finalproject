@@ -1,8 +1,6 @@
-import { XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { faqApi } from "../../api/faqApi";
 import { CreateFAQDto, UpdateFAQDto } from "../../types/faq";
-import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
@@ -22,16 +20,12 @@ export function FAQForm({
 }: FAQFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [categories, setCategories] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-  const [tagInput, setTagInput] = useState("");
   
   const [form, setForm] = useState<CreateFAQDto>({
     question: "",
-    answer: "",
-    category: "",
-    tags: []
+    answer: ""
   });
 
   // Load FAQ data if editing an existing FAQ
@@ -43,9 +37,7 @@ export function FAQForm({
           const faq = await faqApi.getFAQById(faqId);
           setForm({
             question: faq.question,
-            answer: faq.answer,
-            category: faq.category || '',
-            tags: faq.tags || []
+            answer: faq.answer
           });
         } catch (err) {
           setError("Failed to load FAQ data");
@@ -56,21 +48,11 @@ export function FAQForm({
       }
     }
 
-    async function loadCategories() {
-      try {
-        const categories = await faqApi.getCategories();
-        setCategories(categories);
-      } catch (err) {
-        console.error("Failed to load categories", err);
-      }
-    }
-
     loadFAQ();
-    loadCategories();
   }, [faqId, isNew]);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     setForm((prev) => ({
@@ -86,30 +68,6 @@ export function FAQForm({
         return updated;
       });
     }
-  };
-
-  const addTag = () => {
-    if (tagInput.trim() && !form.tags?.includes(tagInput.trim().toLowerCase())) {
-      setForm(prev => ({
-        ...prev,
-        tags: [...(prev.tags || []), tagInput.trim().toLowerCase()]
-      }));
-      setTagInput('');
-    }
-  };
-
-  const handleTagInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      addTag();
-    }
-  };
-
-  const removeTag = (tagToRemove: string) => {
-    setForm(prev => ({
-      ...prev,
-      tags: (prev.tags || []).filter(tag => tag !== tagToRemove)
-    }));
   };
 
   const validateForm = (): boolean => {
@@ -201,68 +159,6 @@ export function FAQForm({
         {validationErrors.answer && (
           <p className="text-sm text-destructive">{validationErrors.answer}</p>
         )}
-      </div>
-
-      <div className="space-y-2">
-        <label 
-          htmlFor="category" 
-          className="block text-sm font-medium"
-        >
-          Category
-        </label>
-        <select
-          id="category"
-          name="category"
-          value={form.category}
-          onChange={handleChange}
-          className="w-full h-10 px-3 py-2 bg-background border border-input rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          required
-        >
-          <option value="">Select a category</option>
-          {categories.map((category) => (
-            <option key={category} value={category}>
-              {category}
-            </option>
-          ))}
-          <option value="other">Other</option>
-        </select>
-      </div>
-
-      <div className="space-y-2">
-        <label className="block text-sm font-medium">Tags</label>
-        <div className="flex gap-2">
-          <Input
-            type="text"
-            value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
-            onKeyDown={handleTagInputKeyDown}
-            placeholder="Add a tag"
-            className="flex-1"
-          />
-          <Button 
-            type="button"
-            onClick={addTag}
-            variant="secondary"
-          >
-            Add
-          </Button>
-        </div>
-        
-        {/* Display tags */}
-        <div className="flex flex-wrap gap-2 mt-2">
-          {form.tags?.map((tag) => (
-            <Badge key={tag} variant="secondary" className="text-sm py-1 px-2 gap-1">
-              {tag}
-              <button
-                type="button"
-                onClick={() => removeTag(tag)}
-                className="ml-1 text-gray-500 hover:text-gray-700 focus:outline-none"
-              >
-                <XCircle className="h-3 w-3" />
-              </button>
-            </Badge>
-          ))}
-        </div>
       </div>
 
       <div className="flex justify-end gap-3 pt-4">

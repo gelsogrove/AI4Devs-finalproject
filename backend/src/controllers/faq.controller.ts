@@ -8,21 +8,16 @@ import logger from '../utils/logger';
 const createFAQSchema = z.object({
   question: z.string().min(5, 'Question must be at least 5 characters'),
   answer: z.string().min(10, 'Answer must be at least 10 characters'),
-  category: z.string().optional(),
-  tags: z.array(z.string()).optional(),
 });
 
 const updateFAQSchema = z.object({
   question: z.string().min(5, 'Question must be at least 5 characters').optional(),
   answer: z.string().min(10, 'Answer must be at least 10 characters').optional(),
-  category: z.string().optional(),
-  tags: z.array(z.string()).optional(),
 }).refine(data => Object.keys(data).length > 0, {
   message: 'At least one field must be provided',
 });
 
 const filtersSchema = z.object({
-  category: z.string().optional(),
   search: z.string().optional(),
   page: z.coerce.number().positive().optional(),
   limit: z.coerce.number().positive().max(100).optional(),
@@ -70,11 +65,11 @@ class FAQController {
   async getFAQs(req: Request, res: Response) {
     try {
       // Validate and extract query parameters
-      const { category, search, page = 1, limit = 10 } = filtersSchema.parse(req.query);
+      const { search, page = 1, limit = 10 } = filtersSchema.parse(req.query);
       
       // Get FAQs with filters
       const result = await faqService.getFAQs(
-        { category, search },
+        { search },
         page,
         limit
       );
@@ -100,9 +95,7 @@ class FAQController {
    */
   async getPublicFAQs(req: Request, res: Response) {
     try {
-      const { category } = req.query;
-      
-      const faqs = await faqService.getAllFAQs(category as string | undefined);
+      const faqs = await faqService.getAllFAQs();
       
       return res.status(200).json(faqs);
     } catch (error) {
@@ -198,21 +191,6 @@ class FAQController {
   }
 
   /**
-   * Get all FAQ categories
-   */
-  async getCategories(req: Request, res: Response) {
-    try {
-      const categories = await faqService.getCategories();
-      
-      return res.status(200).json(categories);
-    } catch (error) {
-      logger.error('Get categories error:', error);
-      
-      return res.status(500).json({ error: 'Failed to get categories' });
-    }
-  }
-
-  /**
    * Generate embeddings for all FAQs or a specific FAQ
    */
   async generateEmbeddings(req: Request, res: Response) {
@@ -237,6 +215,19 @@ class FAQController {
     } catch (error) {
       logger.error('Error generating embeddings:', error);
       return res.status(500).json({ error: 'Failed to generate embeddings' });
+    }
+  }
+
+  /**
+   * Get all FAQ categories
+   */
+  async getCategories(req: Request, res: Response) {
+    try {
+      const categories = await faqService.getCategories();
+      return res.json(categories);
+    } catch (error) {
+      logger.error('Error getting FAQ categories:', error);
+      return res.status(500).json({ error: 'Failed to get categories' });
     }
   }
 }

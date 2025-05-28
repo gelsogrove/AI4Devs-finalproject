@@ -26,13 +26,6 @@ export const serviceApi = {
     
     if (filters?.search) queryParams.append('search', filters.search);
     
-    // Add tags filter if provided
-    if (filters?.tags && filters.tags.length > 0) {
-      filters.tags.forEach(tag => {
-        queryParams.append('tags', tag);
-      });
-    }
-    
     queryParams.append('page', page.toString());
     queryParams.append('limit', limit.toString());
     
@@ -67,6 +60,12 @@ export const serviceApi = {
   // Delete a service
   async deleteService(id: string) {
     const response = await axios.delete(`${SERVICES_ENDPOINT}/${id}`, getAuthHeader());
+    return response.data;
+  },
+
+  // Generate embeddings for all active services
+  async generateEmbeddingsForAllServices() {
+    const response = await axios.post(`${SERVICES_ENDPOINT}/embeddings/generate`, {}, getAuthHeader());
     return response.data;
   }
 }; 

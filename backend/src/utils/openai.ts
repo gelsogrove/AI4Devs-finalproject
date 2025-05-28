@@ -7,6 +7,8 @@ const isApiKeyValid = openRouterApiKey && openRouterApiKey !== 'YOUR_API_KEY_HER
 
 // Log API key validity (not the actual key)
 logger.info(`OpenRouter API key validity: ${isApiKeyValid ? 'valid' : 'invalid or missing'}`);
+logger.info(`API key length: ${openRouterApiKey.length}`);
+logger.info(`API key starts with: ${openRouterApiKey.substring(0, 10)}...`);
 
 const openRouterClient = new OpenAI({
   apiKey: openRouterApiKey,
@@ -183,12 +185,23 @@ class AIService {
     } = {}
   ) {
     try {
+      logger.info('Starting generateChatCompletion...');
+      logger.info(`Input messages: ${JSON.stringify(messages)}`);
+      logger.info(`Model: ${model}`);
+      logger.info(`Params: ${JSON.stringify(params)}`);
+      
+      // Check if API key is available
+      if (!isApiKeyValid) {
+        logger.error('No valid OpenRouter API key found');
+        throw new Error('No valid OpenRouter API key found');
+      }
+      
       // Ensure the model is in the correct format for OpenRouter
       const openRouterModel = getCompatibleModel(model);
       
       logger.info(`Using model: ${openRouterModel} (from ${model})`);
       
-      const response = await openRouterClient.chat.completions.create({
+      const requestPayload = {
         model: openRouterModel,
         messages,
         temperature: params.temperature ?? 0.7,
@@ -196,12 +209,15 @@ class AIService {
         top_p: params.topP ?? 0.9,
         tools: params.tools ?? undefined,
         tool_choice: params.toolChoice ?? undefined
-      }, {
-        headers: {
-          'X-TopK': '40'
-        }
-      });
+      };
+      
+      logger.info(`Request payload: ${JSON.stringify(requestPayload)}`);
+      
+      const response = await openRouterClient.chat.completions.create(requestPayload);
 
+      logger.info('OpenRouter API call successful');
+      logger.info(`Response: ${JSON.stringify(response)}`);
+      
       return response;
     } catch (error: unknown) {
       logger.error('Error generating chat completion:', error);
