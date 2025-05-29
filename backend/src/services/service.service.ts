@@ -45,7 +45,7 @@ class ServiceService {
           where,
           skip,
           take: limit,
-          orderBy: { createdAt: 'desc' },
+          orderBy: { id: 'desc' },
         }),
         prisma.service.count({ where }),
       ]);
@@ -71,7 +71,7 @@ class ServiceService {
   async getAllServices() {
     try {
       const services = await prisma.service.findMany({
-        orderBy: { createdAt: 'desc' },
+        orderBy: { id: 'desc' },
       });
       
       return services;
@@ -88,7 +88,7 @@ class ServiceService {
     try {
       const services = await prisma.service.findMany({
         where: { isActive: true },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { id: 'desc' },
       });
       
       return services;

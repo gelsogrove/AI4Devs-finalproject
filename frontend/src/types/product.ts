@@ -3,10 +3,10 @@ export interface Product {
   name: string;
   description: string;
   price: number;
-  imageUrl: string;
   category: string;
   tags: string[];
   stock?: number;
+  isActive: boolean;
   createdAt: string | Date;
   updatedAt: string | Date;
 }
@@ -15,30 +15,30 @@ export interface ProductFormData {
   name: string;
   description: string;
   price: number;
-  imageUrl: string;
   category: string;
   tags: string[];
   stock?: number;
+  isActive: boolean;
 }
 
 export interface CreateProductDto {
   name: string;
   description: string;
   price: number;
-  imageUrl: string;
   category: string;
   tags?: string[];
   stock?: number;
+  isActive?: boolean;
 }
 
 export interface UpdateProductDto {
   name?: string;
   description?: string;
   price?: number;
-  imageUrl?: string;
   category?: string;
   tags?: string[];
   stock?: number;
+  isActive?: boolean;
 }
 
 export interface ProductFilters {

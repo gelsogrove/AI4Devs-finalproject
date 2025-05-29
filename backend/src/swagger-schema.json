@@ -342,7 +342,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["name", "description", "price", "imageUrl", "category"],
+                "required": ["name", "description", "price", "category"],
                 "properties": {
                   "name": {
                     "type": "string"
@@ -353,10 +353,6 @@
                   "price": {
                     "type": "number",
                     "format": "float"
-                  },
-                  "imageUrl": {
-                    "type": "string",
-                    "format": "uri"
                   },
                   "category": {
                     "type": "string"

@@ -7,17 +7,17 @@ import logger from '../utils/logger';
 const createProductSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters'),
   description: z.string().min(10, 'Description must be at least 10 characters'),
-  price: z.coerce.number().positive('Price must be positive'),
-  imageUrl: z.string().url('Image URL must be a valid URL'),
+  price: z.coerce.number().min(0, 'Price cannot be negative'),
   category: z.string().min(2, 'Category must be at least 2 characters'),
+  isActive: z.boolean().optional().default(true),
 });
 
 const updateProductSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters').optional(),
   description: z.string().min(10, 'Description must be at least 10 characters').optional(),
-  price: z.coerce.number().positive('Price must be positive').optional(),
-  imageUrl: z.string().url('Image URL must be a valid URL').optional(),
+  price: z.coerce.number().min(0, 'Price cannot be negative').optional(),
   category: z.string().min(2, 'Category must be at least 2 characters').optional(),
+  isActive: z.boolean().optional(),
 }).refine(data => Object.keys(data).length > 0, {
   message: 'At least one field must be provided',
 });

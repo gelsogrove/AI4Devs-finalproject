@@ -1,9 +1,9 @@
 import { chatApi, ChatApiResponse } from '@/api/chatApi';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ChatMessage } from '@/types/chat';
-import { Send } from 'lucide-react';
+import { Bot, Bug, HelpCircle, MessageCircle, Send, Sparkles } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 // Initial messages to demonstrate the chat
@@ -11,7 +11,7 @@ const initialMessages: ChatMessage[] = [
   {
     id: '1',
     role: 'assistant',
-    content: 'Ciao! Welcome to Gusto Italiano. How can I help you today?',
+    content: 'Ciao! Welcome to ShopMefy. How can I help you today?',
     timestamp: new Date().toISOString()
   }
 ];
@@ -20,6 +20,8 @@ const Chatbot: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [debugMode, setDebugMode] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<any[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom of messages
@@ -82,6 +84,18 @@ const Chatbot: React.FC = () => {
       
       // Debug log per la risposta
       console.log('Received API response:', response);
+      
+      // Store debug information
+      if (debugMode) {
+        const debugEntry = {
+          timestamp: new Date().toISOString(),
+          userMessage: userMessage.content,
+          functionCalls: response?.message?.tool_calls || response?.message?.function_call ? 
+            (response.message.tool_calls || [response.message.function_call]) : [],
+          responseContent: response?.message?.content || 'No response content'
+        };
+        setDebugInfo(prev => [debugEntry, ...prev.slice(0, 9)]); // Keep last 10 entries
+      }
       
       // La risposta dell'API è un oggetto con proprietà 'message'
       // Estrai il messaggio correttamente e aggiungi i campi necessari
@@ -146,29 +160,88 @@ const Chatbot: React.FC = () => {
   };
 
   return (
-    <>
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">Chatbot</h1>
-        <p className="text-gray-600">Test your AI-powered product assistant</p>
+    <div className="space-y-8 animate-fade-in">
+      {/* Header Section */}
+      <div className="bg-gradient-to-r from-shopme-50 to-green-50 rounded-xl p-6 border border-shopme-100 animate-slide-up">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-shopme-500 to-shopme-600 rounded-lg flex items-center justify-center shadow-lg">
+            <MessageCircle className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">AI Chatbot</h1>
+            <p className="text-gray-600">Test your AI-powered product assistant</p>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <Card className="shadow-sm border-gray-200">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Chat Interface */}
+        <div className="lg:col-span-2 animate-scale-in">
+          <Card className="border-0 shadow-md hover:shadow-xl transition-all duration-300">
             <CardContent className="p-0 flex flex-col h-[70vh]">
               {/* Chat header */}
-              <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center">
-                <div className="w-8 h-8 rounded-full bg-shopme-500 flex items-center justify-center text-white font-medium mr-3">
-                  AI
+              <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-gray-100 flex items-center rounded-t-lg">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-shopme-500 to-shopme-600 flex items-center justify-center text-white font-medium mr-3 shadow-md">
+                  <Bot className="w-5 h-5" />
                 </div>
-                <div>
-                  <h3 className="font-medium">Gusto Italiano</h3>
-                  <p className="text-xs text-gray-500">Online</p>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-900">Company name - Sofia</h3>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                    <p className="text-xs text-gray-500">Online</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setDebugMode(!debugMode)}
+                    className={`p-2 rounded-lg transition-all duration-200 ${
+                      debugMode 
+                        ? 'bg-orange-100 text-orange-600 hover:bg-orange-200' 
+                        : 'text-gray-400 hover:text-orange-500 hover:bg-orange-50'
+                    }`}
+                    title="Toggle debug mode"
+                  >
+                    <Bug className="w-4 h-4" />
+                  </button>
+                  <Sparkles className="w-5 h-5 text-shopme-500" />
                 </div>
               </div>
               
+              {/* Debug Panel */}
+              {debugMode && (
+                <div className="border-b border-gray-100 bg-orange-50 p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Bug className="w-4 h-4 text-orange-600" />
+                    <span className="text-sm font-medium text-orange-800">Debug Mode Active</span>
+                  </div>
+                  {debugInfo.length > 0 ? (
+                    <div className="space-y-2 max-h-32 overflow-y-auto">
+                      {debugInfo.map((info, index) => (
+                        <div key={index} className="text-xs bg-white rounded p-2 border border-orange-200">
+                          <div className="font-medium text-orange-800">
+                            Query: {info.userMessage.substring(0, 50)}...
+                          </div>
+                          {info.functionCalls.length > 0 && (
+                            <div className="text-orange-600 mt-1">
+                              Functions called: {info.functionCalls.map((call: any) => 
+                                call?.function?.name || call?.name || 'Unknown'
+                              ).join(', ')}
+                            </div>
+                          )}
+                          <div className="text-gray-500 text-xs mt-1">
+                            {new Date(info.timestamp).toLocaleTimeString()}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-orange-600">No function calls recorded yet</div>
+                  )}
+                </div>
+              )}
+              
               {/* Chat messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gradient-to-b from-white to-gray-50">
                 {messages.map(message => {
                   // Debug log for each message being rendered
                   console.log(`Rendering message ${message.id}:`, { 
@@ -180,9 +253,9 @@ const Chatbot: React.FC = () => {
                   return (
                     <div 
                       key={message.id} 
-                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-slide-up`}
                     >
-                      <div className={message.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-bot'}>
+                      <div className={`${message.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-bot'} max-w-[80%] shadow-sm`}>
                         {/* Display image if available */}
                         {message.imageUrl && (
                           <div 
@@ -240,6 +313,7 @@ const Chatbot: React.FC = () => {
                               </h2>
                             );
                           } else if (line.startsWith('- ')) {
+                            // Bullet list items
                             return (
                               <div key={i} className="flex items-start mt-1">
                                 <span className="mr-2">•</span>
@@ -272,7 +346,7 @@ const Chatbot: React.FC = () => {
                             );
                           }
                         })}
-                        <div className="text-xs opacity-70 mt-1 text-right">
+                        <div className="text-xs opacity-70 mt-2 text-right">
                           {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </div>
@@ -280,12 +354,16 @@ const Chatbot: React.FC = () => {
                   );
                 })}
                 {isTyping && (
-                  <div className="flex justify-start">
-                    <div className="chat-bubble-bot">
-                      <div className="flex space-x-2">
-                        <div className="w-2 h-2 rounded-full bg-current animate-bounce" />
-                        <div className="w-2 h-2 rounded-full bg-current animate-bounce [animation-delay:0.2s]" />
-                        <div className="w-2 h-2 rounded-full bg-current animate-bounce [animation-delay:0.4s]" />
+                  <div className="flex justify-start animate-slide-up">
+                    <div className="chat-bubble-bot shadow-sm">
+                      <div className="flex space-x-2 items-center">
+                        <Bot className="w-4 h-4 text-shopme-600" />
+                        <div className="flex space-x-1">
+                          <div className="w-2 h-2 rounded-full bg-shopme-500 animate-bounce" />
+                          <div className="w-2 h-2 rounded-full bg-shopme-500 animate-bounce [animation-delay:0.2s]" />
+                          <div className="w-2 h-2 rounded-full bg-shopme-500 animate-bounce [animation-delay:0.4s]" />
+                        </div>
+                        <span className="text-sm text-gray-500">Sofia is typing...</span>
                       </div>
                     </div>
                   </div>
@@ -294,19 +372,19 @@ const Chatbot: React.FC = () => {
               </div>
               
               {/* Chat input */}
-              <div className="border-t border-gray-200 p-4 bg-gray-50">
-                <div className="flex gap-2">
+              <div className="border-t border-gray-100 p-4 bg-white rounded-b-lg">
+                <div className="flex gap-3">
                   <Input
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    placeholder="Type your message..."
-                    className="flex-1"
+                    placeholder="Ask me about our Italian products..."
+                    className="flex-1 border-gray-200 focus:border-shopme-500 focus:ring-shopme-500 transition-colors"
                     disabled={isTyping}
                   />
                   <Button 
                     onClick={sendMessage} 
-                    className="bg-shopme-500 hover:bg-shopme-600"
+                    className="bg-gradient-to-r from-shopme-500 to-shopme-600 hover:from-shopme-600 hover:to-shopme-700 text-white shadow-md hover:shadow-lg transition-all duration-200 px-4"
                     disabled={!input.trim() || isTyping}
                   >
                     <Send size={18} />
@@ -317,148 +395,84 @@ const Chatbot: React.FC = () => {
           </Card>
         </div>
         
-        <div className="space-y-6">
-          <Card>
-            <CardContent className="pt-6">
-              <h3 className="font-semibold mb-3">Try asking:</h3>
-              <ul className="space-y-2">
-                <li>
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start text-left h-auto py-2"
-                    onClick={() => {
-                      setInput("What products do you sell?");
-                      setTimeout(() => sendMessage(), 100);
-                    }}
-                  >
-                    What products do you sell?
-                  </Button>
-                </li>
-                <li>
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start text-left h-auto py-2"
-                    onClick={() => {
-                      setInput("Which services do you offer?");
-                      setTimeout(() => sendMessage(), 100);
-                    }}
-                  >
-                   Which services do you offer ?
-                  </Button>
-                </li>
-                <li>
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start text-left h-auto py-2"
-                    onClick={() => {
-                      setInput("I am looking for a good Italian wine any suggestions?");
-                      setTimeout(() => sendMessage(), 100);
-                    }}
-                  >
-                  I am looking for a good Italian wine, any suggestions?
-                  </Button>
-                </li>
-
-                <li>
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start text-left h-auto py-2"
-                    onClick={() => {
-                      setInput("Do you have wine less than  20Euro?");
-                      setTimeout(() => sendMessage(), 100);
-                    }}
-                  >
-                 Do you have wine less than 20Euro?
-                  </Button>
-                </li>
-
-
-                <li>
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start text-left h-auto py-2"
-                    onClick={() => {
-                      setInput("which king of pasta do you have?");
-                      setTimeout(() => sendMessage(), 100);
-                    }}
-                  >
-                  Which kind of pasta do you sell?
-                  </Button>
-                </li>
-
-                <li>
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start text-left h-auto py-2"
-                    onClick={() => {
-                      setInput("How much does it cost the Mozzarella di Bufala?");
-                      setTimeout(() => sendMessage(), 100);
-                    }}
-                  >
-                 How much does it cost the Mozzarella di Bufala?
-                  </Button>
-                </li>
-
-
-                <li>
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start text-left h-auto py-2"
-                    onClick={() => {
-                      setInput("Are your products genuinely made in Italy?");
-                      setTimeout(() => sendMessage(), 100);
-                    }}
-                  >
-                 Are your products genuinely made in Italy? </Button>
-                </li>
-                <li>
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start text-left h-auto py-2"
-                    onClick={() => {
-                      setInput("What payment methods do you accept?");
-                      setTimeout(() => sendMessage(), 100);
-                    }}
-                  >
-                 What payment methods do you accept?  </Button>
-                </li>
-
-                <li>
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start text-left h-auto py-2"
-                    onClick={() => {
-                      setInput("How long does shipping take?");
-                      setTimeout(() => sendMessage(), 100);
-                    }}
-                  >
-                 How long does shipping take?  </Button>
-                </li>
-                
-                <li>
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start text-left h-auto py-2"
-                    onClick={() => {
-                      setInput("Do you ship internationally?");
-                      setTimeout(() => sendMessage(), 100);
-                    }}
-                  >
-                    Do you ship internationally?
-                  </Button>
-                </li>
-              </ul>
-              
-              <div className="mt-6 text-xs text-gray-500">
-                <p className="font-medium mb-1">About the Chatbot</p>
-                <p>This chatbot connects to a real AI service with function calling and embedding capabilities to search products services and FAQs in our database.</p>
-               
+        {/* Suggestions Panel */}
+        <div className="space-y-6 animate-scale-in" style={{ animationDelay: '0.1s' }}>
+          <Card className="border-0 shadow-md hover:shadow-xl transition-all duration-300">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-purple-100 to-purple-200 rounded-lg flex items-center justify-center">
+                  <HelpCircle className="w-5 h-5 text-purple-600" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg font-semibold text-gray-900">Try asking:</CardTitle>
+                  <CardDescription className="text-sm text-gray-500">
+                    Click any suggestion to start a conversation
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {[
+                "What products do you sell?",
+                "Which services do you offer?",
+                "Any suggestions for a good wine?",
+                "Do you have wine less than 20 Euro?",
+                "Which kind of pasta do you sell?",
+                "Are your products genuinely made in Italy?",
+                "What payment methods do you accept?",
+                "How long does shipping take?",
+                "Do you ship internationally?"
+              ].map((suggestion, index) => (
+                <Button 
+                  key={index}
+                  variant="outline" 
+                  className="w-full justify-start text-left h-auto py-3 px-4 border-gray-200 hover:border-shopme-300 hover:bg-shopme-50 transition-all duration-200 text-sm"
+                  onClick={() => {
+                    setInput(suggestion);
+                    setTimeout(() => sendMessage(), 100);
+                  }}
+                >
+                  <MessageCircle className="w-4 h-4 mr-2 text-shopme-500 flex-shrink-0" />
+                  <span className="text-gray-700">{suggestion}</span>
+                </Button>
+              ))}
+            </CardContent>
+          </Card>
+          
+          {/* About Section */}
+          <Card className="border-0 shadow-md hover:shadow-xl transition-all duration-300">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg font-semibold text-gray-900">About Sofia</CardTitle>
+                  <CardDescription className="text-sm text-gray-500">
+                    Your AI shopping assistant
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 text-sm text-gray-600 leading-relaxed">
+                <p>
+                  <strong className="text-gray-900">Sofia</strong> is your personal Italian food expert, powered by advanced AI technology.
+                </p>
+                <p>
+                  She can search our product catalog, answer questions about services, and provide detailed information about authentic Italian cuisine.
+                </p>
+                <div className="mt-4 p-3 bg-shopme-50 rounded-lg border border-shopme-100">
+                  <p className="text-xs text-shopme-700 font-medium">
+                    ✨ Features: Real-time product search, FAQ assistance, and personalized recommendations
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

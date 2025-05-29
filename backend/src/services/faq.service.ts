@@ -60,7 +60,7 @@ class FAQService {
           where,
           skip,
           take: limit,
-          orderBy: { createdAt: 'desc' },
+          orderBy: { id: 'desc' },
         }),
         prisma.fAQ.count({ where }),
       ]);
@@ -86,13 +86,32 @@ class FAQService {
   async getAllFAQs() {
     try {
       const faqs = await prisma.fAQ.findMany({
-        orderBy: { createdAt: 'desc' },
+        orderBy: { id: 'desc' },
       });
       
       return faqs;
     } catch (error) {
       logger.error('Error getting all FAQs:', error);
       throw new Error('Failed to get FAQs');
+    }
+  }
+
+  /**
+   * Get all active FAQs
+   */
+  async getActiveFAQs() {
+    try {
+      const faqs = await prisma.fAQ.findMany({
+        where: {
+          isActive: true
+        },
+        orderBy: { id: 'desc' },
+      });
+      
+      return faqs;
+    } catch (error) {
+      logger.error('Error getting active FAQs:', error);
+      throw new Error('Failed to get active FAQs');
     }
   }
 
@@ -179,24 +198,23 @@ class FAQService {
   }
 
   /**
-   * Get all distinct FAQ categories
+   * Get all FAQ categories
    */
   async getCategories() {
     try {
-      const results = await prisma.fAQ.findMany({
-        select: { category: true },
-        distinct: ['category'],
-      });
-      
-      // Extract categories and filter out null values
-      const categories = results
-        .map(result => result.category)
-        .filter(category => category !== null && category !== undefined);
-      
-      return categories;
+      // For now, return a static list of categories
+      // In the future, this could be dynamic based on FAQ data
+      return [
+        'General',
+        'Shipping',
+        'Payment',
+        'Products',
+        'Returns',
+        'Account'
+      ];
     } catch (error) {
       logger.error('Error getting FAQ categories:', error);
-      throw new Error('Failed to get categories');
+      throw new Error('Failed to get FAQ categories');
     }
   }
 }

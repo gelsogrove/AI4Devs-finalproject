@@ -2,10 +2,12 @@ import { Router } from 'express';
 import agentRoutes from './agent.routes';
 import authRoutes from './auth.routes';
 import chatRoutes from './chat.routes';
+import documentRoutes from './document.routes'; // Re-enabled - Prisma client works at runtime
 import embeddingRoutes from './embedding.routes';
 import faqRoutes from './faq.routes';
 import langchainChatRoutes from './langchain-chat.routes';
 import productRoutes from './product.routes';
+import profileRoutes from './profile.routes';
 import serviceRoutes from './service.routes';
 
 const router = Router();
@@ -34,6 +36,12 @@ router.use('/agent', agentRoutes);
 // Service routes
 router.use('/services', serviceRoutes);
 
+// Profile routes
+router.use('/profile', profileRoutes);
+
+// Document routes - Re-enabled - Prisma client works at runtime
+router.use('/documents', documentRoutes);
+
 // Chat routes (original OpenAI implementation)
 router.use('/chat', chatRoutes);
 
@@ -43,8 +51,13 @@ router.use('/langchain', langchainChatRoutes);
 export default router;
 
 export {
-    authRoutes, embeddingRoutes, faqRoutes,
+    authRoutes,
+    documentRoutes, // Re-enabled
+    embeddingRoutes,
+    faqRoutes,
     langchainChatRoutes,
     productRoutes,
+    profileRoutes,
     serviceRoutes
 };
+

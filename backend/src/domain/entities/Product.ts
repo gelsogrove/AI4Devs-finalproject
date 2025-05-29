@@ -7,7 +7,6 @@ export class Product {
   private _name: ProductName;
   private _description: string;
   private _price: Price;
-  private _imageUrl: string;
   private _category: string;
   private _tags: string[];
   private _createdAt: Date;
@@ -18,7 +17,6 @@ export class Product {
     name: ProductName,
     description: string,
     price: Price,
-    imageUrl: string,
     category: string,
     tags: string[] = [],
     createdAt: Date,
@@ -28,7 +26,6 @@ export class Product {
     this._name = name;
     this._description = description;
     this._price = price;
-    this._imageUrl = imageUrl;
     this._category = category;
     this._tags = tags;
     this._createdAt = createdAt;
@@ -50,10 +47,6 @@ export class Product {
 
   get price(): Price {
     return this._price;
-  }
-
-  get imageUrl(): string {
-    return this._imageUrl;
   }
 
   get category(): string {
@@ -88,11 +81,6 @@ export class Product {
     this._updatedAt = new Date();
   }
 
-  updateImageUrl(imageUrl: string): void {
-    this._imageUrl = imageUrl;
-    this._updatedAt = new Date();
-  }
-
   updateCategory(category: string): void {
     this._category = category;
     this._updatedAt = new Date();
@@ -111,8 +99,11 @@ export class Product {
   }
 
   removeTag(tag: string): void {
-    this._tags = this._tags.filter(t => t !== tag);
-    this._updatedAt = new Date();
+    const index = this._tags.indexOf(tag);
+    if (index > -1) {
+      this._tags.splice(index, 1);
+      this._updatedAt = new Date();
+    }
   }
 
   // Serialization method for DTO conversion
@@ -122,7 +113,6 @@ export class Product {
       name: this._name.value,
       description: this._description,
       price: this._price.amount,
-      imageUrl: this._imageUrl,
       category: this._category,
       tags: [...this._tags],
       createdAt: this._createdAt,
@@ -137,7 +127,6 @@ export class Product {
       new ProductName(dto.name),
       dto.description,
       new Price(dto.price),
-      dto.imageUrl,
       dto.category,
       dto.tags || [],
       dto.createdAt instanceof Date ? dto.createdAt : new Date(dto.createdAt),

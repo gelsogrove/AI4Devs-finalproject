@@ -4,15 +4,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
 } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { AI_MODELS, AgentConfig as IAgentConfig } from '@/types/agentConfig';
-import { HelpCircle } from 'lucide-react';
+import { Brain, HelpCircle, Save, Settings, Sliders } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
 // Initial default agent configuration with a default prompt
@@ -71,7 +71,13 @@ You have access to the following functions that you should call when appropriate
    - Use the 'search' parameter to find specific information.
    - Examples: "What's your return policy?", "How long does shipping take?", "Do you ship internationally?"
 
-IMPORTANT: Always use these functions to retrieve accurate, up-to-date information rather than making assumptions about product availability or store policies. When a user asks about products, services, or common questions, call the appropriate function before responding.
+4. getDocuments(search?)
+   - Call this function when a user asks about detailed information, recipes, guides, or documentation.
+   - Use the 'search' parameter to find specific documents or content.
+   - This function searches through uploaded documents, manuals, recipes, and detailed guides.
+   - Examples: "Do you have any recipes?", "Show me cooking instructions", "Any guides about Italian cuisine?", "Tell me about traditional preparation methods"
+
+IMPORTANT: Always use these functions to retrieve accurate, up-to-date information rather than making assumptions about product availability or store policies. When a user asks about products, services, common questions, or detailed information, call the appropriate function before responding.
 
 Remember: Be helpful, informative, and enthusiastic about Italian cuisine and culture. Create an experience that transports customers to Italy through your knowledge and passion. If you don't know an answer, be honest and suggest contacting our specialty food expert at support@gustoitaliano.com.
 
@@ -299,10 +305,18 @@ const AgentConfigPage: React.FC = () => {
   };
 
   return (
-    <>
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">Agent Configuration</h1>
-        <p className="text-gray-600">Configure your AI chatbot's behavior and responses</p>
+    <div className="space-y-8 animate-fade-in">
+      {/* Header Section */}
+      <div className="bg-gradient-to-r from-shopme-50 to-green-50 rounded-xl p-6 border border-shopme-100 animate-slide-up">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-shopme-500 to-shopme-600 rounded-lg flex items-center justify-center shadow-lg">
+            <Settings className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Agent Configuration</h1>
+            <p className="text-gray-600">Configure your AI chatbot's behavior and responses</p>
+          </div>
+        </div>
       </div>
 
       <form onSubmit={(e) => { 
@@ -310,21 +324,29 @@ const AgentConfigPage: React.FC = () => {
         console.log("Form submitted, prompt value:", config.prompt); // Debug log
         handleSave(); 
       }}>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>System Prompt</CardTitle>
-                <CardDescription>
-                  This is the prompt that guides your AI assistant's behavior and knowledge base
-                </CardDescription>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* System Prompt Section */}
+          <div className="lg:col-span-2 animate-scale-in">
+            <Card className="border-0 shadow-md hover:shadow-xl transition-all duration-300">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-gradient-to-br from-purple-100 to-purple-200 rounded-lg flex items-center justify-center">
+                    <Brain className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg font-semibold text-gray-900">System Prompt</CardTitle>
+                    <CardDescription className="text-sm text-gray-500">
+                      This is the prompt that guides your AI assistant's behavior and knowledge base
+                    </CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <Textarea
                   name="prompt"
                   value={config.prompt || ''}
                   onChange={handlePromptChange}
-                  className="min-h-[600px] font-mono text-sm w-full"
+                  className="min-h-[600px] font-mono text-sm w-full border-gray-200 focus:border-shopme-500 focus:ring-shopme-500 transition-colors"
                   placeholder="Enter system prompt..."
                   required
                 />
@@ -332,23 +354,32 @@ const AgentConfigPage: React.FC = () => {
             </Card>
           </div>
           
-          <div className="lg:col-span-1 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Model Settings</CardTitle>
-                <CardDescription>
-                  Configure the AI model and its parameters
-                </CardDescription>
+          {/* Model Settings Section */}
+          <div className="lg:col-span-1 space-y-6 animate-scale-in" style={{ animationDelay: '0.1s' }}>
+            <Card className="border-0 shadow-md hover:shadow-xl transition-all duration-300">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center">
+                    <Sliders className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg font-semibold text-gray-900">Model Settings</CardTitle>
+                    <CardDescription className="text-sm text-gray-500">
+                      Configure the AI model and its parameters
+                    </CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="model">Model</Label>
+                {/* Model Selection */}
+                <div className="space-y-3">
+                  <Label htmlFor="model" className="text-sm font-medium text-gray-700">Model</Label>
                   <Select 
                     name="model"
                     value={config.model} 
                     onValueChange={handleModelChange}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="border-gray-200 focus:border-shopme-500 focus:ring-shopme-500">
                       <SelectValue placeholder="Select a model" />
                     </SelectTrigger>
                     <SelectContent>
@@ -361,17 +392,20 @@ const AgentConfigPage: React.FC = () => {
                   </Select>
                 </div>
                 
-                <div className="space-y-2">
+                {/* Temperature */}
+                <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <Label htmlFor="temperature">Temperature: {config.temperature.toFixed(1)}</Label>
+                    <Label htmlFor="temperature" className="text-sm font-medium text-gray-700">
+                      Temperature: <span className="font-bold text-shopme-600">{config.temperature.toFixed(1)}</span>
+                    </Label>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full p-0">
-                          <HelpCircle className="h-4 w-4" />
+                        <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full p-0 hover:bg-gray-100">
+                          <HelpCircle className="h-4 w-4 text-gray-400" />
                           <span className="sr-only">Temperature info</span>
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-80">
+                      <PopoverContent className="w-80 border-0 shadow-xl">
                         <div className="space-y-2">
                           <h4 className="font-medium leading-none">{helpContent.temperature.title}</h4>
                           <div className="text-sm">
@@ -381,33 +415,39 @@ const AgentConfigPage: React.FC = () => {
                       </PopoverContent>
                     </Popover>
                   </div>
-                  <Input
-                    type="range"
-                    id="temperature"
-                    name="temperature"
-                    min={0}
-                    max={1}
-                    step={0.1}
-                    value={config.temperature}
-                    onChange={(e) => handleTemperatureChange([parseFloat(e.target.value)])}
-                    disabled={isLoading}
-                  />
-                  <p className="text-xs text-gray-500">
+                  <div className="relative">
+                    <Input
+                      type="range"
+                      id="temperature"
+                      name="temperature"
+                      min={0}
+                      max={1}
+                      step={0.1}
+                      value={config.temperature}
+                      onChange={(e) => handleTemperatureChange([parseFloat(e.target.value)])}
+                      disabled={isLoading}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 leading-relaxed">
                     Controls randomness: Lower values are more focused and deterministic, higher values are more creative.
                   </p>
                 </div>
                 
-                <div className="space-y-2">
+                {/* Top P */}
+                <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <Label htmlFor="top-p">Top P: {config.topP.toFixed(1)}</Label>
+                    <Label htmlFor="top-p" className="text-sm font-medium text-gray-700">
+                      Top P: <span className="font-bold text-shopme-600">{config.topP.toFixed(1)}</span>
+                    </Label>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full p-0">
-                          <HelpCircle className="h-4 w-4" />
+                        <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full p-0 hover:bg-gray-100">
+                          <HelpCircle className="h-4 w-4 text-gray-400" />
                           <span className="sr-only">Top P info</span>
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-80">
+                      <PopoverContent className="w-80 border-0 shadow-xl">
                         <div className="space-y-2">
                           <h4 className="font-medium leading-none">{helpContent.topP.title}</h4>
                           <div className="text-sm">
@@ -426,23 +466,25 @@ const AgentConfigPage: React.FC = () => {
                     step={0.1}
                     value={config.topP}
                     onChange={(e) => handleTopPChange([parseFloat(e.target.value)])}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
                   />
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 leading-relaxed">
                     Nucleus sampling: Only consider tokens with the top P% probability mass.
                   </p>
                 </div>
                 
-                <div className="space-y-2">
+                {/* Max Tokens */}
+                <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <Label htmlFor="max-tokens">Max Tokens</Label>
+                    <Label htmlFor="max-tokens" className="text-sm font-medium text-gray-700">Max Tokens</Label>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full p-0">
-                          <HelpCircle className="h-4 w-4" />
+                        <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full p-0 hover:bg-gray-100">
+                          <HelpCircle className="h-4 w-4 text-gray-400" />
                           <span className="sr-only">Max Tokens info</span>
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-80">
+                      <PopoverContent className="w-80 border-0 shadow-xl">
                         <div className="space-y-2">
                           <h4 className="font-medium leading-none">{helpContent.maxTokens.title}</h4>
                           <div className="text-sm">
@@ -460,17 +502,20 @@ const AgentConfigPage: React.FC = () => {
                     max={4000}
                     value={config.maxTokens}
                     onChange={handleMaxTokensChange}
+                    className="border-gray-200 focus:border-shopme-500 focus:ring-shopme-500"
                   />
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 leading-relaxed">
                     Maximum number of tokens to generate in a response.
                   </p>
                 </div>
                 
+                {/* Save Button */}
                 <Button 
                   type="submit"
-                  className="w-full bg-shopme-500 hover:bg-shopme-600 mt-4"
+                  className="w-full bg-gradient-to-r from-shopme-500 to-shopme-600 hover:from-shopme-600 hover:to-shopme-700 text-white font-medium py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 mt-6"
                   disabled={isSaving || isLoading}
                 >
+                  <Save className="w-4 h-4 mr-2" />
                   {isLoading ? 'Loading...' : isSaving ? 'Saving...' : 'Save Changes'}
                 </Button>
               </CardContent>
@@ -478,7 +523,7 @@ const AgentConfigPage: React.FC = () => {
           </div>
         </div>
       </form>
-    </>
+    </div>
   );
 };
 

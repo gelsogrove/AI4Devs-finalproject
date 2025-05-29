@@ -190,10 +190,25 @@ class AIService {
       logger.info(`Model: ${model}`);
       logger.info(`Params: ${JSON.stringify(params)}`);
       
-      // Check if API key is available
+      // Check if OpenRouter API key is available, otherwise use OpenAI directly
       if (!isApiKeyValid) {
-        logger.error('No valid OpenRouter API key found');
-        throw new Error('No valid OpenRouter API key found');
+        logger.info('OpenRouter API key not valid, using OpenAI directly...');
+        
+        // Use OpenAI directly with a simpler model
+        const openAIModel = model.includes('gpt') ? 'gpt-3.5-turbo' : 'gpt-3.5-turbo';
+        
+        const response = await openAIClient.chat.completions.create({
+          model: openAIModel,
+          messages,
+          temperature: params.temperature ?? 0.7,
+          max_tokens: params.maxTokens ?? 500,
+          top_p: params.topP ?? 0.9,
+          tools: params.tools ?? undefined,
+          tool_choice: params.toolChoice ?? undefined
+        });
+        
+        logger.info('OpenAI API call successful');
+        return response;
       }
       
       // Ensure the model is in the correct format for OpenRouter
@@ -227,23 +242,22 @@ class AIService {
         const apiError = error as any;
         logger.error(`Model error: ${apiError.error?.message}`);
         
-        // Try with default model as fallback
-        if (model !== 'gpt-3.5-turbo') {
-          logger.info('Attempting fallback to gpt-3.5-turbo...');
-          try {
-            const fallbackResponse = await openRouterClient.chat.completions.create({
-              model: 'openai/gpt-3.5-turbo',
-              messages,
-              temperature: params.temperature ?? 0.7,
-              max_tokens: params.maxTokens ?? 500,
-              top_p: params.topP ?? 0.9,
-              tools: params.tools ?? undefined,
-              tool_choice: params.toolChoice ?? undefined
-            });
-            return fallbackResponse;
-          } catch (fallbackError) {
-            logger.error('Fallback to gpt-3.5-turbo also failed:', fallbackError);
-          }
+        // Try with OpenAI as fallback
+        logger.info('Attempting fallback to OpenAI...');
+        try {
+          const fallbackResponse = await openAIClient.chat.completions.create({
+            model: 'gpt-3.5-turbo',
+            messages,
+            temperature: params.temperature ?? 0.7,
+            max_tokens: params.maxTokens ?? 500,
+            top_p: params.topP ?? 0.9,
+            tools: params.tools ?? undefined,
+            tool_choice: params.toolChoice ?? undefined
+          });
+          logger.info('OpenAI fallback successful');
+          return fallbackResponse;
+        } catch (fallbackError) {
+          logger.error('OpenAI fallback also failed:', fallbackError);
         }
       }
       

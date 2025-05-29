@@ -9,10 +9,10 @@ const createServiceSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters'),
   description: z.string().min(10, 'Description must be at least 10 characters'),
   price: z.union([
-    z.number().positive('Price must be a positive number'),
+    z.number().min(0, 'Price cannot be negative'),
     z.string().transform((val) => parseFloat(val)),
-  ]).refine((val) => !isNaN(val) && val > 0, {
-    message: 'Price must be a positive number',
+  ]).refine((val) => !isNaN(val) && val >= 0, {
+    message: 'Price cannot be negative',
   }),
   isActive: z.boolean().optional(),
 });
@@ -21,10 +21,10 @@ const updateServiceSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters').optional(),
   description: z.string().min(10, 'Description must be at least 10 characters').optional(),
   price: z.union([
-    z.number().positive('Price must be a positive number'),
+    z.number().min(0, 'Price cannot be negative'),
     z.string().transform((val) => parseFloat(val)),
-  ]).refine((val) => !isNaN(val) && val > 0, {
-    message: 'Price must be a positive number',
+  ]).refine((val) => !isNaN(val) && val >= 0, {
+    message: 'Price cannot be negative',
   }).optional(),
   isActive: z.boolean().optional(),
 }).refine(data => Object.keys(data).length > 0, {

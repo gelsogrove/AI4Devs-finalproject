@@ -19,9 +19,9 @@ router.put('/:id', authenticate, faqController.updateFAQ.bind(faqController));
 router.delete('/:id', authenticate, faqController.deleteFAQ.bind(faqController));
 
 // Generate embeddings for all FAQs
-router.post('/embeddings', faqController.generateEmbeddings);
+router.post('/embeddings', faqController.generateEmbeddings.bind(faqController));
 
 // Generate embeddings for a specific FAQ
-router.post('/embeddings/:faqId', faqController.generateEmbeddings);
+router.post('/:faqId/embeddings', faqController.generateEmbeddings.bind(faqController));
 
 export default router; 

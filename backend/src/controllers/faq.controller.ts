@@ -8,11 +8,13 @@ import logger from '../utils/logger';
 const createFAQSchema = z.object({
   question: z.string().min(5, 'Question must be at least 5 characters'),
   answer: z.string().min(10, 'Answer must be at least 10 characters'),
+  isActive: z.boolean().optional().default(true),
 });
 
 const updateFAQSchema = z.object({
   question: z.string().min(5, 'Question must be at least 5 characters').optional(),
   answer: z.string().min(10, 'Answer must be at least 10 characters').optional(),
+  isActive: z.boolean().optional(),
 }).refine(data => Object.keys(data).length > 0, {
   message: 'At least one field must be provided',
 });
@@ -191,6 +193,29 @@ class FAQController {
   }
 
   /**
+   * Get all FAQ categories
+   */
+  async getCategories(req: Request, res: Response) {
+    try {
+      // For now, return a static list of categories
+      // In the future, this could be dynamic based on FAQ data
+      const categories = [
+        'General',
+        'Shipping',
+        'Payment',
+        'Products',
+        'Returns',
+        'Account'
+      ];
+      
+      return res.status(200).json(categories);
+    } catch (error) {
+      logger.error('Get FAQ categories error:', error);
+      return res.status(500).json({ error: 'Failed to get FAQ categories' });
+    }
+  }
+
+  /**
    * Generate embeddings for all FAQs or a specific FAQ
    */
   async generateEmbeddings(req: Request, res: Response) {
@@ -202,32 +227,19 @@ class FAQController {
         await embeddingService.generateEmbeddingsForFAQ(faqId);
         return res.json({ message: `Embeddings generated for FAQ ${faqId}` });
       } else {
-        // Get all FAQs
-        const faqs = await faqService.getAllFAQs();
+        // Get all active FAQs
+        const faqs = await faqService.getActiveFAQs();
         
-        // Generate embeddings for each FAQ
+        // Generate embeddings for each active FAQ
         for (const faq of faqs) {
           await embeddingService.generateEmbeddingsForFAQ(faq.id);
         }
         
-        return res.json({ message: `Embeddings generated for ${faqs.length} FAQs` });
+        return res.json({ message: `Embeddings generated for ${faqs.length} active FAQs` });
       }
     } catch (error) {
       logger.error('Error generating embeddings:', error);
       return res.status(500).json({ error: 'Failed to generate embeddings' });
-    }
-  }
-
-  /**
-   * Get all FAQ categories
-   */
-  async getCategories(req: Request, res: Response) {
-    try {
-      const categories = await faqService.getCategories();
-      return res.json(categories);
-    } catch (error) {
-      logger.error('Error getting FAQ categories:', error);
-      return res.status(500).json({ error: 'Failed to get categories' });
     }
   }
 }

@@ -19,7 +19,6 @@ export interface ProductResponse {
     description: string;
     price: string;
     category: string;
-    imageUrl: string;
     tags: string[];
   }>;
   error?: string;

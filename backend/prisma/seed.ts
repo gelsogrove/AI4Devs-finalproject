@@ -1,9 +1,12 @@
 import { PrismaClient } from '@prisma/client';
+import fs from 'fs';
+import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Seeding database...');
+  console.log('🌱 Starting database seeding...');
 
   // Seed products
   await seedProducts();
@@ -20,7 +23,13 @@ async function main() {
   // Seed agent config
   await seedAgentConfig();
 
-  console.log('Database seeded successfully!');
+  // Seed profile
+  await seedProfile();
+
+  // Seed documents
+  await seedDocuments();
+
+  console.log('✅ Database seeding completed successfully!');
 }
 
 async function seedProducts() {
@@ -33,180 +42,160 @@ async function seedProducts() {
       name: 'Parmigiano Reggiano DOP 24 Months',
       description: 'Authentic Italian Parmigiano Reggiano aged for 24 months from Emilia-Romagna. Perfect for grating over pasta or enjoying with a good wine. Rich, nutty flavor with crystalline texture.',
       price: 15.90,
-      imageUrl: '/images/products/parmigiano.jpg',
       category: 'Cheese',
-      stock: 25,
+      isActive: true,
       tagsJson: JSON.stringify(['italian', 'cheese', 'premium', 'dop', 'aged', 'emilia-romagna'])
     },
     {
       name: 'Extra Virgin Olive Oil Toscano IGP',
       description: 'Cold-pressed Italian olive oil from Tuscany hills. Fruity and slightly peppery with notes of artichoke and almond. Perfect for salads and finishing dishes.',
       price: 12.50,
-      imageUrl: '/images/products/olive-oil.jpg',
       category: 'Oils',
-      stock: 30,
+      isActive: true,
       tagsJson: JSON.stringify(['italian', 'oil', 'premium', 'tuscany', 'igp', 'cold-pressed'])
     },
     {
       name: 'Aceto Balsamico di Modena IGP',
       description: 'Traditional balsamic vinegar aged in wooden barrels for at least 12 years. Sweet and tangy with complex flavors. Perfect for salads, cheese, and desserts.',
       price: 18.75,
-      imageUrl: '/images/products/balsamic.jpg',
       category: 'Vinegars',
-      stock: 15,
+      isActive: true,
       tagsJson: JSON.stringify(['italian', 'vinegar', 'premium', 'modena', 'igp', 'aged'])
     },
     {
       name: 'Spaghetti di Gragnano IGP',
       description: 'Bronze-drawn spaghetti from Gragnano, the pasta capital of Italy. Rough texture holds sauce perfectly. Made with durum wheat semolina.',
       price: 3.25,
-      imageUrl: '/images/products/spaghetti.jpg',
       category: 'Pasta',
-      stock: 50,
+      isActive: true,
       tagsJson: JSON.stringify(['italian', 'pasta', 'gragnano', 'igp', 'bronze-drawn', 'durum-wheat'])
     },
     {
       name: 'Prosciutto di Parma DOP',
       description: 'Authentic Parma ham aged for 18 months. Sweet, delicate flavor with perfect marbling. Sliced to order for maximum freshness.',
       price: 24.90,
-      imageUrl: '/images/products/prosciutto.jpg',
       category: 'Cured Meats',
-      stock: 20,
+      isActive: true,
       tagsJson: JSON.stringify(['italian', 'cured-meat', 'premium', 'parma', 'dop', 'aged'])
     },
     {
       name: 'Gorgonzola DOP Dolce',
       description: 'Creamy blue cheese from Lombardy with mild, sweet flavor. Perfect for risottos, pizza, or paired with honey and walnuts.',
       price: 8.90,
-      imageUrl: '/images/products/gorgonzola.jpg',
       category: 'Cheese',
-      stock: 18,
+      isActive: true,
       tagsJson: JSON.stringify(['italian', 'cheese', 'blue-cheese', 'lombardy', 'dop', 'creamy'])
     },
     {
       name: 'Chianti Classico DOCG',
       description: 'Premium red wine from Tuscany made with Sangiovese grapes. Full-bodied with notes of cherry, violet, and spice. Perfect with red meat and aged cheeses.',
       price: 19.50,
-      imageUrl: '/images/products/chianti.jpg',
       category: 'Wine',
-      stock: 12,
+      isActive: true,
       tagsJson: JSON.stringify(['italian', 'wine', 'red', 'tuscany', 'docg', 'sangiovese'])
     },
     {
       name: 'Mozzarella di Bufala Campana DOP',
       description: 'Fresh buffalo mozzarella from Campania. Creamy texture with delicate, slightly tangy flavor. Best enjoyed within 2-3 days.',
       price: 6.75,
-      imageUrl: '/images/products/mozzarella-bufala.jpg',
       category: 'Cheese',
-      stock: 15,
+      isActive: true,
       tagsJson: JSON.stringify(['italian', 'cheese', 'fresh', 'campania', 'dop', 'buffalo'])
     },
     {
       name: 'Risotto Carnaroli Rice',
       description: 'Premium Italian rice variety perfect for risotto. High starch content creates creamy texture while maintaining firm bite. From Piedmont region.',
       price: 4.50,
-      imageUrl: '/images/products/carnaroli-rice.jpg',
       category: 'Rice & Grains',
-      stock: 35,
+      isActive: true,
       tagsJson: JSON.stringify(['italian', 'rice', 'carnaroli', 'risotto', 'piedmont', 'premium'])
     },
     {
       name: 'Nduja Calabrese Piccante',
       description: 'Spicy spreadable salami from Calabria. Made with pork and Calabrian chilies. Perfect on bread, pizza, or to add heat to pasta dishes.',
       price: 7.25,
-      imageUrl: '/images/products/nduja.jpg',
       category: 'Cured Meats',
-      stock: 22,
+      isActive: true,
       tagsJson: JSON.stringify(['italian', 'cured-meat', 'spicy', 'calabria', 'spreadable', 'chili'])
     },
     {
       name: 'Pecorino Romano DOP',
       description: 'Sharp, salty sheep cheese from Lazio. Aged for 8 months. Essential for authentic Cacio e Pepe and Carbonara. Grated fresh to order.',
       price: 11.80,
-      imageUrl: '/images/products/pecorino-romano.jpg',
       category: 'Cheese',
-      stock: 28,
+      isActive: true,
       tagsJson: JSON.stringify(['italian', 'cheese', 'sheep', 'lazio', 'dop', 'sharp'])
     },
     {
       name: 'Limoncello di Sorrento IGP',
       description: 'Traditional lemon liqueur from Sorrento lemons. Sweet and aromatic, perfect as digestif. Serve chilled in small glasses.',
       price: 16.90,
-      imageUrl: '/images/products/limoncello.jpg',
       category: 'Spirits',
-      stock: 14,
+      isActive: true,
       tagsJson: JSON.stringify(['italian', 'liqueur', 'lemon', 'sorrento', 'igp', 'digestif'])
     },
     {
       name: 'Tagliatelle all\'Uovo',
       description: 'Fresh egg pasta from Emilia-Romagna. Made with semolina flour and farm eggs. Perfect with ragù Bolognese or truffle sauce.',
       price: 5.20,
-      imageUrl: '/images/products/tagliatelle.jpg',
       category: 'Pasta',
-      stock: 40,
+      isActive: true,
       tagsJson: JSON.stringify(['italian', 'pasta', 'fresh', 'egg', 'emilia-romagna', 'tagliatelle'])
     },
     {
       name: 'Amaretto di Saronno',
       description: 'Traditional almond liqueur from Lombardy. Sweet with bitter almond notes. Perfect for desserts or as after-dinner drink.',
       price: 21.50,
-      imageUrl: '/images/products/amaretto.jpg',
       category: 'Spirits',
-      stock: 16,
+      isActive: true,
       tagsJson: JSON.stringify(['italian', 'liqueur', 'almond', 'lombardy', 'sweet', 'traditional'])
     },
     {
       name: 'Bresaola della Valtellina IGP',
       description: 'Air-dried beef from Alpine valleys. Lean, tender, and flavorful. Served thinly sliced with lemon, olive oil, and arugula.',
       price: 18.90,
-      imageUrl: '/images/products/bresaola.jpg',
       category: 'Cured Meats',
-      stock: 12,
+      isActive: true,
       tagsJson: JSON.stringify(['italian', 'cured-meat', 'beef', 'valtellina', 'igp', 'alpine'])
     },
     {
       name: 'Barolo DOCG',
       description: 'King of Italian wines from Piedmont. Made with Nebbiolo grapes. Full-bodied with complex tannins and notes of rose, tar, and cherry.',
       price: 45.00,
-      imageUrl: '/images/products/barolo.jpg',
       category: 'Wine',
-      stock: 8,
+      isActive: true,
       tagsJson: JSON.stringify(['italian', 'wine', 'red', 'piedmont', 'docg', 'nebbiolo', 'premium'])
     },
     {
       name: 'Mortadella di Bologna IGP',
       description: 'Traditional pork cold cut from Bologna with pistachios. Smooth texture with delicate flavor. Perfect for sandwiches or antipasti.',
       price: 9.75,
-      imageUrl: '/images/products/mortadella.jpg',
       category: 'Cured Meats',
-      stock: 25,
+      isActive: true,
       tagsJson: JSON.stringify(['italian', 'cured-meat', 'pork', 'bologna', 'igp', 'pistachios'])
     },
     {
       name: 'Gnocchi di Patate',
       description: 'Traditional potato dumplings from Northern Italy. Made with potatoes, flour, and eggs. Perfect with sage butter or tomato sauce.',
       price: 4.80,
-      imageUrl: '/images/products/gnocchi.jpg',
       category: 'Pasta',
-      stock: 30,
+      isActive: true,
       tagsJson: JSON.stringify(['italian', 'pasta', 'potato', 'dumplings', 'northern-italy', 'traditional'])
     },
     {
       name: 'Prosecco di Valdobbiadene DOCG',
       description: 'Premium sparkling wine from Veneto. Crisp and fresh with notes of apple, pear, and citrus. Perfect for celebrations and aperitifs.',
       price: 13.90,
-      imageUrl: '/images/products/prosecco.jpg',
       category: 'Wine',
-      stock: 20,
+      isActive: true,
       tagsJson: JSON.stringify(['italian', 'wine', 'sparkling', 'veneto', 'docg', 'aperitif'])
     },
     {
       name: 'Tartufo Nero Estivo',
       description: 'Summer black truffles from Umbria. Earthy, aromatic flavor perfect for pasta, risotto, and eggs. Preserved in olive oil.',
       price: 32.50,
-      imageUrl: '/images/products/truffle.jpg',
       category: 'Specialty',
-      stock: 6,
+      isActive: true,
       tagsJson: JSON.stringify(['italian', 'truffle', 'black', 'umbria', 'luxury', 'preserved'])
     }
   ];
@@ -228,51 +217,63 @@ async function seedFAQs() {
   const faqs = [
     {
       question: 'What are your shipping costs?',
-      answer: 'We offer free shipping on orders over €50. For orders under €50, shipping costs are €5.99 within Italy and €12.99 for international orders to EU countries. Shipping to non-EU countries starts at €19.99.'
+      answer: 'We offer free shipping on orders over €50. For orders under €50, shipping costs are €5.99 within Italy and €12.99 for international orders to EU countries. Shipping to non-EU countries starts at €19.99.',
+      isActive: true
     },
     {
       question: 'How long does shipping take?',
-      answer: 'Orders within Italy are delivered in 1-3 business days. EU countries receive orders in 3-5 business days. International shipping to non-EU countries takes 5-10 business days. Express shipping options are available.'
+      answer: 'Orders within Italy are delivered in 1-3 business days. EU countries receive orders in 3-5 business days. International shipping to non-EU countries takes 5-10 business days. Express shipping options are available.',
+      isActive: true
     },
     {
       question: 'Do you ship internationally?',
-      answer: 'Yes! We ship to over 50 countries worldwide. Shipping costs vary by destination. Some products may have restrictions due to customs regulations. Contact us for specific country information.'
+      answer: 'Yes! We ship to over 50 countries worldwide. Shipping costs vary by destination. Some products may have restrictions due to customs regulations. Contact us for specific country information.',
+      isActive: true
     },
     {
       question: 'What is your return policy?',
-      answer: 'We accept returns within 30 days of delivery for non-perishable items in original packaging. Perishable items can only be returned if damaged or defective. Return shipping costs are covered by us for defective items.'
+      answer: 'We accept returns within 30 days of delivery for non-perishable items in original packaging. Perishable items can only be returned if damaged or defective. Return shipping costs are covered by us for defective items.',
+      isActive: true
     },
     {
       question: 'How do I return an item?',
-      answer: 'Contact our customer service team at support@gustoitaliano.com with your order number. We\'ll provide a return authorization and prepaid shipping label for eligible items. Refunds are processed within 5-7 business days.'
+      answer: 'Contact our customer service team at support@gustoitaliano.com with your order number. We\'ll provide a return authorization and prepaid shipping label for eligible items. Refunds are processed within 5-7 business days.',
+      isActive: true
     },
     {
       question: 'Can I exchange an item?',
-      answer: 'Yes, exchanges are possible for non-perishable items within 30 days. The replacement item must be of equal or lesser value. If the new item costs more, you\'ll pay the difference. Contact us to arrange an exchange.'
+      answer: 'Yes, exchanges are possible for non-perishable items within 30 days. The replacement item must be of equal or lesser value. If the new item costs more, you\'ll pay the difference. Contact us to arrange an exchange.',
+      isActive: true
     },
     {
       question: 'Are your products authentic?',
-      answer: 'Absolutely! We work directly with certified Italian producers and importers. All our DOP, IGP, and DOCG products come with authenticity certificates. We guarantee the origin and quality of every item we sell.'
+      answer: 'Absolutely! We work directly with certified Italian producers and importers. All our DOP, IGP, and DOCG products come with authenticity certificates. We guarantee the origin and quality of every item we sell.',
+      isActive: true
     },
     {
       question: 'How should I store my Italian products?',
-      answer: 'Storage varies by product type. Dry goods should be kept in a cool, dry place. Cheeses need refrigeration and should be wrapped in cheese paper. Wines should be stored horizontally in a cool, dark place. Check individual product pages for specific storage instructions.'
+      answer: 'Storage varies by product type. Dry goods should be kept in a cool, dry place. Cheeses need refrigeration and should be wrapped in cheese paper. Wines should be stored horizontally in a cool, dark place. Check individual product pages for specific storage instructions.',
+      isActive: true
     },
     {
       question: 'What payment methods do you accept?',
-      answer: 'We accept all major credit cards (Visa, Mastercard, American Express), PayPal, Apple Pay, Google Pay, and bank transfers. For orders over €200, we also offer payment in 3 installments through Klarna.'
+      answer: 'We accept all major credit cards (Visa, Mastercard, American Express), PayPal, Apple Pay, Google Pay, and bank transfers. For orders over €200, we also offer payment in 3 installments through Klarna.',
+      isActive: true
     },
     {
       question: 'Do you have a loyalty program?',
-      answer: 'Yes! Our "Gusto Club" loyalty program gives you 1 point for every €1 spent. Collect 100 points to get a €5 discount. Members also receive exclusive offers, early access to new products, and invitations to special events.'
+      answer: 'Yes! Our "Gusto Club" loyalty program gives you 1 point for every €1 spent. Collect 100 points to get a €5 discount. Members also receive exclusive offers, early access to new products, and invitations to special events.',
+      isActive: true
     },
     {
       question: 'Can you create custom gift baskets?',
-      answer: 'Absolutely! Our Personal Shopping Service can create custom gift baskets tailored to any preference or budget. Choose from our curated selections or let us create something unique. Perfect for corporate gifts or special occasions.'
+      answer: 'Absolutely! Our Personal Shopping Service can create custom gift baskets tailored to any preference or budget. Choose from our curated selections or let us create something unique. Perfect for corporate gifts or special occasions.',
+      isActive: true
     },
     {
       question: 'How fresh are your products?',
-      answer: 'We receive fresh deliveries from Italy 2-3 times per week. All products have clear expiration dates, and we guarantee at least 75% of shelf life remaining on delivery. Fresh items like mozzarella are shipped the same day they arrive from Italy.'
+      answer: 'We receive fresh deliveries from Italy 2-3 times per week. All products have clear expiration dates, and we guarantee at least 75% of shelf life remaining on delivery. Fresh items like mozzarella are shipped the same day they arrive from Italy.',
+      isActive: true
     }
   ];
   
@@ -392,6 +393,7 @@ CRITICAL RULES - FUNCTION CALLS ARE MANDATORY:
 - If a customer asks about products, call getProducts() first
 - If a customer asks about services, call getServices() first  
 - If a customer asks about policies, shipping, returns, or common questions, call getFAQs() first
+- If a customer asks about company location, website, opening hours, or contact info, call getProfile() first
 - DO NOT use your internal knowledge - ONLY use data from function calls
 
 FUNCTION CALLING CAPABILITIES:
@@ -413,6 +415,11 @@ You have access to the following functions that you MUST use to get accurate inf
    - Use 'search' parameter to find specific information
    - Examples: "What's your return policy?", "How long does shipping take?", "Do you have a loyalty program?"
 
+4. getProfile()
+   - Call this when users ask about company information, location, contact details, or business hours
+   - Examples: "Where are you located?", "What's your website?", "When are you open?", "How can I contact you?"
+   - Note: Phone number is not included for privacy reasons
+
 RESPONSE GUIDELINES:
 - Always call the appropriate function before providing information
 - Be warm and personable, using the customer's name when available
@@ -427,6 +434,150 @@ Buon appetito!`
   });
   
   console.log('Seeded agent config');
+}
+
+async function seedProfile() {
+  // Delete existing profile
+  await prisma.profile.deleteMany({});
+  
+  // Create new profile
+  const profile = await prisma.profile.create({
+    data: {
+      username: 'shopmefy',
+      companyName: 'ShopMefy',
+      logoUrl: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=200&h=200&fit=crop&crop=center',
+      description: 'Authentic Italian restaurant bringing the finest Italian cuisine and products directly to your table. From premium Parmigiano Reggiano to traditional pasta from Gragnano, we curate only the best Italian specialties with DOP and IGP certifications.',
+      phoneNumber: '+390612345678',
+      website: 'https://www.shopmefy.com',
+      email: 'info@shopmefy.com',
+      openingTime: 'Monday-Friday: 9:00-18:00, Saturday: 9:00-13:00, Sunday: Closed',
+      address: 'Via Roma 123, 00186 Roma, Italy',
+      sector: 'Premium Italian Food, Ecommerce'
+    }
+  });
+  
+  console.log('Seeded profile');
+}
+
+async function seedDocuments() {
+  // Delete existing documents and chunks
+  await prisma.documentChunk.deleteMany({});
+  await prisma.document.deleteMany({});
+  
+  console.log('📄 Seeding sample documents...');
+  
+  // Sample documents from our created PDFs with proper title
+  const sampleDocuments = [
+    {
+      filename: 'trasporto-merci-italia.pdf',
+      originalName: 'Regolamento Trasporto Merci in Italia.pdf',
+      title: 'Italian Goods Transportation Regulations',
+      description: 'Comprehensive regulations for goods transportation in Italy, including licensing requirements, documentation, and legal responsibilities.'
+    },
+    {
+      filename: 'gdpr-privacy-policy.pdf',
+      originalName: 'GDPR Privacy Policy - Gusto Italiano.pdf',
+      title: 'GDPR Privacy Policy - ShopMefy',
+      description: 'Complete GDPR compliance documentation including data processing purposes, legal basis, and user rights.'
+    },
+    {
+      filename: 'catalogo-prodotti-italiani.pdf',
+      originalName: 'Catalogo Prodotti Italiani 2024.pdf',
+      title: 'Italian Products Catalog 2024',
+      description: 'Complete catalog of authentic Italian products including pasta, cheeses, wines, and traditional specialties.'
+    }
+  ];
+  
+  const sampleDir = path.join(__dirname, 'sample-documents');
+  const uploadsDir = path.join(__dirname, '..', 'uploads', 'documents');
+  
+  // Ensure uploads directory exists
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+    console.log('📁 Created uploads/documents directory');
+  }
+  
+  for (const docInfo of sampleDocuments) {
+    const filePath = path.join(sampleDir, docInfo.filename);
+    
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      console.log(`⚠️  File not found: ${docInfo.filename}, skipping...`);
+      continue;
+    }
+    
+    // Get file stats
+    const stats = fs.statSync(filePath);
+    const uploadPath = `uploads/documents/${docInfo.filename}`;
+    
+    // Copy file to uploads directory if it doesn't exist
+    const destinationPath = path.join(uploadsDir, docInfo.filename);
+    if (!fs.existsSync(destinationPath)) {
+      fs.copyFileSync(filePath, destinationPath);
+      console.log(`📋 Copied ${docInfo.filename} to uploads directory`);
+    }
+    
+    // Create document record with title field
+    const document = await prisma.document.create({
+      data: {
+        id: uuidv4(),
+        filename: docInfo.filename,
+        originalName: docInfo.originalName,
+        title: docInfo.title,
+        mimeType: 'application/pdf',
+        size: stats.size,
+        uploadPath: uploadPath,
+        status: 'COMPLETED',
+        userId: null, // System documents
+        metadata: JSON.stringify({
+          title: docInfo.title,
+          pages: 1,
+          description: docInfo.description,
+          language: 'it'
+        }),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    });
+    
+    // Create sample chunks for each document
+    const sampleChunks = [
+      {
+        content: `${docInfo.title} - This document contains important information about ${docInfo.description.toLowerCase()}`,
+        pageNumber: 1,
+        chunkIndex: 0
+      },
+      {
+        content: `Key topics covered in this document include regulations, requirements, and best practices related to ${docInfo.title.toLowerCase()}`,
+        pageNumber: 1,
+        chunkIndex: 1
+      },
+      {
+        content: `This document provides comprehensive guidance for Italian business operations.`,
+        pageNumber: 1,
+        chunkIndex: 2
+      }
+    ];
+    
+    for (const chunkInfo of sampleChunks) {
+      await prisma.documentChunk.create({
+        data: {
+          id: uuidv4(),
+          content: chunkInfo.content,
+          pageNumber: chunkInfo.pageNumber,
+          chunkIndex: chunkInfo.chunkIndex,
+          documentId: document.id,
+          embedding: null, // Will be generated later by the embedding service
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      });
+    }
+    
+    console.log(`✅ Seeded document: ${docInfo.title} (${stats.size} bytes)`);
+  }
+  
+  console.log(`📄 Successfully seeded ${sampleDocuments.length} sample documents with chunks and proper title fields`);
 }
 
 main()

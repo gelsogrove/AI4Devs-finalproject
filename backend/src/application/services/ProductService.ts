@@ -29,7 +29,6 @@ export class ProductService {
       new ProductName(productData.name),
       productData.description,
       new Price(productData.price),
-      productData.imageUrl,
       productData.category,
       productData.tags || [], // Aggiungo i tags con valore di default array vuoto
       new Date(),
@@ -77,10 +76,6 @@ export class ProductService {
     
     if (productData.price !== undefined) {
       existingProduct.updatePrice(new Price(productData.price));
-    }
-    
-    if (productData.imageUrl) {
-      existingProduct.updateImageUrl(productData.imageUrl);
     }
     
     if (productData.category) {

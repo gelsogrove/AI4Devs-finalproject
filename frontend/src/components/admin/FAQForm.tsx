@@ -1,14 +1,11 @@
+import { useToast } from "@/components/ui/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { faqApi } from "../../api/faqApi";
-import { CreateFAQDto } from "../../types/faq";
 import { Button } from "../ui/button";
-import { Input } from "../ui/input";
-import { MarkdownViewer } from "../ui/markdown-viewer";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import { Textarea } from "../ui/textarea";
+import { Switch } from "../ui/switch";
 
 interface FAQFormProps {
   faqId?: string;
@@ -21,7 +18,8 @@ export function FAQForm({ faqId, isNew = false, onSave, onCancel }: FAQFormProps
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<string>("write");
+  const [isActive, setIsActive] = useState(true);
+  const { toast } = useToast();
   
   const formSchema = z.object({
     question: z.string().min(5, "Question must be at least 5 characters"),
@@ -32,7 +30,6 @@ export function FAQForm({ faqId, isNew = false, onSave, onCancel }: FAQFormProps
     register,
     handleSubmit,
     formState: { errors },
-    watch,
     reset,
   } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -53,6 +50,7 @@ export function FAQForm({ faqId, isNew = false, onSave, onCancel }: FAQFormProps
             question: faq.question,
             answer: faq.answer,
           });
+          setIsActive(faq.isActive);
         } catch (err) {
           setError("Failed to load FAQ data");
           console.error(err);
@@ -70,15 +68,37 @@ export function FAQForm({ faqId, isNew = false, onSave, onCancel }: FAQFormProps
     setIsSaving(true);
     
     try {
+      const faqData = {
+        question: data.question,
+        answer: data.answer,
+        isActive: isActive,
+      };
+
       if (isNew) {
-        await faqApi.createFAQ(data as CreateFAQDto);
+        await faqApi.createFAQ(faqData);
+        toast({
+          title: "Success",
+          description: "FAQ created successfully!",
+          variant: "default",
+        });
       } else if (faqId) {
-        await faqApi.updateFAQ(faqId, data);
+        await faqApi.updateFAQ(faqId, faqData);
+        toast({
+          title: "Success",
+          description: "FAQ updated successfully!",
+          variant: "default",
+        });
       }
+
       onSave();
     } catch (err: any) {
-      setError(err.response?.data?.error || "Failed to save FAQ");
-      console.error(err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save FAQ';
+      setError(errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -89,7 +109,7 @@ export function FAQForm({ faqId, isNew = false, onSave, onCancel }: FAQFormProps
   }
   
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {error && (
         <div className="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg">
           {error}
@@ -97,14 +117,14 @@ export function FAQForm({ faqId, isNew = false, onSave, onCancel }: FAQFormProps
       )}
       
       <div className="space-y-2">
-        <label htmlFor="question" className="block font-medium">
+        <label htmlFor="question" className="block text-sm font-medium">
           Question <span className="text-red-600">*</span>
         </label>
-        <Input
+        <input
           id="question"
           {...register("question")}
           placeholder="Enter the question"
-          className={errors.question ? "border-red-500" : ""}
+          className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 border-gray-300"
         />
         {errors.question && (
           <p className="text-sm text-red-600">{errors.question.message}</p>
@@ -112,40 +132,53 @@ export function FAQForm({ faqId, isNew = false, onSave, onCancel }: FAQFormProps
       </div>
       
       <div className="space-y-2">
-        <label htmlFor="answer" className="block font-medium">
+        <label htmlFor="answer" className="block text-sm font-medium">
           Answer <span className="text-red-600">*</span>
         </label>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList>
-            <TabsTrigger value="write">Write</TabsTrigger>
-            <TabsTrigger value="preview">Preview</TabsTrigger>
-          </TabsList>
-          <TabsContent value="write" className="p-0">
-            <Textarea
-              id="answer"
-              {...register("answer")}
-              placeholder="Enter the answer (Markdown supported)"
-              rows={8}
-              className={errors.answer ? "border-red-500" : ""}
-            />
-          </TabsContent>
-          <TabsContent value="preview" className="p-0">
-            <div className="min-h-[200px] border rounded-md p-4 bg-white">
-              <MarkdownViewer content={watch("answer")} />
-            </div>
-          </TabsContent>
-        </Tabs>
+        <textarea
+          id="answer"
+          {...register("answer")}
+          placeholder="Enter the answer"
+          rows={8}
+          className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 border-gray-300"
+        />
         {errors.answer && (
           <p className="text-sm text-red-600">{errors.answer.message}</p>
         )}
       </div>
       
-      <div className="flex justify-end gap-2 pt-4">
-        <Button type="button" variant="outline" onClick={onCancel}>
+      <div className="space-y-2">
+        <label className="block text-sm font-medium">
+          Status
+        </label>
+        <div className="flex items-center space-x-2">
+          <Switch 
+            checked={isActive} 
+            onCheckedChange={setIsActive}
+            id="isActive"
+            className="data-[state=checked]:bg-purple-500 data-[state=unchecked]:bg-gray-200 focus:ring-purple-500"
+          />
+          <label htmlFor="isActive" className="text-sm">
+            {isActive ? "Active" : "Inactive"}
+          </label>
+        </div>
+      </div>
+      
+      <div className="flex justify-end gap-3 pt-4">
+        <Button 
+          type="button" 
+          onClick={onCancel}
+          variant="outline"
+          className="border-purple-500 text-purple-700 font-medium py-3 px-6 rounded-lg h-12 min-h-[48px]"
+        >
           Cancel
         </Button>
-        <Button type="submit" disabled={isSaving}>
-          {isSaving ? "Saving..." : "Save FAQ"}
+        <Button 
+          type="submit" 
+          disabled={isSaving}
+          className="bg-purple-500 hover:bg-purple-600 text-white font-medium py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 h-12 min-h-[48px]"
+        >
+          {isSaving ? "Saving..." : "Update"}
         </Button>
       </div>
     </form>

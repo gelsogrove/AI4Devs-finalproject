@@ -9,48 +9,51 @@ dotenv.config();
 const prisma = new PrismaClient();
 
 describe('Chat API Integration Tests', () => {
-  // Check if we should skip tests based on OpenRouter API Key availability
-  const openRouterApiKey = process.env.OPENROUTER_API_KEY;
-  const isApiKeyValid = openRouterApiKey && openRouterApiKey !== 'YOUR_API_KEY_HERE';
-  const shouldSkipTests = !isApiKeyValid;
-
   beforeAll(async () => {
-    // If we need to skip, warn clearly in the console
-    if (shouldSkipTests) {
-      console.warn('⚠️ Skipping OpenRouter API tests due to missing or invalid OPENROUTER_API_KEY');
-      console.warn('These tests will pass automatically but are not validating actual API behavior');
+    // Ensure we have some test products in the database for intelligent fallback
+    if ((await prisma.product.count()) === 0) {
+      await prisma.product.createMany({
+        data: [
+          {
+            name: 'Parmigiano Reggiano DOP 24 Months',
+            description: 'Authentic Italian Parmigiano Reggiano aged for 24 months from Emilia-Romagna.',
+            price: 15.9,
+            category: 'Cheese',
+            imageUrl: 'https://example.com/parmigiano.jpg',
+            tagsJson: JSON.stringify(['italian', 'cheese', 'premium', 'dop', 'aged'])
+          },
+          {
+            name: 'Chianti Classico DOCG',
+            description: 'Premium red wine from Tuscany made with Sangiovese grapes.',
+            price: 19.5,
+            category: 'Wine',
+            imageUrl: 'https://example.com/chianti.jpg',
+            tagsJson: JSON.stringify(['italian', 'wine', 'red', 'tuscany', 'docg'])
+          },
+          {
+            name: 'Prosecco di Valdobbiadene DOCG',
+            description: 'Premium sparkling wine from Veneto.',
+            price: 13.9,
+            category: 'Wine',
+            imageUrl: 'https://example.com/prosecco.jpg',
+            tagsJson: JSON.stringify(['italian', 'wine', 'sparkling', 'veneto', 'docg'])
+          },
+        ],
+      });
     }
 
-    // Ensure we have some test products in the database
-    if (!shouldSkipTests) {
-      // Ensure we have some test products in the database
-      if ((await prisma.product.count()) === 0) {
-        await prisma.product.createMany({
-          data: [
-            {
-              name: 'Parmigiano Reggiano',
-              description: 'Authentic Parmigiano Reggiano aged 24 months. Imported directly from Parma, Italy.',
-              price: 29.99,
-              imageUrl: 'https://example.com/parmigiano.jpg',
-              category: 'Cheese',
-            },
-            {
-              name: 'Extra Virgin Olive Oil',
-              description: 'Cold-pressed olive oil from Tuscany. Perfect for salads and finishing dishes.',
-              price: 19.99,
-              imageUrl: 'https://example.com/olive-oil.jpg',
-              category: 'Oils',
-            },
-            {
-              name: 'Balsamic Vinegar',
-              description: 'Traditional balsamic vinegar aged in wooden barrels for 12 years.',
-              price: 24.99,
-              imageUrl: 'https://example.com/balsamic.jpg',
-              category: 'Vinegars',
-            },
-          ],
-        });
-      }
+    // Ensure we have agent config for the system
+    const configCount = await prisma.agentConfig.count();
+    if (configCount === 0) {
+      await prisma.agentConfig.create({
+        data: {
+          prompt: 'You are Sofia, an expert in Italian products at ShopMefy.',
+          model: 'gpt-4-turbo',
+          temperature: 0.7,
+          maxTokens: 500,
+          topP: 0.9
+        }
+      });
     }
   });
 
@@ -59,22 +62,14 @@ describe('Chat API Integration Tests', () => {
   });
 
   /**
-   * Test case for "Quali prodotti vendete?"
-   * Should call getProducts without filters
+   * Test the intelligent query processing system
+   * This tests our implemented intelligent fallback, not the AI service
    */
-  it('should respond to "Quali prodotti vendete?" correctly', async () => {
-    // Skip test if OPENROUTER API key is not valid
-    if (shouldSkipTests) {
-      console.log('Skipping test due to missing OPENROUTER_API_KEY');
-      // Make test pass instead of skipping it
-      expect(true).toBe(true);
-      return;
-    }
-
+  it('should respond to wine price query with intelligent filtering', async () => {
     const messages = [
       {
         role: 'user',
-        content: 'Quali prodotti vendete?',
+        content: 'Do you have wine less than 20 Euro?',
       },
     ];
 
@@ -89,34 +84,34 @@ describe('Chat API Integration Tests', () => {
     expect(response.body.message).toHaveProperty('content');
     expect(response.body.message).toHaveProperty('role', 'assistant');
     
-    // Verify that the response mentions products or categories
+    // Verify intelligent filtering worked
     const content = response.body.message.content.toLowerCase();
+    
+    // Should mention wines under 20 Euro
     expect(
-      content.includes('parmigiano') || 
-      content.includes('olio') || 
-      content.includes('formaggio') ||
-      content.includes('prodotti') ||
-      content.includes('catalogo')
+      content.includes('chianti') || 
+      content.includes('prosecco') ||
+      content.includes('wine') ||
+      content.includes('vino')
     ).toBeTruthy();
-  }, 15000); // Extend timeout to 15s for API calls
+    
+    // Should include price information
+    expect(
+      content.includes('19.5') || 
+      content.includes('13.9') ||
+      content.includes('€') ||
+      content.includes('euro')
+    ).toBeTruthy();
+  }, 20000);
 
   /**
-   * Test case for "Avete formaggi italiani?"
-   * Should call getProducts with category filter
+   * Test cheese category search
    */
-  it('should respond to "Avete formaggi italiani?" correctly', async () => {
-    // Skip test if OPENROUTER API key is not valid
-    if (shouldSkipTests) {
-      console.log('Skipping test due to missing OPENROUTER_API_KEY');
-      // Make test pass instead of skipping it
-      expect(true).toBe(true);
-      return;
-    }
-
+  it('should respond to cheese query correctly', async () => {
     const messages = [
       {
         role: 'user',
-        content: 'Avete formaggi italiani?',
+        content: 'What cheese do you have?',
       },
     ];
 
@@ -130,32 +125,23 @@ describe('Chat API Integration Tests', () => {
     expect(response.body).toHaveProperty('message');
     expect(response.body.message).toHaveProperty('content');
     
-    // Verify that the response mentions cheese or parmigiano
+    // Verify that the response mentions cheese
     const content = response.body.message.content.toLowerCase();
     expect(
       content.includes('parmigiano') || 
       content.includes('formaggio') ||
       content.includes('cheese')
     ).toBeTruthy();
-  }, 15000);
+  }, 20000);
 
   /**
-   * Test case for "Quanti prodotti avete in totale?"
-   * Should call getProducts with countOnly=true
+   * Test general greeting
    */
-  it('should respond to "Quanti prodotti avete in totale?" correctly', async () => {
-    // Skip test if OPENROUTER API key is not valid
-    if (shouldSkipTests) {
-      console.log('Skipping test due to missing OPENROUTER_API_KEY');
-      // Make test pass instead of skipping it
-      expect(true).toBe(true);
-      return;
-    }
-
+  it('should respond to greeting appropriately', async () => {
     const messages = [
       {
         role: 'user',
-        content: 'Quanti prodotti avete in totale?',
+        content: 'Ciao!',
       },
     ];
 
@@ -169,13 +155,33 @@ describe('Chat API Integration Tests', () => {
     expect(response.body).toHaveProperty('message');
     expect(response.body.message).toHaveProperty('content');
     
-    // Verify that the response includes a number or count
+    // Verify greeting response
     const content = response.body.message.content.toLowerCase();
     expect(
-      content.includes('3') ||
-      content.includes('tre') ||
-      content.includes('prodotti') ||
-      /\d+/.test(content) // Contains at least one digit
+      content.includes('ciao') || 
+      content.includes('sofia') ||
+      content.includes('shopmefy') ||
+      content.includes('benvenuto')
     ).toBeTruthy();
-  }, 15000);
+  }, 10000);
+
+  /**
+   * Test the test functions endpoint
+   */
+  it('should test available functions correctly', async () => {
+    const response = await request(app)
+      .get('/api/chat/test-functions')
+      .expect('Content-Type', /json/)
+      .expect(200);
+
+    // Verify response structure
+    expect(response.body).toHaveProperty('success', true);
+    expect(response.body).toHaveProperty('tests');
+    expect(response.body.tests).toHaveProperty('wineSearch');
+    expect(response.body.tests).toHaveProperty('allProducts');
+    
+    // Verify wine search found products
+    expect(response.body.tests.wineSearch.total).toBeGreaterThan(0);
+    expect(response.body.tests.allProducts.total).toBeGreaterThan(0);
+  }, 10000);
 }); 

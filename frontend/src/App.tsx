@@ -10,9 +10,11 @@ import AdminFAQs from "./pages/AdminFAQs";
 import AgentConfig from "./pages/AgentConfig";
 import Chatbot from "./pages/Chatbot";
 import Dashboard from "./pages/Dashboard";
+import Documents from "./pages/Documents";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import Products from "./pages/Products";
+import Profile from "./pages/Profile";
 import Services from "./pages/Services";
 
 // Layout
@@ -51,6 +53,8 @@ const AppRoutes = () => {
         <Route path="products" element={<Products />} />
         <Route path="faqs" element={<AdminFAQs />} />
         <Route path="services" element={<Services />} />
+        <Route path="documents" element={<Documents />} />
+        <Route path="profile" element={<Profile />} />
         <Route path="agent-config" element={<AgentConfig />} />
         <Route path="chatbot" element={<Chatbot />} />
       </Route>

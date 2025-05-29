@@ -147,7 +147,6 @@ export const availableFunctions = {
           description: p.description,
           price: p.price.toString(),
           category: p.category,
-          imageUrl: p.imageUrl,
           tags: JSON.parse(p.tagsJson || '[]')
         }))
       };
@@ -335,6 +334,162 @@ export const availableFunctions = {
         error: 'Failed to fetch FAQs',
         total: 0,
         faqs: []
+      };
+    }
+  },
+
+  /**
+   * Get company profile information
+   * Used when customers ask about company location, website, opening hours, etc.
+   * Note: Phone number is excluded as it's used for WhatsApp configuration
+   */
+  getProfile: async () => {
+    try {
+      logger.info('getProfile called');
+      
+      const profile = await prisma.profile.findFirst();
+      
+      if (!profile) {
+        logger.warn('No profile found in database');
+        return {
+          error: 'Company profile not found'
+        };
+      }
+      
+      // Return profile information excluding phone number for privacy
+      return {
+        companyName: profile.companyName,
+        description: profile.description,
+        website: profile.website,
+        email: profile.email,
+        openingTime: profile.openingTime,
+        address: profile.address,
+        sector: profile.sector
+      };
+    } catch (error) {
+      logger.error('Error getting profile:', error);
+      return {
+        error: 'Failed to fetch company profile'
+      };
+    }
+  },
+
+  /**
+   * Get documents with optional filters
+   */
+  getDocuments: async (filters: { search?: string; path?: string; limit?: number }) => {
+    try {
+      const { search, path, limit = 5 } = filters;
+      
+      logger.info(`getDocuments called with filters:`, { search, path, limit });
+      
+      // If we have a search query, try embedding search first
+      if (search) {
+        try {
+          // Use embedding search for documents
+          const documents = await embeddingService.searchDocuments(search, limit);
+          
+          // Filter by path if provided
+          let filteredDocuments = documents;
+          if (path) {
+            filteredDocuments = documents.filter(doc =>
+              doc.title?.toLowerCase().includes(path.toLowerCase()) ||
+              doc.originalName?.toLowerCase().includes(path.toLowerCase())
+            );
+          }
+
+          return {
+            documents: filteredDocuments.map(doc => ({
+              id: doc.id,
+              title: doc.title || doc.originalName,
+              originalName: doc.originalName,
+              filename: doc.filename,
+              content: doc.content?.substring(0, 300) + '...' || 'No content available',
+              similarity: doc.similarity || 0,
+              status: doc.status,
+              createdAt: doc.createdAt,
+              updatedAt: doc.updatedAt
+            })),
+            total: filteredDocuments.length,
+            searchType: 'embedding',
+            query: search,
+            path: path || ''
+          };
+        } catch (embeddingError) {
+          logger.error('Document embedding search failed, falling back to text search:', embeddingError);
+          // Continue with fallback below
+        }
+      }
+
+      // Fallback: Get documents from database with text search
+      try {
+        const where: any = {
+          status: 'COMPLETED'
+        };
+
+        if (search) {
+          where.OR = [
+            { title: { contains: search } },
+            { originalName: { contains: search } },
+            { metadata: { contains: search } }
+          ];
+        }
+
+        const documents = await prisma.document.findMany({
+          where,
+          take: limit,
+          orderBy: { createdAt: 'desc' }
+        });
+
+        // Filter by path if provided (using title/originalName as path indicator)
+        let filteredDocuments = documents;
+        if (path) {
+          filteredDocuments = documents.filter(doc =>
+            doc.title?.toLowerCase().includes(path.toLowerCase()) ||
+            doc.originalName?.toLowerCase().includes(path.toLowerCase())
+          );
+        }
+
+        logger.info(`Found ${filteredDocuments.length} documents using database search`);
+
+        return {
+          documents: filteredDocuments.map(doc => ({
+            id: doc.id,
+            title: doc.title || doc.originalName,
+            originalName: doc.originalName,
+            filename: doc.filename,
+            content: doc.metadata?.substring(0, 300) + '...' || 'No content available',
+            similarity: 0.5, // Default similarity for text search
+            status: doc.status,
+            createdAt: doc.createdAt,
+            updatedAt: doc.updatedAt
+          })),
+          total: filteredDocuments.length,
+          searchType: 'text',
+          query: search || '',
+          path: path || ''
+        };
+
+      } catch (dbError) {
+        logger.error('Database document search failed:', dbError);
+        
+        // Final fallback: return empty results
+        return {
+          documents: [],
+          total: 0,
+          error: 'Failed to retrieve documents',
+          searchType: 'failed',
+          query: search || '',
+          path: path || ''
+        };
+      }
+
+    } catch (error) {
+      logger.error('Error in getDocuments:', error);
+      return {
+        documents: [],
+        total: 0,
+        error: 'Failed to retrieve documents'
       };
     }
   }

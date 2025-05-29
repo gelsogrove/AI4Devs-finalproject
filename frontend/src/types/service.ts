@@ -5,7 +5,7 @@ export interface Service {
   price: number;
   createdAt: string;
   updatedAt: string;
-  isActive?: boolean;
+  isActive: boolean;
 }
 
 export interface CreateServiceDto {

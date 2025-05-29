@@ -180,7 +180,6 @@ describe('Product Edit and Create Functionality', () => {
       cy.get('input[name="name"]').type('Artisanal Tagliatelle');
       cy.get('textarea[name="description"]').type('Handmade tagliatelle pasta from Naples, made using traditional methods and premium durum wheat.');
       cy.get('input[name="price"]').type('12.99');
-      cy.get('input[name="imageUrl"]').type('https://images.unsplash.com/photo-1556761175-b413da4baf72');
       cy.get('select[name="category"]').select('Pasta & Risotto');
       
       // Submit the form - use the actual button text from the component

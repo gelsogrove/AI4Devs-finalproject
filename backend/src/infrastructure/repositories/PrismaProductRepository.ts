@@ -22,25 +22,25 @@ export class PrismaProductRepository implements ProductRepository {
       
       const savedProduct = await this.prisma.product.create({
         data: {
+          id: dto.id,
           name: dto.name,
           description: dto.description,
           price: dto.price,
-          imageUrl: dto.imageUrl,
           category: dto.category,
           tagsJson: JSON.stringify(dto.tags || []),
         },
       });
-
+      
       // Add tags to the returned product
       const productWithTags = {
         ...savedProduct,
         tags: JSON.parse(savedProduct.tagsJson || '[]'),
       };
-
+      
       return Product.fromDTO(productWithTags);
     } catch (error) {
       logger.error('Error saving product:', error);
-      throw new Error('Failed to create product');
+      throw new Error('Failed to save product');
     }
   }
 
@@ -108,7 +108,7 @@ export class PrismaProductRepository implements ProductRepository {
           where,
           skip,
           take: pagination.limit,
-          orderBy: { createdAt: 'desc' },
+          orderBy: { id: 'desc' },
         }),
         this.prisma.product.count({ where }),
       ]);
@@ -144,7 +144,6 @@ export class PrismaProductRepository implements ProductRepository {
           name: dto.name,
           description: dto.description,
           price: dto.price,
-          imageUrl: dto.imageUrl,
           category: dto.category,
           tagsJson: JSON.stringify(dto.tags || []),
         },

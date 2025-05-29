@@ -18,6 +18,6 @@ router.put('/:id', authenticate, serviceController.updateService.bind(serviceCon
 
 router.delete('/:id', authenticate, serviceController.deleteService.bind(serviceController));
 
-router.post('/embeddings/generate', authenticate, serviceController.generateEmbeddings.bind(serviceController));
+router.post('/embeddings/generate', serviceController.generateEmbeddings.bind(serviceController));
 
 export default router; 

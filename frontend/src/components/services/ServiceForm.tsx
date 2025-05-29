@@ -1,12 +1,9 @@
+import { useToast } from "@/components/ui/use-toast";
 import { useEffect, useState } from "react";
 import { serviceApi } from "../../api/serviceApi";
-import { CreateServiceDto, UpdateServiceDto } from "../../types/service";
+import { CreateServiceDto } from "../../types/service";
 import { Button } from "../ui/button";
-import { Input } from "../ui/input";
-import { MarkdownViewer } from "../ui/markdown-viewer";
 import { Switch } from "../ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import { Textarea } from "../ui/textarea";
 
 interface ServiceFormProps {
   serviceId?: string;
@@ -25,6 +22,7 @@ export function ServiceForm({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const { toast } = useToast();
   
   const [form, setForm] = useState<CreateServiceDto>({
     name: "",
@@ -32,9 +30,6 @@ export function ServiceForm({
     price: 0,
     isActive: true
   });
-  
-  // For markdown preview
-  const [activeTab, setActiveTab] = useState<string>("edit");
 
   // Load Service data if editing an existing Service
   useEffect(() => {
@@ -108,8 +103,8 @@ export function ServiceForm({
       errors.description = "Description is required";
     }
     
-    if (form.price <= 0) {
-      errors.price = "Price must be greater than 0";
+    if (form.price < 0) {
+      errors.price = "Price cannot be negative";
     }
     
     if (Object.keys(errors).length > 0) {
@@ -122,25 +117,87 @@ export function ServiceForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    
-    // Validate form before submission
-    if (!validateForm()) {
-      return;
-    }
-    
     setIsSaving(true);
+    setError(null);
+    setValidationErrors({});
 
     try {
-      if (isNew) {
-        await serviceApi.createService(form);
-      } else if (serviceId) {
-        await serviceApi.updateService(serviceId, form as UpdateServiceDto);
+      // Validate form
+      const errors: Record<string, string> = {};
+      
+      if (!form.name.trim()) {
+        errors.name = "Name is required";
       }
+      
+      if (!form.description.trim()) {
+        errors.description = "Description is required";
+      }
+      
+      if (!form.price || form.price < 0) {
+        errors.price = "Price cannot be negative";
+      }
+
+      if (Object.keys(errors).length > 0) {
+        setValidationErrors(errors);
+        return;
+      }
+
+      const serviceData = {
+        name: form.name.trim(),
+        description: form.description.trim(),
+        price: form.price,
+        isActive: form.isActive,
+      };
+
+      if (isNew) {
+        const response = await fetch('/api/services', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: JSON.stringify(serviceData),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create service');
+        }
+
+        toast({
+          title: "Success",
+          description: "Service created successfully!",
+          variant: "default",
+        });
+      } else {
+        const response = await fetch(`/api/services/${serviceId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: JSON.stringify(serviceData),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update service');
+        }
+
+        toast({
+          title: "Success",
+          description: "Service updated successfully!",
+          variant: "default",
+        });
+      }
+
       onSave();
-    } catch (err: any) {
-      setError(err.response?.data?.error || "Failed to save service");
-      console.error(err);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      setError(errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -159,19 +216,16 @@ export function ServiceForm({
       )}
 
       <div className="space-y-2">
-        <label 
-          htmlFor="name" 
-          className="block text-sm font-medium"
-        >
-          Name
+        <label htmlFor="name" className="block text-sm font-medium">
+          Service Name
         </label>
-        <Input
+        <input
           type="text"
           id="name"
           name="name"
           value={form.name}
           onChange={handleChange}
-          className={validationErrors.name ? "border-red-500" : ""}
+          className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 border-gray-300"
           required
         />
         {validationErrors.name && (
@@ -180,106 +234,55 @@ export function ServiceForm({
       </div>
 
       <div className="space-y-2">
-        <label 
-          htmlFor="description" 
-          className="block text-sm font-medium"
-        >
-          Description (Supports Markdown)
+        <label htmlFor="description" className="block text-sm font-medium">
+          Description
         </label>
-        
-        <Tabs 
-          value={activeTab} 
-          onValueChange={setActiveTab}
-          className="w-full"
-        >
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="edit">Edit</TabsTrigger>
-            <TabsTrigger value="preview">Preview</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="edit" className="mt-2">
-            <Textarea
-              id="description"
-              name="description"
-              rows={8}
-              value={form.description}
-              onChange={handleChange}
-              className={validationErrors.description ? "border-red-500" : ""}
-              required
-              placeholder="# Title
-## Subtitle
-- Bullet point
-- Another point
-
-**Bold text** and *italic text*
-
-[Link text](http://example.com)
-
-> Blockquote
-
-```
-Code block
-```
-
-| Column 1 | Column 2 |
-| -------- | -------- |
-| Cell 1   | Cell 2   |
-"
-            />
-          </TabsContent>
-          
-          <TabsContent value="preview" className="mt-2 border rounded-md p-4 min-h-[200px]">
-            {form.description ? (
-              <MarkdownViewer content={form.description} />
-            ) : (
-              <p className="text-muted-foreground text-sm italic">Preview will appear here</p>
-            )}
-          </TabsContent>
-        </Tabs>
-        
+        <textarea
+          id="description"
+          name="description"
+          rows={8}
+          value={form.description}
+          onChange={handleChange}
+          className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 border-gray-300"
+          required
+        />
         {validationErrors.description && (
           <p className="text-sm text-destructive">{validationErrors.description}</p>
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label 
-            htmlFor="price" 
-            className="block text-sm font-medium"
-          >
-            Price (€)
-          </label>
-          <Input
-            type="number"
-            id="price"
-            name="price"
-            value={form.price}
-            onChange={handleChange}
-            className={validationErrors.price ? "border-red-500" : ""}
-            step="0.01"
-            min="0"
-            required
-          />
-          {validationErrors.price && (
-            <p className="text-sm text-destructive">{validationErrors.price}</p>
-          )}
-        </div>
+      <div className="space-y-2">
+        <label htmlFor="price" className="block text-sm font-medium">
+          Price (€)
+        </label>
+        <input
+          type="number"
+          id="price"
+          name="price"
+          value={form.price}
+          onChange={handleChange}
+          className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 border-gray-300"
+          step="0.01"
+          min="0"
+          required
+        />
+        {validationErrors.price && (
+          <p className="text-sm text-destructive">{validationErrors.price}</p>
+        )}
+      </div>
 
-        <div className="space-y-2">
-          <label className="block text-sm font-medium">
-            Status
+      <div className="space-y-2">
+        <label className="block text-sm font-medium">Status</label>
+        <div className="flex items-center space-x-2">
+          <Switch 
+            checked={form.isActive} 
+            onCheckedChange={handleSwitchChange}
+            id="isActive"
+            className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-200 focus:ring-green-500"
+          />
+          <label htmlFor="isActive" className="text-sm">
+            {form.isActive ? "Active" : "Inactive"}
           </label>
-          <div className="flex items-center space-x-2">
-            <Switch 
-              checked={form.isActive} 
-              onCheckedChange={handleSwitchChange}
-              id="isActive"
-            />
-            <label htmlFor="isActive" className="text-sm">
-              {form.isActive ? "Active" : "Inactive"}
-            </label>
-          </div>
         </div>
       </div>
 
@@ -288,14 +291,16 @@ Code block
           type="button" 
           onClick={onCancel}
           variant="outline"
+          className="border-green-500 text-green-700 font-medium py-3 px-6 rounded-lg h-12 min-h-[48px]"
         >
           Cancel
         </Button>
         <Button 
           type="submit"
           disabled={isSaving}
+          className="bg-green-500 hover:bg-green-600 text-white font-medium py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 h-12 min-h-[48px]"
         >
-          {isSaving ? "Saving..." : (isNew ? "Create Service" : "Update Service")}
+          {isSaving ? "Saving..." : "Update"}
         </Button>
       </div>
     </form>

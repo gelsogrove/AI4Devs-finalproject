@@ -144,7 +144,6 @@ describe('Product and FAQ Lists', () => {
           name: 'Parmigiano Reggiano DOP',
           description: 'Authentic Parmigiano Reggiano aged 24 months from Emilia-Romagna.',
           price: 19.99,
-          imageUrl: 'https://images.unsplash.com/photo-1599937970284-31e55c9435c4',
           category: 'Cheese & Dairy',
           createdAt: '2023-01-01T00:00:00.000Z',
           updatedAt: '2023-01-01T00:00:00.000Z'

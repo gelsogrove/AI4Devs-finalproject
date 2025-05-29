@@ -3,8 +3,10 @@ import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts
 import { ChatOpenAI } from '@langchain/openai';
 import { AgentExecutor, createOpenAIFunctionsAgent } from 'langchain/agents';
 import logger from '../../utils/logger';
+import { createDocumentsTool } from './tools/documentsTool';
 import { createFAQsTool } from './tools/faqsTool';
 import { createProductsTool } from './tools/productsTool';
+import { createProfileTool } from './tools/profileTool';
 import { createServicesTool } from './tools/servicesTool';
 
 export interface ChatMessage {
@@ -49,7 +51,9 @@ export class LangChainService {
     this.tools = [
       createProductsTool(),
       createServicesTool(),
-      createFAQsTool()
+      createFAQsTool(),
+      createProfileTool(),
+      createDocumentsTool()
     ];
 
     // Initialize agent
