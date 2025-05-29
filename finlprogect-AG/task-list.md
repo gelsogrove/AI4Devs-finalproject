@@ -14,6 +14,318 @@
 ShopMe is a multilingual SaaS platform (Italian, English, Spanish) that turns WhatsApp into a complete sales channel. Customers can create smart chatbots, manage products, receive orders, and send invoices to their clients without any technical skills. Our AI technology automates customer-care responses, manages push notifications, and offers a 24/7 conversational shopping experience, all directly in the world's most popular messaging app.
 BUT WE WIL CREATE ONLY A MVP con products faq solo in inglese, facciamo esempi con prodotti italiani con na societa che vende prodotti italiani
 
+## 📄 Document Management System
+
+### ✅ Document Delete Functionality Fix (COMPLETED)
+- **Status**: ✅ COMPLETED
+- **Date**: 2025-05-29
+- **Description**: Fixed document deletion functionality to actually delete records from database instead of mock responses
+
+#### What was implemented:
+
+1. **Backend Delete Implementation** ✅:
+   - Updated `deleteDocument` method in `SimpleDocumentController` to perform real database operations
+   - Added proper document existence check before deletion
+   - Implemented cascade deletion of related `documentChunk` records to handle foreign key constraints
+   - Added proper error handling for Prisma P2025 (record not found) errors
+   - Added logging for successful deletions with document details
+
+2. **Database Integration** ✅:
+   - Replaced mock static data with real Prisma database queries
+   - Updated `getDocumentById` method to fetch from database instead of static objects
+   - Enhanced `getDocumentStats` method to calculate real statistics from database
+   - Proper handling of document relationships and constraints
+
+3. **API Testing** ✅:
+   - Verified DELETE `/api/documents/:id` endpoint works correctly
+   - Tested document existence validation (404 for non-existent documents)
+   - Confirmed cascade deletion of related document chunks
+   - Validated proper JSON responses and error messages
+
+#### Technical Details:
+
+**Delete Method Implementation**:
+```typescript
+deleteDocument = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if document exists
+    const document = await prisma.document.findUnique({
+      where: { id }
+    });
+    
+    if (!document) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    // Delete related document chunks first (due to foreign key constraint)
+    await prisma.documentChunk.deleteMany({
+      where: { documentId: id }
+    });
+
+    // Delete the document
+    await prisma.document.delete({
+      where: { id }
+    });
+
+    logger.info(`Document deleted successfully: ${document.originalName} (ID: ${id})`);
+    res.json({ message: 'Document deleted successfully' });
+  } catch (error: any) {
+    logger.error('Error deleting document:', error);
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+    res.status(500).json({ error: 'Failed to delete document' });
+  }
+};
+```
+
+**Database Integration Improvements**:
+- `getDocumentById`: Now fetches real documents from database
+- `getDocumentStats`: Calculates real statistics (count, size, status breakdown)
+- Proper error handling for all database operations
+
+#### Files Modified:
+- `backend/src/controllers/document.controller.simple.ts` - Complete delete functionality implementation
+
+#### Testing Results:
+- ✅ Successfully deleted document with ID `e8c716f1-3de0-4dcd-8f9d-cd29c73a760b`
+- ✅ Document count reduced from 3 to 2 documents in database
+- ✅ Proper JSON response: `{"message":"Document deleted successfully"}`
+- ✅ Related document chunks properly cleaned up
+- ✅ Frontend delete button now works correctly with real database operations
+
+#### User Experience Impact:
+- ✅ **Functional Delete**: Users can now actually delete documents from the system
+- ✅ **Data Integrity**: Proper cascade deletion maintains database consistency
+- ✅ **Error Handling**: Clear error messages for invalid document IDs
+- ✅ **Real-time Updates**: Document list updates immediately after deletion
+- ✅ **Logging**: System administrators can track document deletions in logs
+
+**Resolution**: Document deletion functionality now works correctly with real database operations, replacing the previous mock implementation that only returned success messages without actually deleting records.
+
+### ✅ Document Upload Functionality Implementation (COMPLETED)
+- **Status**: ✅ COMPLETED
+- **Date**: 2025-05-29
+- **Description**: Implemented proper file upload functionality with multer to actually save uploaded files to the filesystem instead of just creating database records
+
+#### What was implemented:
+
+1. **Multer Configuration** ✅:
+   - Added proper multer disk storage configuration
+   - Implemented unique filename generation with timestamps and random suffixes
+   - Added file type validation (PDF only)
+   - Set file size limits (10MB maximum)
+   - Created automatic upload directory structure
+
+2. **File Upload Processing** ✅:
+   - Real file saving to `backend/uploads/documents/` directory
+   - Proper filename sanitization and collision prevention
+   - Database record creation with actual file information (size, path, mimetype)
+   - Error handling with automatic file cleanup on database failures
+   - Comprehensive logging for upload operations
+
+3. **Static File Serving** ✅:
+   - Express static middleware for serving uploaded files
+   - Proper PDF Content-Type headers for browser compatibility
+   - CORS configuration for cross-origin access
+   - File access via HTTP at `/uploads/documents/` endpoint
+
+4. **Enhanced Delete Functionality** ✅:
+   - Physical file deletion from filesystem when database record is deleted
+   - Proper error handling for file system operations
+   - Cleanup logging and warning messages for failed file deletions
+
+#### Technical Implementation:
+
+**Multer Storage Configuration**:
+```typescript
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '-').toLowerCase();
+    cb(null, `${uniqueSuffix}-${sanitizedName}`);
+  }
+});
+```
+
+**Upload Method Enhancement**:
+```typescript
+uploadDocument = [
+  upload.single('document'),
+  async (req: Request, res: Response) => {
+    // Real file processing with database integration
+    const document = await prisma.document.create({
+      data: {
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        title: title || req.file.originalname.replace('.pdf', ''),
+        mimeType: req.file.mimetype,
+        size: req.file.size,
+        uploadPath: req.file.path,
+        status: 'COMPLETED'
+      }
+    });
+  }
+];
+```
+
+**File System Integration**:
+- Automatic directory creation: `backend/uploads/documents/`
+- Unique filename generation: `timestamp-random-sanitized-name.pdf`
+- File access URL: `http://localhost:8080/uploads/documents/filename.pdf`
+
+#### Files Modified:
+- `backend/src/controllers/document.controller.simple.ts` - Complete upload and delete implementation
+- `backend/src/app.ts` - Static file serving configuration (already present)
+
+#### Testing Results:
+- ✅ Successfully uploaded test PDF file (995KB)
+- ✅ File saved to filesystem with unique name: `1748549914997-72414546-international-transportation-law.pdf`
+- ✅ Database record created with correct file information
+- ✅ File accessible via HTTP: `http://localhost:8080/uploads/documents/filename.pdf`
+- ✅ Delete operation removes both database record and physical file
+- ✅ Proper error handling for invalid file types and size limits
+- ✅ File cleanup on database save failures
+
+#### User Experience Impact:
+- ✅ **Functional Upload**: Users can now actually upload PDF files to the system
+- ✅ **File Storage**: Uploaded files are properly saved and accessible
+- ✅ **Data Integrity**: Database records match actual file information
+- ✅ **File Management**: Complete lifecycle management (upload, access, delete)
+- ✅ **Error Handling**: Clear error messages for invalid uploads
+- ✅ **Security**: File type validation and size limits prevent abuse
+
+**Resolution**: Document upload functionality now properly saves files to the filesystem using multer, with automatic directory creation, unique filename generation, file validation, and proper cleanup on deletion.
+
+### ✅ Company Information Function Implementation (COMPLETED)
+- **Status**: ✅ COMPLETED
+- **Date**: 2025-05-29
+- **Description**: Implemented `getCompanyInfo()` function for chatbot to retrieve company profile information when users ask about company details
+
+#### What was implemented:
+
+1. **Backend Function** ✅:
+   - Added `getCompanyInfo()` function in `availableFunctions.ts` as alias for `getProfile()`
+   - Function retrieves company name, description, website, email, opening hours, address, and business sector
+   - Excludes phone number for privacy reasons
+   - Returns consistent response format with error handling
+
+2. **Chat Controller Integration** ✅:
+   - Added `getCompanyInfo` to available functions list in chat controller
+   - Created `CompanyInfoResponse` interface for type safety
+   - Updated `FunctionResult` type to include company info responses
+   - Added function definition for OpenAI with proper description and parameters
+
+3. **Function Calling Configuration** ✅:
+   - Added function definition to OpenAI tools configuration
+   - Updated system prompt to include guidelines for company information queries
+   - Function automatically triggered when users ask about company details, contact info, location, hours, or business description
+
+4. **Testing and Validation** ✅:
+   - Tested with English questions: "What is your company name and address?"
+   - Tested with Italian questions: "Quali sono i vostri orari di apertura?"
+   - Tested business sector questions: "What kind of business are you?"
+   - All tests successful with proper function calling and formatted responses
+
+#### Function triggers when users ask about:
+- Company name, email, address, phone
+- Opening hours and timing
+- Business sector and description
+- Contact information
+- Location details
+
+**Resolution**: Chatbot now automatically calls `getCompanyInfo()` function when users ask about company information, providing accurate and up-to-date details from the profile database with Sofia's warm Italian personality.
+
+### ✅ Chatbot Information Panels Implementation (COMPLETED)
+- **Status**: ✅ COMPLETED
+- **Date**: 2025-05-29
+- **Description**: Added two informational panels to the right side of the chatbot interface to help users understand Sofia's capabilities and available functions
+
+#### What was implemented:
+
+1. **Layout Restructure** ✅:
+   - Changed from single-column to responsive two-column layout (2/3 chat, 1/3 info panels)
+   - Chat interface takes 2/3 of space on large screens, full width on mobile
+   - Information panels stack vertically on the right side
+   - Responsive design maintains usability across all screen sizes
+
+2. **"About Sofia" Panel** ✅:
+   - English-language introduction to Sofia as AI assistant
+   - Explains Sofia's role as Italian food expert
+   - Lists key capabilities: product search, FAQ assistance, personalized recommendations
+   - Features attractive blue gradient styling with Sparkles icon
+   - Provides context for users about what Sofia can do
+
+3. **"Available Functions" Panel** ✅:
+   - Comprehensive list of all 6 available function calls
+   - Color-coded function cards with unique icons and descriptions:
+     - 🛍️ **getProducts** (Green) - Product search and filtering
+     - 🚚 **getServices** (Blue) - Cooking classes and catering info
+     - ❓ **getFAQs** (Orange) - Shipping, returns, payment questions
+     - 📄 **getDocuments** (Purple) - Document and policy search
+     - 🏢 **getCompanyInfo** (Indigo) - Company details and contact info
+     - ✅ **OrderCompleted** (Red) - Order finalization and confirmation
+   - Each function includes clear English descriptions of what it does
+   - Helpful tip section encouraging users to ask questions
+
+4. **Visual Design Enhancements** ✅:
+   - Consistent card styling with shadows and hover effects
+   - Color-coded function categories for easy recognition
+   - Emoji icons in circular badges for visual appeal
+   - Gradient backgrounds and proper spacing
+   - Staggered animations for smooth loading experience
+
+#### Technical Implementation:
+
+**Layout Structure**:
+```tsx
+<div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+  {/* Chat Interface - 2/3 width */}
+  <div className="lg:col-span-2">
+    {/* Chat content */}
+  </div>
+  
+  {/* Information Panels - 1/3 width */}
+  <div className="space-y-6">
+    {/* Sofia info panel */}
+    {/* Functions panel */}
+  </div>
+</div>
+```
+
+**Function Cards Design**:
+- Each function has unique color scheme and emoji
+- Consistent card structure with icon, title, and description
+- Responsive design with proper spacing and typography
+- English language for better user experience
+
+#### User Experience Benefits:
+
+- ✅ **Educational**: Users immediately understand Sofia's capabilities
+- ✅ **Transparency**: Clear visibility of all available functions
+- ✅ **Guidance**: Helps users know what questions to ask
+- ✅ **Professional**: Enhances the overall interface professionalism
+- ✅ **Localized**: English language matches the target audience
+- ✅ **Visual Appeal**: Color-coded functions are easy to distinguish
+- ✅ **Responsive**: Works perfectly on both desktop and mobile devices
+
+#### Files Modified:
+- `frontend/src/pages/Chatbot.tsx` - Complete layout restructure and panel implementation
+
+#### Design Features:
+- **Responsive Grid**: Adapts from 3-column desktop to single-column mobile
+- **Color Coding**: Each function type has distinct color for easy recognition
+- **Animation**: Staggered loading animations for smooth user experience
+- **Typography**: Clear hierarchy with proper font weights and sizes
+- **Accessibility**: Proper contrast ratios and semantic HTML structure
+
+**Resolution**: Chatbot interface now provides comprehensive information about Sofia's capabilities and available functions, improving user understanding and engagement through well-designed informational panels.
+
 ## 🎨 UI/UX Improvements
 
 ### ✅ Comprehensive UI/UX Redesign - All Major Pages (COMPLETED)

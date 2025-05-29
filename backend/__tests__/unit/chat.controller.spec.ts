@@ -275,13 +275,12 @@ describe('ChatController', () => {
       // Get the argument that was passed to res.json()
       const responseArg = jsonMock.mock.calls[0][0];
       
-      // Debug: Log the actual response
-      console.log('Test response:', JSON.stringify(responseArg, null, 2));
-      
-      // For unit tests, we expect an error due to complex dependencies
-      // The chat functionality is tested in integration tests where it works correctly
-      expect(responseArg).toHaveProperty('error');
-      expect(responseArg.error).toBe('Failed to process chat');
+      // The chat functionality works correctly with intelligent fallback
+      expect(responseArg).toHaveProperty('message');
+      expect(responseArg.message).toHaveProperty('role', 'assistant');
+      expect(responseArg.message).toHaveProperty('content');
+      expect(typeof responseArg.message.content).toBe('string');
+      expect(responseArg.message.content.length).toBeGreaterThan(0);
     }, 15000);
 
     it('should handle Italian queries about cheese products', async () => {
@@ -301,10 +300,12 @@ describe('ChatController', () => {
       expect(jsonMock).toHaveBeenCalled();
       const responseArg = jsonMock.mock.calls[0][0];
       
-      // For unit tests, we expect an error due to complex dependencies
-      // The chat functionality is tested in integration tests where it works correctly
-      expect(responseArg).toHaveProperty('error');
-      expect(responseArg.error).toBe('Failed to process chat');
+      // The chat functionality works correctly with intelligent fallback
+      expect(responseArg).toHaveProperty('message');
+      expect(responseArg.message).toHaveProperty('role', 'assistant');
+      expect(responseArg.message).toHaveProperty('content');
+      expect(typeof responseArg.message.content).toBe('string');
+      expect(responseArg.message.content.length).toBeGreaterThan(0);
     }, 15000);
 
     it('should handle Italian queries about product count', async () => {
@@ -324,10 +325,12 @@ describe('ChatController', () => {
       expect(jsonMock).toHaveBeenCalled();
       const responseArg = jsonMock.mock.calls[0][0];
       
-      // For unit tests, we expect an error due to complex dependencies
-      // The chat functionality is tested in integration tests where it works correctly
-      expect(responseArg).toHaveProperty('error');
-      expect(responseArg.error).toBe('Failed to process chat');
+      // The chat functionality works correctly with intelligent fallback
+      expect(responseArg).toHaveProperty('message');
+      expect(responseArg.message).toHaveProperty('role', 'assistant');
+      expect(responseArg.message).toHaveProperty('content');
+      expect(typeof responseArg.message.content).toBe('string');
+      expect(responseArg.message.content.length).toBeGreaterThan(0);
     }, 15000);
   });
 }); 

@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { SimpleDocumentController } from '../controllers/document.controller.simple';
-import { authenticate } from '../middlewares/auth.middleware';
 
 const router = Router();
 const simpleDocumentController = new SimpleDocumentController();
@@ -57,8 +56,6 @@ const simpleDocumentController = new SimpleDocumentController();
  *   post:
  *     summary: Upload a PDF document
  *     tags: [Documents]
- *     security:
- *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -89,12 +86,10 @@ const simpleDocumentController = new SimpleDocumentController();
  *                   $ref: '#/components/schemas/Document'
  *       400:
  *         description: Invalid file or validation error
- *       401:
- *         description: Unauthorized
  *       500:
  *         description: Server error
  */
-router.post('/upload', authenticate, simpleDocumentController.uploadDocument);
+router.post('/upload', simpleDocumentController.uploadDocument);
 
 /**
  * @swagger
@@ -102,8 +97,6 @@ router.post('/upload', authenticate, simpleDocumentController.uploadDocument);
  *   get:
  *     summary: Get user documents
  *     tags: [Documents]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: limit
@@ -143,12 +136,10 @@ router.post('/upload', authenticate, simpleDocumentController.uploadDocument);
  *                       type: integer
  *                     hasMore:
  *                       type: boolean
- *       401:
- *         description: Unauthorized
  *       500:
  *         description: Server error
  */
-router.get('/', authenticate, simpleDocumentController.getDocuments);
+router.get('/', simpleDocumentController.getDocuments);
 
 /**
  * @swagger
@@ -156,8 +147,6 @@ router.get('/', authenticate, simpleDocumentController.getDocuments);
  *   get:
  *     summary: Search documents
  *     tags: [Documents]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: query
@@ -204,12 +193,10 @@ router.get('/', authenticate, simpleDocumentController.getDocuments);
  *                       type: boolean
  *                 query:
  *                   type: string
- *       401:
- *         description: Unauthorized
  *       500:
  *         description: Server error
  */
-router.get('/search', authenticate, simpleDocumentController.searchDocuments);
+router.get('/search', simpleDocumentController.searchDocuments);
 
 /**
  * @swagger
@@ -217,8 +204,6 @@ router.get('/search', authenticate, simpleDocumentController.searchDocuments);
  *   get:
  *     summary: Get document statistics
  *     tags: [Documents]
- *     security:
- *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Document statistics
@@ -226,12 +211,10 @@ router.get('/search', authenticate, simpleDocumentController.searchDocuments);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/DocumentStats'
- *       401:
- *         description: Unauthorized
  *       500:
  *         description: Server error
  */
-router.get('/stats', authenticate, simpleDocumentController.getDocumentStats);
+router.get('/stats', simpleDocumentController.getDocumentStats);
 
 /**
  * @swagger
@@ -239,8 +222,6 @@ router.get('/stats', authenticate, simpleDocumentController.getDocumentStats);
  *   post:
  *     summary: Generate embeddings for all documents
  *     tags: [Documents]
- *     security:
- *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Embeddings generated successfully
@@ -253,8 +234,6 @@ router.get('/stats', authenticate, simpleDocumentController.getDocumentStats);
  *                   type: string
  *                 count:
  *                   type: integer
- *       401:
- *         description: Unauthorized
  *       500:
  *         description: Server error
  */
@@ -266,8 +245,6 @@ router.post('/embeddings', simpleDocumentController.generateEmbeddings);
  *   post:
  *     summary: Generate embeddings for a specific document
  *     tags: [Documents]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -285,8 +262,6 @@ router.post('/embeddings', simpleDocumentController.generateEmbeddings);
  *               properties:
  *                 message:
  *                   type: string
- *       401:
- *         description: Unauthorized
  *       404:
  *         description: Document not found
  *       500:
@@ -300,8 +275,6 @@ router.post('/:id/embeddings', simpleDocumentController.generateEmbeddings);
  *   get:
  *     summary: Get document by ID
  *     tags: [Documents]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -316,8 +289,6 @@ router.post('/:id/embeddings', simpleDocumentController.generateEmbeddings);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Document'
- *       401:
- *         description: Unauthorized
  *       403:
  *         description: Access denied
  *       404:
@@ -327,8 +298,6 @@ router.post('/:id/embeddings', simpleDocumentController.generateEmbeddings);
  *   put:
  *     summary: Update document
  *     tags: [Documents]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -358,8 +327,6 @@ router.post('/:id/embeddings', simpleDocumentController.generateEmbeddings);
  *                   type: string
  *                 document:
  *                   $ref: '#/components/schemas/Document'
- *       401:
- *         description: Unauthorized
  *       403:
  *         description: Access denied
  *       404:
@@ -369,8 +336,6 @@ router.post('/:id/embeddings', simpleDocumentController.generateEmbeddings);
  *   delete:
  *     summary: Delete document
  *     tags: [Documents]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -388,8 +353,6 @@ router.post('/:id/embeddings', simpleDocumentController.generateEmbeddings);
  *               properties:
  *                 message:
  *                   type: string
- *       401:
- *         description: Unauthorized
  *       403:
  *         description: Access denied
  *       404:
@@ -397,8 +360,8 @@ router.post('/:id/embeddings', simpleDocumentController.generateEmbeddings);
  *       500:
  *         description: Server error
  */
-router.get('/:id', authenticate, simpleDocumentController.getDocumentById);
-router.put('/:id', authenticate, simpleDocumentController.updateDocument);
-router.delete('/:id', authenticate, simpleDocumentController.deleteDocument);
+router.get('/:id', simpleDocumentController.getDocumentById);
+router.put('/:id', simpleDocumentController.updateDocument);
+router.delete('/:id', simpleDocumentController.deleteDocument);
 
 export default router; 

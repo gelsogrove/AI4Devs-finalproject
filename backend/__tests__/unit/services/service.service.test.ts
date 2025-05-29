@@ -61,7 +61,7 @@ describe('ServiceService', () => {
         where: {},
         skip: 0,
         take: 10,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { id: 'desc' },
       });
       
       expect(mockCount).toHaveBeenCalledWith({ where: {} });
@@ -98,7 +98,7 @@ describe('ServiceService', () => {
         },
         skip: 0,
         take: 10,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { id: 'desc' },
       });
       expect(result.data).toHaveLength(1);
     });
@@ -122,7 +122,7 @@ describe('ServiceService', () => {
 
       // Assert
       expect(mockFindMany).toHaveBeenCalledWith({
-        orderBy: { createdAt: 'desc' },
+        orderBy: { id: 'desc' },
       });
       expect(result).toEqual([mockService]);
     });

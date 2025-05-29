@@ -9,6 +9,7 @@ const createProductSchema = z.object({
   description: z.string().min(10, 'Description must be at least 10 characters'),
   price: z.coerce.number().min(0, 'Price cannot be negative'),
   category: z.string().min(2, 'Category must be at least 2 characters'),
+  imageUrl: z.string().url('Invalid URL format').optional(),
   isActive: z.boolean().optional().default(true),
 });
 
@@ -17,6 +18,7 @@ const updateProductSchema = z.object({
   description: z.string().min(10, 'Description must be at least 10 characters').optional(),
   price: z.coerce.number().min(0, 'Price cannot be negative').optional(),
   category: z.string().min(2, 'Category must be at least 2 characters').optional(),
+  imageUrl: z.string().url('Invalid URL format').optional(),
   isActive: z.boolean().optional(),
 }).refine(data => Object.keys(data).length > 0, {
   message: 'At least one field must be provided',

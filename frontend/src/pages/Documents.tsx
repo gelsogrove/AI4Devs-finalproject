@@ -114,7 +114,7 @@ function DocumentForm({ document, isNew = false, onSave, onCancel }: DocumentFor
         <Button 
           type="submit"
           disabled={isSaving}
-          className="bg-red-500 hover:bg-red-600 text-white font-medium py-3 px-6 rounded-lg flex items-center gap-2 shadow-md hover:shadow-lg transition-all duration-200 h-12 text-base"
+          className="bg-red-500 hover:bg-red-600 text-white"
         >
           {isSaving ? "Saving..." : "Update"}
         </Button>
@@ -391,7 +391,7 @@ export default function Documents() {
 
   // Handle PDF preview
   const handlePreviewDocument = (document: Document) => {
-    // Construct the PDF URL - assuming documents are served from /uploads/documents/
+    // Construct the PDF URL using the correct backend server endpoint
     const pdfUrl = `http://localhost:8080/uploads/documents/${document.filename}`;
     setPdfPreview({
       isOpen: true,
@@ -717,7 +717,7 @@ export default function Documents() {
                 </Button>
                 <Button
                   type="submit"
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                  className="flex-1 bg-red-500 hover:bg-red-600 text-white"
                   disabled={!uploadForm.file || isUploading}
                 >
                   {isUploading ? (

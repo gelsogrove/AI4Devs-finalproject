@@ -53,7 +53,14 @@ describe('Product Controller', () => {
       
       await productController.createProduct(mockRequest as Request, mockResponse as Response);
       
-      expect(productService.createProduct).toHaveBeenCalledWith(validProductData);
+      expect(productService.createProduct).toHaveBeenCalledWith({
+        name: 'Test Product',
+        description: 'This is a test product with a longer description',
+        price: 99.99,
+        imageUrl: 'https://example.com/image.jpg',
+        category: 'Test Category',
+        isActive: true
+      });
       expect(responseStatus).toHaveBeenCalledWith(201);
       expect(responseJson).toHaveBeenCalledWith({
         message: 'Product created successfully',

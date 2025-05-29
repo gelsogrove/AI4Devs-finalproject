@@ -3,16 +3,6 @@ import axios from 'axios';
 const API_URL = import.meta.env.VITE_API_URL || '';
 const DOCUMENTS_ENDPOINT = API_URL ? `${API_URL}/api/documents` : '/api/documents';
 
-// Get authentication token from localStorage
-const getAuthHeader = () => {
-  const token = localStorage.getItem('token');
-  return {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  };
-};
-
 export interface Document {
   id: string;
   filename: string;
@@ -80,9 +70,7 @@ class DocumentService {
     }
 
     const response = await axios.post(`${DOCUMENTS_ENDPOINT}/upload`, formData, {
-      ...getAuthHeader(),
       headers: {
-        ...getAuthHeader().headers,
         'Content-Type': 'multipart/form-data',
       },
     });
@@ -157,11 +145,11 @@ class DocumentService {
    */
   formatFileSize(bytes: number): string {
     if (bytes === 0) return '0 Bytes';
-
+    
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-
+    
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 

@@ -103,4 +103,20 @@ router.get('/test-functions', chatController.testFunctions.bind(chatController))
  */
 router.get('/integration-test', chatController.testChatbotIntegration.bind(chatController));
 
+/**
+ * @swagger
+ * /api/chat/test-order-completed:
+ *   get:
+ *     summary: Test OrderCompleted function directly
+ *     description: Debug endpoint to test the OrderCompleted function implementation
+ *     tags:
+ *       - Chat
+ *     responses:
+ *       200:
+ *         description: OrderCompleted test successful
+ *       500:
+ *         description: OrderCompleted test failed
+ */
+router.get('/test-order-completed', chatController.testOrderCompleted.bind(chatController));
+
 export default router; 

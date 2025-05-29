@@ -7,7 +7,9 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
+import PageLoader from '@/components/ui/PageLoader';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePageTransition } from '@/hooks/usePageTransition';
 import { Profile } from '@/types/profile';
 import {
     ChevronDown,
@@ -30,6 +32,7 @@ const MainLayout: React.FC = () => {
   const { auth, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { isLoading } = usePageTransition();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
 
@@ -245,6 +248,9 @@ const MainLayout: React.FC = () => {
           </div>
         </main>
       </div>
+      
+      {/* Page Transition Loader */}
+      {isLoading && <PageLoader />}
     </div>
   );
 };

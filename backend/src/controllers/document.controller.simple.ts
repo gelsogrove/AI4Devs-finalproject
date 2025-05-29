@@ -1,46 +1,104 @@
 import { PrismaClient } from '@prisma/client';
 import { Request, Response } from 'express';
+import fs from 'fs';
+import multer from 'multer';
+import path from 'path';
 import embeddingService from '../services/embedding.service';
 import logger from '../utils/logger';
 
 const prisma = new PrismaClient();
 
+// Ensure upload directory exists
+const uploadDir = path.join(process.cwd(), 'uploads', 'documents');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Multer configuration for file upload
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    // Generate unique filename
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '-').toLowerCase();
+    cb(null, `${uniqueSuffix}-${sanitizedName}`);
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760'), // 10MB default
+    files: 1
+  },
+  fileFilter: (req, file, cb) => {
+    // Validate file type
+    if (file.mimetype !== 'application/pdf') {
+      return cb(new Error('Only PDF files are allowed'));
+    }
+    cb(null, true);
+  }
+});
+
 export class SimpleDocumentController {
   /**
    * Upload a document
    */
-  uploadDocument = async (req: Request, res: Response) => {
-    try {
-      // For testing purposes, create a mock document entry
-      const { title } = req.body;
-      const filename = req.file?.originalname || 'test-document.pdf';
-      
-      // Create a mock document in the database
-      const document = await prisma.document.create({
-        data: {
-          filename: filename.replace(/\s+/g, '-').toLowerCase(),
-          originalName: filename,
-          title: title || filename.replace('.pdf', ''),
-          mimeType: 'application/pdf',
-          size: req.file?.size || 1024000,
-          uploadPath: 'uploads/test',
-          status: 'COMPLETED',
-          metadata: JSON.stringify({
-            title: title || filename.replace('.pdf', ''),
-            description: 'Test document uploaded via API'
-          })
+  uploadDocument = [
+    upload.single('document'),
+    async (req: Request, res: Response) => {
+      try {
+        if (!req.file) {
+          return res.status(400).json({ error: 'No file uploaded' });
         }
-      });
 
-      res.status(201).json({ 
-        message: 'Document uploaded successfully',
-        document
-      });
-    } catch (error) {
-      logger.error('Error uploading document:', error);
-      res.status(500).json({ error: 'Failed to upload document' });
+        const { title } = req.body;
+        
+        // Create document in database with real file information
+        const document = await prisma.document.create({
+          data: {
+            filename: req.file.filename,
+            originalName: req.file.originalname,
+            title: title || req.file.originalname.replace('.pdf', ''),
+            mimeType: req.file.mimetype,
+            size: req.file.size,
+            uploadPath: req.file.path,
+            status: 'COMPLETED',
+            metadata: JSON.stringify({
+              title: title || req.file.originalname.replace('.pdf', ''),
+              description: 'Document uploaded via API',
+              uploadedAt: new Date().toISOString()
+            })
+          }
+        });
+
+        logger.info(`Document uploaded successfully: ${req.file.originalname} -> ${req.file.filename}`);
+
+        res.status(201).json({ 
+          message: 'Document uploaded successfully',
+          document
+        });
+      } catch (error) {
+        logger.error('Error uploading document:', error);
+        
+        // Clean up uploaded file if database save failed
+        if (req.file && fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+        
+        if (error instanceof multer.MulterError) {
+          if (error.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({ error: 'File too large (max 10MB)' });
+          }
+          return res.status(400).json({ error: error.message });
+        }
+        
+        res.status(500).json({ error: 'Failed to upload document' });
+      }
     }
-  };
+  ];
 
   /**
    * Get user documents
@@ -111,13 +169,31 @@ export class SimpleDocumentController {
    */
   getDocumentStats = async (req: Request, res: Response) => {
     try {
+      // Get real statistics from database
+      const totalDocuments = await prisma.document.count();
+      
+      const documents = await prisma.document.findMany({
+        select: {
+          size: true,
+          status: true
+        }
+      });
+
+      const totalSize = documents.reduce((sum, doc) => sum + (doc.size || 0), 0);
+      
+      const statusBreakdown = documents.reduce((acc, doc) => {
+        acc[doc.status] = (acc[doc.status] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
       res.json({
-        totalDocuments: 3,
-        totalSize: 3584000,
+        totalDocuments,
+        totalSize,
         statusBreakdown: {
-          COMPLETED: 3,
-          PROCESSING: 0,
-          FAILED: 0
+          COMPLETED: statusBreakdown.COMPLETED || 0,
+          PROCESSING: statusBreakdown.PROCESSING || 0,
+          FAILED: statusBreakdown.FAILED || 0,
+          UPLOADING: statusBreakdown.UPLOADING || 0
         }
       });
     } catch (error) {
@@ -133,59 +209,10 @@ export class SimpleDocumentController {
     try {
       const { id } = req.params;
       
-      // Return static data for now
-      const documents = {
-        '1': {
-          id: '1',
-          filename: 'trasporto-merci-italia.pdf',
-          originalName: 'Regolamento Trasporto Merci in Italia.pdf',
-          title: 'Regolamento Trasporto Merci in Italia',
-          path: 'regulations/transport',
-          size: 1024000,
-          status: 'COMPLETED',
-          isActive: true,
-          metadata: {
-            title: 'Regolamento Trasporto Merci in Italia',
-            description: 'Comprehensive regulations for goods transportation in Italy'
-          },
-          createdAt: new Date('2024-01-15'),
-          updatedAt: new Date('2024-01-15')
-        },
-        '2': {
-          id: '2',
-          filename: 'gdpr-privacy-policy.pdf',
-          originalName: 'GDPR Privacy Policy - Gusto Italiano.pdf',
-          title: 'GDPR Privacy Policy - Gusto Italiano',
-          path: 'legal/privacy',
-          size: 512000,
-          status: 'COMPLETED',
-          isActive: true,
-          metadata: {
-            title: 'GDPR Privacy Policy - Gusto Italiano',
-            description: 'Complete GDPR compliance documentation'
-          },
-          createdAt: new Date('2024-02-01'),
-          updatedAt: new Date('2024-02-01')
-        },
-        '3': {
-          id: '3',
-          filename: 'catalogo-prodotti-italiani.pdf',
-          originalName: 'Catalogo Prodotti Italiani 2024.pdf',
-          title: 'Catalogo Prodotti Italiani 2024',
-          path: 'catalogs/products',
-          size: 2048000,
-          status: 'COMPLETED',
-          isActive: false,
-          metadata: {
-            title: 'Catalogo Prodotti Italiani 2024',
-            description: 'Complete catalog of authentic Italian products'
-          },
-          createdAt: new Date('2024-03-01'),
-          updatedAt: new Date('2024-03-01')
-        }
-      };
-
-      const document = documents[id as keyof typeof documents];
+      // Get document from database
+      const document = await prisma.document.findUnique({
+        where: { id }
+      });
       
       if (!document) {
         return res.status(404).json({ error: 'Document not found' });
@@ -205,10 +232,42 @@ export class SimpleDocumentController {
     try {
       const { id } = req.params;
       
-      // For now, just return success
-      res.json({ message: `Document ${id} deleted successfully` });
-    } catch (error) {
+      // Check if document exists
+      const document = await prisma.document.findUnique({
+        where: { id }
+      });
+      
+      if (!document) {
+        return res.status(404).json({ error: 'Document not found' });
+      }
+
+      // Delete related document chunks first (due to foreign key constraint)
+      await prisma.documentChunk.deleteMany({
+        where: { documentId: id }
+      });
+
+      // Delete the document from database
+      await prisma.document.delete({
+        where: { id }
+      });
+
+      // Delete physical file from filesystem
+      if (document.uploadPath && fs.existsSync(document.uploadPath)) {
+        try {
+          fs.unlinkSync(document.uploadPath);
+          logger.info(`Physical file deleted: ${document.uploadPath}`);
+        } catch (fileError) {
+          logger.warn(`Failed to delete physical file: ${document.uploadPath}`, fileError);
+        }
+      }
+
+      logger.info(`Document deleted successfully: ${document.originalName} (ID: ${id})`);
+      res.json({ message: 'Document deleted successfully' });
+    } catch (error: any) {
       logger.error('Error deleting document:', error);
+      if (error.code === 'P2025') {
+        return res.status(404).json({ error: 'Document not found' });
+      }
       res.status(500).json({ error: 'Failed to delete document' });
     }
   };

@@ -10,7 +10,39 @@ import { availableFunctions } from '../services/availableFunctions';
 import logger from '../utils/logger';
 import { aiService } from '../utils/openai';
 
-type FunctionResult = ProductResponse | ServiceResponse | FAQResponse;
+interface OrderCompletedResponse {
+  success: boolean;
+  total?: number;
+  order?: {
+    orderNumber: string;
+    status: string;
+    items: Array<{product: string, quantity: number, price: number, subtotal: number}>;
+    total: number;
+    currency: string;
+    estimatedDelivery: string;
+    customerInfo: any;
+    paymentMethod: string;
+    shippingMethod: string;
+    notes: string;
+    timestamp: string;
+  };
+  message: string;
+  error?: string;
+}
+
+interface CompanyInfoResponse {
+  companyName?: string;
+  description?: string;
+  website?: string;
+  email?: string;
+  openingTime?: string;
+  address?: string;
+  sector?: string;
+  total?: number;
+  error?: string;
+}
+
+type FunctionResult = ProductResponse | ServiceResponse | FAQResponse | OrderCompletedResponse | CompanyInfoResponse;
 
 // Schema for chat request validation
 const chatRequestSchema = z.object({
@@ -124,6 +156,47 @@ const functionDefinitions = [
       },
       required: [],
     },
+  },
+  {
+    name: 'OrderCompleted',
+    description: 'Complete a customer order and generate order confirmation details. Use when customer confirms they want to finalize their purchase.',
+    parameters: {
+      type: 'object',
+      properties: {
+        cartItems: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              product: { type: 'string', description: 'Product name' },
+              quantity: { type: 'number', description: 'Quantity ordered' }
+            },
+            required: ['product', 'quantity']
+          },
+          description: 'Array of cart items with product names and quantities'
+        },
+        customerInfo: {
+          type: 'object',
+          properties: {
+            name: { type: 'string', description: 'Customer name' },
+            address: { type: 'string', description: 'Delivery address' },
+            email: { type: 'string', description: 'Customer email' },
+            phone: { type: 'string', description: 'Customer phone number' }
+          },
+          description: 'Customer information for order processing'
+        }
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'getCompanyInfo',
+    description: 'Retrieve company information including company name, phone, email, address, timing, business sector, and description. Use when customers ask about the company details, contact information, location, opening hours, or what the company does.',
+    parameters: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
   }
 ];
 
@@ -173,7 +246,8 @@ class ChatController {
 - For service questions → use getServices  
 - For policy/shipping/FAQ questions → use getFAQs (uses semantic embedding search)
 - For document/regulation/catalog questions → use getDocuments
-- Always call appropriate function when user asks about products, services, policies, or documents
+- For company information questions (name, email, address, hours, sector, description) → use getCompanyInfo
+- Always call appropriate function when user asks about products, services, policies, documents, or company info
 - Use specific search terms when possible`;
 
         if (!messages.some(msg => msg.role === 'system')) {
@@ -216,7 +290,7 @@ class ChatController {
             logger.info(`📝 SYSTEM: Function args - ${JSON.stringify(functionArgs)}`);
             
             // Execute the function
-            if (functionName === 'getProducts' || functionName === 'getServices' || functionName === 'getFAQs' || functionName === 'getDocuments') {
+            if (functionName === 'getProducts' || functionName === 'getServices' || functionName === 'getFAQs' || functionName === 'getDocuments' || functionName === 'OrderCompleted' || functionName === 'getCompanyInfo') {
               logger.info(`⚡ SYSTEM: Executing ${functionName}...`);
               
               const functionToCall = availableFunctions[functionName as keyof typeof availableFunctions] as Function;
@@ -307,8 +381,12 @@ Remember: You're Sofia - be passionate about Italian food! 🇮🇹`
       const userQuery = lastUserMessage.content.toLowerCase();
       logger.info(`🔍 SYSTEM: Analyzing query: "${userQuery}"`);
       
-      // Intelligent query analysis without hardcoded patterns
-      const queryAnalysis = this.analyzeUserQuery(userQuery);
+      // Extract conversation context for better understanding
+      const conversationContext = this.extractConversationContext(messages);
+      logger.info(`📚 SYSTEM: Conversation context: ${JSON.stringify(conversationContext)}`);
+      
+      // Intelligent query analysis with conversation context
+      const queryAnalysis = this.analyzeUserQueryWithContext(userQuery, conversationContext);
       logger.info(`📊 SYSTEM: Query analysis: ${JSON.stringify(queryAnalysis)}`);
       
       if (queryAnalysis.intent === 'product_search') {
@@ -343,6 +421,41 @@ Remember: You're Sofia - be passionate about Italian food! 🇮🇹`
           
         } catch (error) {
           logger.error('Product search failed:', error);
+        }
+      } else if (queryAnalysis.intent === 'cart_management') {
+        try {
+          logger.info('🛒 SYSTEM: Processing cart management...');
+          
+          if (queryAnalysis.cartOperation === 'add' && queryAnalysis.detectedProducts) {
+            // Generate cart addition response
+            const cartResponse = this.generateCartResponse(queryAnalysis.detectedProducts, conversationContext);
+            
+            const duration = Date.now() - startTime;
+            logger.info(`🏁 === CHAT FLOW COMPLETE (${duration}ms) ===`);
+            
+            return res.json({ 
+              message: { 
+                role: 'assistant', 
+                content: cartResponse 
+              } 
+            });
+          } else if (queryAnalysis.cartOperation === 'view') {
+            // Generate cart view response
+            const cartViewResponse = this.generateCartViewResponse(conversationContext);
+            
+            const duration = Date.now() - startTime;
+            logger.info(`🏁 === CHAT FLOW COMPLETE (${duration}ms) ===`);
+            
+            return res.json({ 
+              message: { 
+                role: 'assistant', 
+                content: cartViewResponse 
+              } 
+            });
+          }
+          
+        } catch (error) {
+          logger.error('Cart management failed:', error);
         }
       } else if (queryAnalysis.intent === 'service_inquiry') {
         try {
@@ -1006,6 +1119,284 @@ Le nostre specialità:
 • **Servizi** - Corsi di cucina e degustazioni
 • **Spedizioni** - Informazioni consegne
 • **Ordini** - Pagamenti e politiche`;
+  }
+
+  /**
+   * Extract conversation context for better understanding
+   */
+  private extractConversationContext(messages: any[]): {
+    previousProducts: string[];
+    cartItems: Array<{product: string, quantity: number}>;
+    conversationFlow: string[];
+  } {
+    const context = {
+      previousProducts: [] as string[],
+      cartItems: [] as Array<{product: string, quantity: number}>,
+      conversationFlow: [] as string[]
+    };
+    
+    // Analyze conversation for products mentioned and cart operations
+    messages.forEach(msg => {
+      if (msg.role === 'user') {
+        context.conversationFlow.push(`USER: ${msg.content}`);
+        
+        // Extract product mentions and quantities
+        const productMatches = msg.content.toLowerCase().match(/(\d+)\s*(bottiglie?|confezioni?|pezzi?)?\s*(di|del)?\s*([a-zA-Z\s]+)/g);
+        if (productMatches) {
+          productMatches.forEach((match: string) => {
+            const quantityMatch = match.match(/(\d+)/);
+            const productMatch = match.match(/(?:di|del)\s*([a-zA-Z\s]+)/);
+            
+            if (quantityMatch && productMatch) {
+              const quantity = parseInt(quantityMatch[1]);
+              const product = productMatch[1].trim();
+              context.cartItems.push({ product, quantity });
+              context.previousProducts.push(product);
+            }
+          });
+        }
+        
+        // Extract product names from general mentions
+        const productKeywords = ['vino', 'barolo', 'chianti', 'prosecco', 'gnocchi', 'pasta', 'formaggio', 'prosciutto'];
+        productKeywords.forEach(keyword => {
+          if (msg.content.toLowerCase().includes(keyword)) {
+            context.previousProducts.push(keyword);
+          }
+        });
+      } else if (msg.role === 'assistant') {
+        context.conversationFlow.push(`SOFIA: ${msg.content.substring(0, 100)}...`);
+      }
+    });
+    
+    return context;
+  }
+
+  /**
+   * Intelligent query analysis with conversation context
+   */
+  private analyzeUserQueryWithContext(query: string, context: {
+    previousProducts: string[];
+    cartItems: Array<{product: string, quantity: number}>;
+    conversationFlow: string[];
+  }): {
+    intent: 'product_search' | 'service_inquiry' | 'faq_inquiry' | 'general' | 'cart_management';
+    category?: string;
+    serviceType?: string;
+    topic?: string;
+    priceFilter?: { operator: 'less' | 'greater' | 'equal'; value: number };
+    confidence: number;
+    cartOperation?: 'add' | 'view' | 'modify';
+    detectedProducts?: Array<{product: string, quantity: number}>;
+  } {
+    const lowerQuery = query.toLowerCase();
+    
+    // Check for cart management operations
+    if (lowerQuery.match(/(\d+)\s*(bottiglie?|confezioni?|pezzi?)/i) || 
+        lowerQuery.includes('si') && context.cartItems.length > 0 ||
+        lowerQuery.includes('aggiungi') || 
+        lowerQuery.includes('carrello') ||
+        lowerQuery.includes('ordine')) {
+      
+      // Extract quantities and products from current query
+      const detectedProducts: Array<{product: string, quantity: number}> = [];
+      
+      // Pattern for "3 bottiglie di Barolo" or "si 3 bottiglie di Barolo"
+      const quantityMatches = lowerQuery.match(/(\d+)\s*(bottiglie?|confezioni?|pezzi?)?\s*(di|del)?\s*([a-zA-Z\s]+)/g);
+      if (quantityMatches) {
+        quantityMatches.forEach(match => {
+          const quantityMatch = match.match(/(\d+)/);
+          const productMatch = match.match(/(?:di|del)\s*([a-zA-Z\s]+)/) || match.match(/(\d+)\s*([a-zA-Z\s]+)/);
+          
+          if (quantityMatch && productMatch) {
+            const quantity = parseInt(quantityMatch[1]);
+            const product = productMatch[productMatch.length - 1].trim();
+            detectedProducts.push({ product, quantity });
+          }
+        });
+      }
+      
+      // If just "si" and we have previous products, assume confirmation
+      if (lowerQuery.includes('si') && context.previousProducts.length > 0 && detectedProducts.length === 0) {
+        // Use the last mentioned product
+        const lastProduct = context.previousProducts[context.previousProducts.length - 1];
+        detectedProducts.push({ product: lastProduct, quantity: 1 });
+      }
+      
+      return {
+        intent: 'cart_management',
+        cartOperation: 'add',
+        detectedProducts,
+        confidence: 0.9
+      };
+    }
+    
+    // Check for cart viewing
+    if (lowerQuery.includes('carrello') || lowerQuery.includes('ordine') || lowerQuery.includes('lista')) {
+      return {
+        intent: 'cart_management',
+        cartOperation: 'view',
+        confidence: 0.8
+      };
+    }
+    
+    // Use existing analysis for other intents
+    const baseAnalysis = this.analyzeUserQuery(query);
+    
+    // Boost confidence if we have context
+    if (context.conversationFlow.length > 2) {
+      baseAnalysis.confidence = Math.min(baseAnalysis.confidence + 0.2, 1.0);
+    }
+    
+    return baseAnalysis;
+  }
+
+  /**
+   * Generate cart addition response
+   */
+  private generateCartResponse(products: Array<{product: string, quantity: number}>, context: {
+    previousProducts: string[];
+    cartItems: Array<{product: string, quantity: number}>;
+    conversationFlow: string[];
+  }): string {
+    // Combine all cart items (previous + new)
+    const allCartItems = [...context.cartItems, ...products];
+    
+    // Group by product and sum quantities
+    const cartSummary = new Map<string, number>();
+    allCartItems.forEach(item => {
+      const existing = cartSummary.get(item.product) || 0;
+      cartSummary.set(item.product, existing + item.quantity);
+    });
+    
+    // Generate response for newly added items
+    const newItemsText = products.map(item => 
+      `• ${item.product} - ${item.quantity} ${item.quantity > 1 ? 'pezzi' : 'pezzo'}`
+    ).join('\n');
+    
+    // Calculate estimated total (using sample prices)
+    const priceMap: {[key: string]: number} = {
+      'barolo': 45.00,
+      'chianti': 19.50,
+      'prosecco': 13.90,
+      'gnocchi': 4.80,
+      'gnocchi di patate': 4.80,
+      'parmigiano': 15.90,
+      'prosciutto': 24.90,
+      'mozzarella': 6.75
+    };
+    
+    let total = 0;
+    const cartItemsText = Array.from(cartSummary.entries()).map(([product, quantity]) => {
+      const price = priceMap[product.toLowerCase()] || 10.00; // Default price
+      const itemTotal = price * quantity;
+      total += itemTotal;
+      return `• ${product} - €${price.toFixed(2)} x ${quantity} = €${itemTotal.toFixed(2)}`;
+    }).join('\n');
+    
+    return `Perfetto! ✅ Ho aggiunto al tuo carrello:
+
+${newItemsText}
+
+🛒 **Il tuo carrello ora contiene:**
+${cartItemsText}
+
+💰 **Totale: €${total.toFixed(2)}**
+
+Vuoi aggiungere qualcos'altro o preferisci completare l'ordine? 🇮🇹✨`;
+  }
+
+  /**
+   * Generate cart view response
+   */
+  private generateCartViewResponse(context: {
+    previousProducts: string[];
+    cartItems: Array<{product: string, quantity: number}>;
+    conversationFlow: string[];
+  }): string {
+    if (context.cartItems.length === 0) {
+      return `Il tuo carrello è vuoto! 🛒
+
+Posso aiutarti a trovare alcuni dei nostri prodotti italiani autentici:
+• **Vini** - Barolo, Chianti, Prosecco 🍷
+• **Formaggi** - Parmigiano, Gorgonzola, Mozzarella 🧀
+• **Pasta** - Gnocchi, Spaghetti di Gragnano 🍝
+• **Salumi** - Prosciutto di Parma, Bresaola 🥓
+
+Cosa ti piacerebbe ordinare?`;
+    }
+    
+    // Group by product and sum quantities
+    const cartSummary = new Map<string, number>();
+    context.cartItems.forEach(item => {
+      const existing = cartSummary.get(item.product) || 0;
+      cartSummary.set(item.product, existing + item.quantity);
+    });
+    
+    // Calculate total with sample prices
+    const priceMap: {[key: string]: number} = {
+      'barolo': 45.00,
+      'chianti': 19.50,
+      'prosecco': 13.90,
+      'gnocchi': 4.80,
+      'gnocchi di patate': 4.80,
+      'parmigiano': 15.90,
+      'prosciutto': 24.90,
+      'mozzarella': 6.75
+    };
+    
+    let total = 0;
+    const cartItemsText = Array.from(cartSummary.entries()).map(([product, quantity]) => {
+      const price = priceMap[product.toLowerCase()] || 10.00;
+      const itemTotal = price * quantity;
+      total += itemTotal;
+      return `• ${product} - €${price.toFixed(2)} x ${quantity} = €${itemTotal.toFixed(2)}`;
+    }).join('\n');
+    
+    return `🛒 **Il tuo carrello:**
+
+${cartItemsText}
+
+💰 **Totale: €${total.toFixed(2)}**
+
+Vuoi modificare qualcosa o procedere con l'ordine? 🇮🇹✨`;
+  }
+
+  /**
+   * Test OrderCompleted function directly
+   */
+  async testOrderCompleted(req: Request, res: Response) {
+    try {
+      logger.info('🧪 Testing OrderCompleted function directly...');
+      
+      const testOrderData = {
+        cartItems: [
+          { product: 'Barolo DOCG', quantity: 3 },
+          { product: 'Gnocchi di Patate', quantity: 2 }
+        ],
+        customerInfo: {
+          name: 'Test Customer',
+          address: 'Via Roma 123, Milano',
+          email: 'test@example.com'
+        }
+      };
+      
+      const result = await availableFunctions.OrderCompleted(testOrderData);
+      
+      logger.info('✅ OrderCompleted test result:', result);
+      
+      return res.json({
+        success: true,
+        testData: testOrderData,
+        result: result
+      });
+      
+    } catch (error) {
+      logger.error('🚨 OrderCompleted test failed:', error);
+      return res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
   }
 }
 

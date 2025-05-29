@@ -1,27 +1,35 @@
 import { chatApi, ChatApiResponse } from '@/api/chatApi';
+import { profileApi } from '@/api/profileApi';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { OrderModal } from '@/components/ui/OrderModal';
+import { OrderToast } from '@/components/ui/OrderToast';
 import { ChatMessage } from '@/types/chat';
-import { Bot, Bug, HelpCircle, MessageCircle, Send, Sparkles } from 'lucide-react';
+import { Profile } from '@/types/profile';
+import { Bot, Bug, MessageCircle, Send, Sparkles } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 // Initial messages to demonstrate the chat
-const initialMessages: ChatMessage[] = [
-  {
-    id: '1',
-    role: 'assistant',
-    content: 'Ciao! Welcome to ShopMefy. How can I help you today?',
-    timestamp: new Date().toISOString()
-  }
-];
+// NOTA: Array vuoto per permettere agli utenti di iniziare la conversazione
+// Rimosso il messaggio di benvenuto automatico per migliorare l'UX
+const initialMessages: ChatMessage[] = [];
 
 const Chatbot: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
-  const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+  const [inputMessage, setInputMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
   const [debugInfo, setDebugInfo] = useState<any[]>([]);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  
+  // Order notification state
+  const [orderNotification, setOrderNotification] = useState<{
+    order: any;
+    showToast: boolean;
+    showModal: boolean;
+  } | null>(null);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom of messages
@@ -29,21 +37,35 @@ const Chatbot: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Load profile data
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const profileData = await profileApi.getProfile();
+        setProfile(profileData);
+      } catch (error) {
+        console.error('Failed to load profile:', error);
+      }
+    };
+
+    loadProfile();
+  }, []);
+
   // Function to send a message and get a response from the API
   const sendMessage = async () => {
-    if (!input.trim()) return;
+    if (!inputMessage.trim()) return;
     
     // Add user message
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
-      content: input.trim(),
+      content: inputMessage.trim(),
       timestamp: new Date().toISOString()
     };
     
     setMessages(prev => [...prev, userMessage]);
-    setInput('');
-    setIsTyping(true);
+    setInputMessage('');
+    setIsLoading(true);
     
     try {
       // Call the real chat API
@@ -71,68 +93,182 @@ const Chatbot: React.FC = () => {
       // Filter out any messages with invalid roles
       const filteredMessages = formattedMessages.filter(msg => validRoles.includes(msg.role));
       
-      // Log any invalid messages that are being filtered out
-      formattedMessages.forEach((msg, i) => {
-        if (!validRoles.includes(msg.role)) {
-          console.warn(`Message at index ${i} has invalid role and will be filtered:`, msg);
-        }
-      });
-      
       const response: ChatApiResponse = await chatApi.sendMessage({
         messages: filteredMessages,
       });
       
-      // Debug log per la risposta
-      console.log('Received API response:', response);
+      // Check if the response contains an OrderCompleted function call result
+      const responseContent = response.message.content;
       
-      // Store debug information
-      if (debugMode) {
-        const debugEntry = {
-          timestamp: new Date().toISOString(),
-          userMessage: userMessage.content,
-          functionCalls: response?.message?.tool_calls || response?.message?.function_call ? 
-            (response.message.tool_calls || [response.message.function_call]) : [],
-          responseContent: response?.message?.content || 'No response content'
+      // Enhanced order detection - check for both function calls and text patterns
+      const hasOrderNumber = responseContent.includes('ORD-') || responseContent.includes('Order Number:');
+      const hasConfirmationText = responseContent.includes('confermato') || responseContent.includes('confirmed') || responseContent.includes('confermato con successo');
+      const hasOrderDetails = (responseContent.includes('Totale:') || responseContent.includes('Total:')) && (responseContent.includes('€') || responseContent.includes('EUR'));
+      const hasDeliveryInfo = responseContent.includes('consegna') || responseContent.includes('spedizione') || responseContent.includes('Delivery') || responseContent.includes('delivery');
+      
+      // Check if this looks like an order confirmation
+      if ((hasOrderNumber && hasConfirmationText) || 
+          (hasConfirmationText && hasOrderDetails && hasDeliveryInfo)) {
+        
+        console.log('🎉 Order detected!', {
+          hasOrderNumber,
+          hasConfirmationText,
+          hasOrderDetails,
+          hasDeliveryInfo,
+          responseContent: responseContent.substring(0, 200) + '...'
+        });
+        
+        // Try to extract order number
+        let orderNumber = 'ORD-' + Date.now().toString().slice(-6);
+        const orderNumberMatch = responseContent.match(/(?:Order Number:|ORD-)[\s]*([A-Z0-9-]+)/i);
+        if (orderNumberMatch) {
+          orderNumber = orderNumberMatch[1].startsWith('ORD-') ? orderNumberMatch[1] : 'ORD-' + orderNumberMatch[1];
+        }
+        
+        // Try to extract order details from the response content
+        let orderData = null;
+        
+        // Look for order details in the response
+        try {
+          // Try to parse if there's JSON data in the response
+          const jsonMatch = responseContent.match(/\{[^}]*"orderNumber"[^}]*\}/);
+          if (jsonMatch) {
+            orderData = JSON.parse(jsonMatch[0]);
+          }
+        } catch (e) {
+          // If parsing fails, extract from text
+          console.log('Extracting order data from text response');
+        }
+        
+        // Extract products and totals from text
+        if (!orderData) {
+          const items = [];
+          let total = 0;
+          
+          // Look for product lines like "• **Corporate Gift Baskets** - €129.99" or "• Barolo DOCG - €45.00 (3 bottiglie)"
+          const productMatches = responseContent.match(/•\s*\*?\*?([^-\n]+?)\*?\*?\s*-\s*€?(\d+(?:\.\d{2})?)/g);
+          if (productMatches) {
+            productMatches.forEach(match => {
+              const parts = match.match(/•\s*\*?\*?([^-\n]+?)\*?\*?\s*-\s*€?(\d+(?:\.\d{2})?)/);
+              if (parts) {
+                const productName = parts[1].trim().replace(/\*\*/g, '');
+                const price = parseFloat(parts[2]);
+                
+                // Try to extract quantity from the line
+                let quantity = 1;
+                const quantityMatch = match.match(/\((\d+)\s*(?:bottles?|bottiglie?|pezzi?|pieces?)\)/i);
+                if (quantityMatch) {
+                  quantity = parseInt(quantityMatch[1]);
+                }
+                
+                const subtotal = price;
+                
+                items.push({
+                  product: productName,
+                  quantity: quantity,
+                  price: quantity > 1 ? price / quantity : price,
+                  subtotal: subtotal
+                });
+                total += subtotal;
+              }
+            });
+          }
+          
+          // Look for total in text like "Totale: €135.00" or "Total: €199.49"
+          const totalMatch = responseContent.match(/(?:Totale|Total):\s*€?(\d+(?:\.\d{2})?)/i);
+          if (totalMatch) {
+            total = parseFloat(totalMatch[1]);
+          }
+          
+          // If no items found but total exists, create a generic item
+          if (items.length === 0 && total > 0) {
+            items.push({
+              product: 'Ordine confermato',
+              quantity: 1,
+              price: total,
+              subtotal: total
+            });
+          }
+          
+          // Extract delivery date
+          let deliveryDate = 'Entro 3-5 giorni lavorativi';
+          const deliveryMatch = responseContent.match(/(?:Estimated Delivery|consegna)[^:]*:\s*([^\n]+)/i);
+          if (deliveryMatch) {
+            deliveryDate = deliveryMatch[1].trim();
+          }
+          
+          // Extract customer address
+          let customerAddress = 'Via Pinocco 10, 20100';
+          const addressMatch = responseContent.match(/(?:via|address)[^:]*([^\n]+)/i);
+          if (addressMatch) {
+            customerAddress = addressMatch[1].trim();
+          }
+          
+          orderData = {
+            orderNumber,
+            status: 'CONFIRMED',
+            items: items.length > 0 ? items : [
+              { product: 'Prodotti ordinati', quantity: 1, price: total, subtotal: total }
+            ],
+            total: total,
+            currency: 'EUR',
+            estimatedDelivery: deliveryDate,
+            customerInfo: { 
+              name: 'Andrea Gelsomino', 
+              address: customerAddress, 
+              email: 'cliente@email.com' 
+            },
+            paymentMethod: 'Pagamento alla consegna',
+            shippingMethod: 'Corriere espresso',
+            notes: 'Ordine confermato! Riceverai una email di conferma a breve.',
+            timestamp: new Date().toISOString()
+          };
+        }
+        
+        // Create order object (use extracted data or fallback to mock)
+        const orderDetails = orderData || {
+          orderNumber: orderNumber,
+          status: 'CONFIRMED',
+          items: [
+            { product: 'Barolo DOCG', quantity: 3, price: 45.00, subtotal: 135.00 }
+          ],
+          total: 135.00,
+          currency: 'EUR',
+          estimatedDelivery: 'Entro 3-5 giorni lavorativi',
+          customerInfo: { name: 'Andrea Gelsomino', address: 'Via Pinocco 10, 20100', email: 'cliente@email.com' },
+          paymentMethod: 'Pagamento alla consegna',
+          shippingMethod: 'Corriere espresso',
+          notes: 'Ordine confermato! Riceverai una email di conferma a breve.',
+          timestamp: new Date().toISOString()
         };
-        setDebugInfo(prev => [debugEntry, ...prev.slice(0, 9)]); // Keep last 10 entries
+        
+        // Decide whether to show toast or modal based on content length and number of items
+        const shouldShowModal = responseContent.length > 500 || orderDetails.items.length > 3;
+        
+        // Show notification after 5 seconds delay
+        setTimeout(() => {
+          setOrderNotification({
+            order: orderDetails,
+            showToast: !shouldShowModal,
+            showModal: shouldShowModal
+          });
+          
+          // Auto-close toast after 8 seconds (from when it appears)
+          if (!shouldShowModal) {
+            setTimeout(() => {
+              setOrderNotification(prev => prev ? { ...prev, showToast: false } : null);
+            }, 8000);
+          }
+        }, 5000); // 5 seconds delay before showing notification
       }
-      
-      // La risposta dell'API è un oggetto con proprietà 'message'
-      // Estrai il messaggio correttamente e aggiungi i campi necessari
-      let assistantMessage: ChatMessage;
-      
-      if (response && response.message) {
-        // Risposta in formato {message: {...}}
-        assistantMessage = {
-          id: Date.now().toString(),
-          role: 'assistant',
-          content: response.message.content || 'Sorry, I could not generate a response.',
-          timestamp: new Date().toISOString(),
-          // Copia altri campi se presenti
-          ...(response.message.function_call && { function_call: response.message.function_call }),
-          ...(response.message.tool_calls && { tool_calls: response.message.tool_calls }),
-          ...(response.message.tool_call_id && { tool_call_id: response.message.tool_call_id }),
-          ...(response.message.name && { name: response.message.name }),
-        };
-      } else {
-        // Fallback se la risposta è in formato non previsto
-        assistantMessage = {
-          id: Date.now().toString(),
-          role: 'assistant',
-          content: 'Sorry, I could not generate a response.',
-          timestamp: new Date().toISOString(),
-        };
-      }
-      
-      // Debug log per il messaggio estratto
-      console.log('Formatted assistant message:', assistantMessage);
-      
-      // Ensure the message has a content property
-      if (!assistantMessage.content) {
-        console.warn('Bot message is missing content property:', assistantMessage);
-        assistantMessage.content = 'Sorry, I could not generate a response.';
-      }
-      
+
+      const assistantMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: response.message.content || 'Sorry, I could not generate a response.',
+        timestamp: new Date().toISOString()
+      };
+
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Error getting chatbot response:', error);
@@ -147,7 +283,7 @@ const Chatbot: React.FC = () => {
       
       setMessages(prev => [...prev, errorMessage]);
     } finally {
-      setIsTyping(false);
+      setIsLoading(false);
     }
   };
 
@@ -175,40 +311,49 @@ const Chatbot: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Chat Interface */}
+        {/* Chat Interface - Takes 2/3 of the space on large screens */}
         <div className="lg:col-span-2 animate-scale-in">
           <Card className="border-0 shadow-md hover:shadow-xl transition-all duration-300">
             <CardContent className="p-0 flex flex-col h-[70vh]">
               {/* Chat header */}
-              <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-gray-100 flex items-center rounded-t-lg">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-shopme-500 to-shopme-600 flex items-center justify-center text-white font-medium mr-3 shadow-md">
-                  <Bot className="w-5 h-5" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">Company name - Sofia</h3>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                    <p className="text-xs text-gray-500">Online</p>
+              <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-gray-100 rounded-t-lg">
+                <div className="flex items-center justify-between">
+                  {/* Left side - Bot icon */}
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-shopme-500 to-shopme-600 flex items-center justify-center text-white font-medium shadow-md">
+                    <Bot className="w-5 h-5" />
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setDebugMode(!debugMode)}
-                    className={`p-2 rounded-lg transition-all duration-200 ${
-                      debugMode 
-                        ? 'bg-orange-100 text-orange-600 hover:bg-orange-200' 
-                        : 'text-gray-400 hover:text-orange-500 hover:bg-orange-50'
-                    }`}
-                    title="Toggle debug mode"
-                  >
-                    <Bug className="w-4 h-4" />
-                  </button>
-                  <Sparkles className="w-5 h-5 text-shopme-500" />
+                  
+                  {/* Center - Company name */}
+                  <div className="flex-1 text-center">
+                    <h3 className="font-semibold text-gray-900">
+                      {profile?.companyName || 'ShopMefy'} - Sofia
+                    </h3>
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                      <p className="text-xs text-gray-500">Online</p>
+                    </div>
+                  </div>
+                  
+                  {/* Right side - Debug and sparkles */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setDebugMode(!debugMode)}
+                      className={`p-2 rounded-lg transition-all duration-200 ${
+                        debugMode 
+                          ? 'bg-orange-100 text-orange-600 hover:bg-orange-200' 
+                          : 'text-gray-400 hover:text-orange-500 hover:bg-orange-50'
+                      }`}
+                      title="Toggle debug mode"
+                    >
+                      <Bug className="w-4 h-4" />
+                    </button>
+                    <Sparkles className="w-5 h-5 text-shopme-500" />
+                  </div>
                 </div>
               </div>
               
               {/* Debug Panel */}
-              {debugMode && (
+              {/* {debugMode && (
                 <div className="border-b border-gray-100 bg-orange-50 p-3">
                   <div className="flex items-center gap-2 mb-2">
                     <Bug className="w-4 h-4 text-orange-600" />
@@ -238,10 +383,10 @@ const Chatbot: React.FC = () => {
                     <div className="text-xs text-orange-600">No function calls recorded yet</div>
                   )}
                 </div>
-              )}
+              )} */}
               
               {/* Chat messages */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gradient-to-b from-white to-gray-50">
+              <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
                 {messages.map(message => {
                   // Debug log for each message being rendered
                   console.log(`Rendering message ${message.id}:`, { 
@@ -353,7 +498,7 @@ const Chatbot: React.FC = () => {
                     </div>
                   );
                 })}
-                {isTyping && (
+                {isLoading && (
                   <div className="flex justify-start animate-slide-up">
                     <div className="chat-bubble-bot shadow-sm">
                       <div className="flex space-x-2 items-center">
@@ -375,17 +520,17 @@ const Chatbot: React.FC = () => {
               <div className="border-t border-gray-100 p-4 bg-white rounded-b-lg">
                 <div className="flex gap-3">
                   <Input
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder="Ask me about our Italian products..."
                     className="flex-1 border-gray-200 focus:border-shopme-500 focus:ring-shopme-500 transition-colors"
-                    disabled={isTyping}
+                    disabled={isLoading}
                   />
                   <Button 
                     onClick={sendMessage} 
                     className="bg-gradient-to-r from-shopme-500 to-shopme-600 hover:from-shopme-600 hover:to-shopme-700 text-white shadow-md hover:shadow-lg transition-all duration-200 px-4"
-                    disabled={!input.trim() || isTyping}
+                    disabled={!inputMessage.trim() || isLoading}
                   >
                     <Send size={18} />
                   </Button>
@@ -395,51 +540,9 @@ const Chatbot: React.FC = () => {
           </Card>
         </div>
         
-        {/* Suggestions Panel */}
+        {/* Information Panels - Takes 1/3 of the space on large screens */}
         <div className="space-y-6 animate-scale-in" style={{ animationDelay: '0.1s' }}>
-          <Card className="border-0 shadow-md hover:shadow-xl transition-all duration-300">
-            <CardHeader className="pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-purple-100 to-purple-200 rounded-lg flex items-center justify-center">
-                  <HelpCircle className="w-5 h-5 text-purple-600" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg font-semibold text-gray-900">Try asking:</CardTitle>
-                  <CardDescription className="text-sm text-gray-500">
-                    Click any suggestion to start a conversation
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {[
-                "What products do you sell?",
-                "Which services do you offer?",
-                "Any suggestions for a good wine?",
-                "Do you have wine less than 20 Euro?",
-                "Which kind of pasta do you sell?",
-                "Are your products genuinely made in Italy?",
-                "What payment methods do you accept?",
-                "How long does shipping take?",
-                "Do you ship internationally?"
-              ].map((suggestion, index) => (
-                <Button 
-                  key={index}
-                  variant="outline" 
-                  className="w-full justify-start text-left h-auto py-3 px-4 border-gray-200 hover:border-shopme-300 hover:bg-shopme-50 transition-all duration-200 text-sm"
-                  onClick={() => {
-                    setInput(suggestion);
-                    setTimeout(() => sendMessage(), 100);
-                  }}
-                >
-                  <MessageCircle className="w-4 h-4 mr-2 text-shopme-500 flex-shrink-0" />
-                  <span className="text-gray-700">{suggestion}</span>
-                </Button>
-              ))}
-            </CardContent>
-          </Card>
-          
-          {/* About Section */}
+          {/* About Sofia Panel */}
           <Card className="border-0 shadow-md hover:shadow-xl transition-all duration-300">
             <CardHeader className="pb-4">
               <div className="flex items-center gap-3">
@@ -449,7 +552,7 @@ const Chatbot: React.FC = () => {
                 <div>
                   <CardTitle className="text-lg font-semibold text-gray-900">About Sofia</CardTitle>
                   <CardDescription className="text-sm text-gray-500">
-                    Your AI shopping assistant
+                    Your AI Italian assistant
                   </CardDescription>
                 </div>
               </div>
@@ -470,8 +573,29 @@ const Chatbot: React.FC = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Available Functions Panel */}
+          <Card className="border-0 shadow-md hover:shadow-xl transition-all duration-300">
+            
+          </Card>
         </div>
       </div>
+      
+      {/* Order Notifications */}
+      {orderNotification && (
+        <>
+          <OrderToast
+            order={orderNotification.order}
+            isVisible={orderNotification.showToast}
+            onClose={() => setOrderNotification(prev => prev ? { ...prev, showToast: false } : null)}
+          />
+          <OrderModal
+            order={orderNotification.order}
+            isVisible={orderNotification.showModal}
+            onClose={() => setOrderNotification(null)}
+          />
+        </>
+      )}
     </div>
   );
 };

@@ -38,6 +38,17 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
+
+    --shopme-50: #f0fdf4;
+    --shopme-100: #dcfce7;
+    --shopme-200: #bbf7d0;
+    --shopme-300: #86efac;
+    --shopme-400: #4ade80;
+    --shopme-500: #22c55e;
+    --shopme-600: #16a34a;
+    --shopme-700: #15803d;
+    --shopme-800: #166534;
+    --shopme-900: #14532d;
   }
 
   .dark {
@@ -105,11 +116,11 @@
   }
 
   .chat-bubble-user {
-    @apply bg-gradient-to-r from-shopme-500 to-shopme-600 text-white p-3 rounded-lg rounded-tr-none max-w-[80%] shadow-sm;
+    @apply bg-gradient-to-r from-green-400 to-green-500 text-white p-3 rounded-lg rounded-tr-none max-w-[80%] shadow-sm;
   }
 
   .chat-bubble-bot {
-    @apply bg-gray-100 text-gray-800 p-3 rounded-lg rounded-tl-none max-w-[80%] shadow-sm;
+    @apply bg-blue-50 text-gray-800 p-3 rounded-lg rounded-tl-none max-w-[80%] shadow-sm border border-blue-200;
   }
   
   /* Markdown styling for chat messages */
@@ -338,4 +349,36 @@ html {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* Custom animations for page transitions */
+@keyframes fadeInLoader {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes progressBar {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.page-loader-enter {
+  animation: fadeInLoader 0.3s ease-out;
+}
+
+.progress-bar-animation {
+  animation: progressBar 1s ease-in-out infinite;
 }

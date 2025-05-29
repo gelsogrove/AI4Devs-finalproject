@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import express from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import path from 'path';
 import swaggerUi from 'swagger-ui-express';
 import routes from './routes';
 import swaggerSpec from './swagger';
@@ -15,10 +16,30 @@ export function setupServer() {
   const app = express();
   
   // Middleware
-  app.use(helmet());
-  app.use(cors());
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    frameguard: { action: 'sameorigin' }
+  }));
+  app.use(cors({
+    origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
+    credentials: true
+  }));
   app.use(express.json());
   app.use(morgan('dev'));
+  
+  // Serve static files from uploads directory
+  const uploadsPath = path.join(__dirname, '..', 'uploads');
+  app.use('/uploads', express.static(uploadsPath, {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.pdf')) {
+        res.setHeader('Content-Type', 'application/pdf');
+        // Allow PDFs to be embedded in iframes from any origin
+        res.removeHeader('X-Frame-Options');
+        res.setHeader('Content-Security-Policy', 'frame-ancestors *;');
+      }
+    }
+  }));
+  console.log(`Static files served from: ${uploadsPath}`);
   
   // Debug logging
   console.log('Setting up routes...');
