@@ -19,9 +19,21 @@ const techStack: TechItem[] = [
   },
   {
     name: "Security",
-    description: "JWT, OWASP, Bcrypt, CORS",
+    description: "OWASP",
     completed: true
   },
+  {
+    name: "Security",
+    description: "JWT",
+    completed: false
+  },
+
+  {
+    name: "Two Factor Authentication",
+    description: "JWT",
+    completed: false
+  },
+
   {
     name: "Frontend",
     description: "React, TypeScript, Vite, TailwindCSS, Shadcn/ui",
@@ -39,8 +51,13 @@ const techStack: TechItem[] = [
   },
   {
     name: "Document Upload & Processing",
-    description: "PDF Upload, Text Extraction, Embedding Generation, S3/Local Storage",
+    description: "PDF Upload, Text Extraction, Embedding Generation",
     completed: true
+  },
+  {
+    name: " S3 Upload ",
+    description: "",
+    completed: false
   },
   {
     name: "WhatsApp Integration",
@@ -65,7 +82,7 @@ const techStack: TechItem[] = [
   {
     name: "Terraform",
     description: "AWS Deployment",
-    completed: true
+    completed: false
   },
   {
     name: "Monitoring and alerts",

@@ -7,6 +7,7 @@ import path from 'path';
 import swaggerUi from 'swagger-ui-express';
 import routes from './routes';
 import swaggerSpec from './swagger';
+import logger from './utils/logger';
 
 // Load environment variables
 dotenv.config();
@@ -29,18 +30,8 @@ export function setupServer() {
   
   // Serve static files from uploads directory
   const uploadsPath = path.join(__dirname, '..', 'uploads');
-  app.use('/uploads', express.static(uploadsPath, {
-    setHeaders: (res, filePath) => {
-      if (filePath.endsWith('.pdf')) {
-        res.setHeader('Content-Type', 'application/pdf');
-        // Allow PDFs to be embedded in iframes from any origin
-        res.removeHeader('X-Frame-Options');
-        res.setHeader('Content-Security-Policy', 'frame-ancestors *;');
-      }
-    }
-  }));
-  console.log(`Static files served from: ${uploadsPath}`);
-  
+  app.use('/uploads', express.static(uploadsPath));
+
   // Debug logging
   console.log('Setting up routes...');
   console.log('Routes object:', typeof routes);
@@ -57,23 +48,31 @@ export function setupServer() {
   app.use('/api', routes);
   console.log('Routes registered at /api');
   
-  // Ping endpoint for simple tests
-  app.get('/ping', (_req, res) => {
-    res.send('pong');
+  // Health check endpoint
+  app.get('/api/health', (req, res) => {
+    res.json({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development'
+    });
   });
-  
-  // Root endpoint for direct browser testing
-  app.get('/', (_req, res) => {
-    res.send('Backend is running! Visit <a href="/api-docs">API Documentation</a>');
+
+  // 404 handler for API routes
+  app.use('/api/*', (req, res) => {
+    res.status(404).json({ error: 'API endpoint not found' });
   });
-  
-  // Debug: List all registered routes
-  (app as any)._router.stack.forEach((middleware: any, index: number) => {
-    if (middleware.route) {
-      console.log(`Route ${index}: ${middleware.route.path}`);
-    } else if (middleware.name === 'router') {
-      console.log(`Router ${index}: ${middleware.regexp}`);
+
+  // Global error handler
+  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (process.env.NODE_ENV !== 'production') {
+      logger.error('Unhandled error:', err);
     }
+    
+    res.status(err.status || 500).json({
+      error: process.env.NODE_ENV === 'production' 
+        ? 'Internal server error' 
+        : err.message || 'Something went wrong'
+    });
   });
   
   return app;

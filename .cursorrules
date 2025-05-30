@@ -2,31 +2,41 @@
 
 ## 🧠 Core Development Rules
 
-- Focus only on code areas relevant to the assigned task
-- NON INVENTARE NULLA
-- Keep solutions simple and avoid unnecessary complexity
-- All code and comments must be in English
-- Never run `git push` - only me can do this
-- use my name when you chat with me, es: HEllo Andrea, Andrea what do you think ?
-- DO NOT TOUCH the .env files
-- I USE PostgresSQL and not SqlLite
-- OPENAI_API_KEY esta dentro .env de backend
-- SCRIPT VANNO DENTRO LA CARTELLA SCRITP
+* Focus **only** on code areas **relevant to the assigned task**.
+* **DO NOT INVENT** anything outside of the assigned scope.
+* **Keep solutions simple** and avoid unnecessary complexity.
+* All code and comments must be **in English**.
+* **NEVER** run `git push` — **only Andrea** can do this.
+* Use **PostgreSQL** (not SQLite).
+* **OPENROUTER_API_KEY** is stored in the `.env` file of the backend (DO NOT TOUCH `.env`).
+* All **scripts** must be placed inside the `/script` folder.
+* Address me **by name (Andrea)** in chats and discussions (e.g., "Hello Andrea", "Andrea, what do you think?").
+* Maintain the existing **graphics and layout**; DO NOT make changes unless **explicit permission** is granted.
 
-
-## ❌ STRICT PROHIBITIONS - WHAT NEVER TO DO
+## ❌ Strict Prohibitions - What Never to Do
 
 ### 🚫 NEVER HARDCODE DATA
-- **NEVER** create hardcoded responses or fallback data in controllers
-- **NEVER** return fake/mock data outside of test environments  
-- **NEVER** use hardcoded product lists, prices, or inventory data
-- **NEVER** create static responses that bypass database queries
-- **ALWAYS** use dynamic database searches and real data from Prisma
-- **NEVER**  non voglio nessun nessun nessun codice ne parole ne testo ne prompt tutto viene gestito dal DB e dal DB devi prendere i dati 
 
+* **NEVER** create hardcoded responses or fallback data in controllers.
+* **NEVER** return fake/mock data outside of test environments.
+* **NEVER** use hardcoded product lists, prices, or inventory data.
+* **NEVER** create static responses that bypass database queries.
+* **ALWAYS** use dynamic database searches and fetch real data from **Prisma**.
+* **NO** static text, prompts, or codes; **everything must come from the database**.
 
-###  NOTAS ###  
-- utente scrive > passa al primo LLM che ha un prompot e decide a que calling function indirizzare il tutto , la risposta viene dato al secondo LLM che  ha uno storico e formatta la risposta per l'utente (questo e' l'unico punto statico) se il flusso non e' questo parliamone oppure cambia il prmpt dell'agente dentro il SEED
+### 🚫 Additional Restrictions
 
-- non cambiare la GRAFICA IL LAYOUT ORA MI PIACE E NON VOGLIO CORREGGERLO SE LO DEVI FARE CHIEDI PERMESSO STRAORDINARIO
-- non voglio messaggi di catch, voglio sempre lo stack errors
+* DO NOT write any **catch blocks** with generic messages; **always provide the full error stack**.
+* **NEVER create fake functions** – everything must reflect the real database and logic.
+* **NEVER change the layout or graphics** without my **explicit permission**.
+* **Update** the `task-list.md` inside `/finlprogect-AG` whenever a new task is completed.
+
+## 📚 Notes
+
+* The user's input is processed by the **first LLM** (which decides the target calling function), and the **second LLM** (which has history) formats the final user response.
+  * This is the **only static point** in the workflow.
+  * If the flow **does not follow** this structure, we must discuss it or **modify the agent's prompt** inside the **SEED**.
+  * don't create package.json in root use backend or frontend folders for install packages
+  * DONT' CREATE ANYYTHING IN ROOT use temp or use `/finlprogect-AG`
+
+ 

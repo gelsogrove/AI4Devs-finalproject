@@ -29,6 +29,12 @@ Thumbs.db
 /frontend/cypress/videos/
 /frontend/cypress/screenshots/
 
+# Uploads (user uploaded files)
+/backend/uploads/
+
+# Keep sample documents for seeding
+!/backend/prisma/sample-documents/
+
 # Misc
 .idea/
 .vscode/

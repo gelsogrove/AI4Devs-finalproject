@@ -19,9 +19,6 @@ const openRouterClient = new OpenAI({
   }
 });
 
-// Flag to determine if we're in development mode
-const isDevelopment = process.env.NODE_ENV !== 'production';
-
 // Create a separate OpenAI client for embeddings
 const openAIClient = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || ''
@@ -100,80 +97,38 @@ export function splitIntoChunks(text: string, chunkSize = 1000, overlap = 200): 
 }
 
 /**
- * Generate a fake embedding vector for development use
- * This creates a consistent vector based on the hash of the input text
- * @param text Input text to generate a fake embedding for
- * @returns A vector of 1536 dimensions with values between -1 and 1
- */
-function generateFakeEmbedding(text: string): number[] {
-  // Simple string hash function
-  const hash = (str: string): number => {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32bit integer
-    }
-    return hash;
-  };
-
-  // Create a deterministic but seemingly random embedding based on text
-  const embedding: number[] = [];
-  const hashValue = hash(text);
-  
-  // Generate 1536 dimensions (same as OpenAI's embeddings)
-  for (let i = 0; i < 1536; i++) {
-    // Use a simple pseudo-random formula based on the hash and position
-    const value = Math.sin(hashValue * (i + 1) * 0.1) * 0.5;
-    embedding.push(value);
-  }
-
-  return embedding;
-}
-
-/**
  * Centralized AI service for all AI operations
  */
 class AIService {
   /**
    * Generate embeddings for a text
-   * In development, generates fake embeddings for testing
-   * In production, uses OpenAI API
+   * Uses OpenRouter API for embeddings
    * @param text The text to generate embeddings for
    * @returns An array of embeddings
    */
   async generateEmbedding(text: string): Promise<number[]> {
-    // Check if we have a valid OpenAI API key first
-    const hasValidApiKey = process.env.OPENAI_API_KEY || process.env.OPENROUTER_API_KEY;
+    // Check if we have a valid OpenRouter API key
+    const hasValidApiKey = openRouterApiKey && openRouterApiKey !== '';
     
-    if (hasValidApiKey) {
-      try {
-        // Use OpenAI API when we have a valid key
-        const response = await openAIClient.embeddings.create({
-          model: "text-embedding-3-small",
-          input: text,
-          encoding_format: "float"
-        });
+    if (!hasValidApiKey) {
+      logger.error('No valid OpenRouter API key available for embeddings');
+      throw new Error('No valid API key available for embeddings');
+    }
+    
+    try {
+      // Use OpenRouter API for embeddings
+      const response = await openRouterClient.embeddings.create({
+        model: "text-embedding-3-small",
+        input: text,
+        encoding_format: "float"
+      });
 
-        logger.info('Using real OpenAI embeddings');
-        return response.data[0].embedding;
-      } catch (error) {
-        logger.error('Error generating embedding:', error);
-        // Fall back to fake embeddings if API call fails
-        logger.info('Falling back to fake embeddings due to API error');
-        return generateFakeEmbedding(text);
-      }
+      logger.info('Using real OpenRouter embeddings');
+      return response.data[0].embedding;
+    } catch (error) {
+      logger.error('Error generating embedding via OpenRouter:', error);
+      throw new Error('Failed to generate embeddings');
     }
-    
-    // In development mode without API key, use fake embeddings
-    if (isDevelopment) {
-      logger.info('Using fake embeddings in development mode (no API key)');
-      return generateFakeEmbedding(text);
-    }
-    
-    // This should not happen in production without an API key
-    logger.error('No API key available for embeddings in production mode');
-    throw new Error('No API key available for embeddings');
   }
 
   /**
@@ -201,7 +156,6 @@ class AIService {
       
       // Check if we have a valid OpenAI API key and prefer it over OpenRouter
       const openaiKey = process.env.OPENAI_API_KEY;
-      const openrouterKey = process.env.OPENROUTER_API_KEY;
       
       // OpenAI keys start with 'sk-' but NOT 'sk-or-' (which is OpenRouter)
       if (openaiKey && openaiKey.startsWith('sk-') && !openaiKey.startsWith('sk-or-')) {
@@ -240,7 +194,7 @@ class AIService {
         return response;
       }
       
-      // Fallback to OpenRouter if no OpenAI key or OpenRouter key is available
+      // Check if we have a valid OpenRouter key
       if (!isApiKeyValid) {
         logger.error('No valid API key available for chat completion');
         throw new Error('No valid API key available');
@@ -270,33 +224,9 @@ class AIService {
       
       logger.info('OpenRouter response received successfully');
       return response;
+      
     } catch (error: unknown) {
       logger.error('Error generating chat completion:', error);
-      
-      // Add more detailed logging for debugging
-      if (typeof error === 'object' && error !== null && 'status' in error && error.status === 400) {
-        const apiError = error as any;
-        logger.error(`Model error: ${apiError.error?.message}`);
-        
-        // Try with OpenAI as fallback
-        logger.info('Attempting fallback to OpenAI...');
-        try {
-          const fallbackResponse = await openAIClient.chat.completions.create({
-            model: 'gpt-3.5-turbo',
-            messages,
-            temperature: params.temperature ?? 0.7,
-            max_tokens: params.maxTokens ?? 500,
-            top_p: params.topP ?? 0.9,
-            tools: params.tools ?? undefined,
-            tool_choice: params.toolChoice ?? undefined
-          });
-          logger.info('OpenAI fallback successful');
-          return fallbackResponse;
-        } catch (fallbackError) {
-          logger.error('OpenAI fallback also failed:', fallbackError);
-        }
-      }
-      
       throw new Error('Failed to generate response');
     }
   }
@@ -328,8 +258,8 @@ export async function generateChatCompletion(
 
 // Export the service instance and the original OpenAI clients for direct access if needed
 export {
-    aiService,
-    openRouterClient
+  aiService,
+  openRouterClient
 };
 
 // Export the service as the default for easy imports

@@ -496,27 +496,20 @@ Cosa ti piacerebbe sapere?`
   // Debug endpoint for testing availableFunctions
   async testFunctions(req: Request, res: Response) {
     try {
-      logger.info('🔧 Testing availableFunctions directly...');
-      
       // Test getProducts with wine search
       const wineResults = await availableFunctions.getProducts({ search: 'wine' });
-      logger.info('Wine search results:', wineResults);
       
       // Test getProducts with Barolo search
       const baroloResults = await availableFunctions.getProducts({ search: 'Barolo' });
-      logger.info('Barolo search results:', baroloResults);
       
       // Test getProducts with no filters
       const allResults = await availableFunctions.getProducts({});
-      logger.info('All products results:', allResults);
       
       // Test getFAQs with shipping search
       const shippingFAQs = await availableFunctions.getFAQs({ search: 'shipping' });
-      logger.info('Shipping FAQs results:', shippingFAQs);
       
       // Test getFAQs with no filters
       const allFAQs = await availableFunctions.getFAQs({});
-      logger.info('All FAQs results:', allFAQs);
       
       return res.json({
         success: true,
@@ -530,7 +523,6 @@ Cosa ti piacerebbe sapere?`
       });
       
     } catch (error) {
-      logger.error('🚨 Function test failed:', error);
       return res.status(500).json({ 
         success: false, 
         error: error instanceof Error ? error.message : 'Unknown error' 
@@ -543,8 +535,6 @@ Cosa ti piacerebbe sapere?`
    */
   async testChatbotIntegration(req: Request, res: Response) {
     try {
-      logger.info('🧪 Starting comprehensive chatbot integration test...');
-      
       const testResults = {
         timestamp: new Date().toISOString(),
         tests: [] as any[],
@@ -556,7 +546,6 @@ Cosa ti piacerebbe sapere?`
       };
 
       // Test 1: Products Search
-      logger.info('🍷 Testing Products Search...');
       try {
         const productTest = await availableFunctions.getProducts({
           search: 'wine',
@@ -581,10 +570,7 @@ Cosa ti piacerebbe sapere?`
         testResults.tests.push(productTestResult);
         if (productTestResult.status === 'PASSED') testResults.summary.passed++;
         else testResults.summary.failed++;
-        
-        logger.info(`✅ Products test: ${productTestResult.status} - Found ${productTest.total} products`);
       } catch (error) {
-        logger.error('❌ Products test failed:', error);
         testResults.tests.push({
           name: 'Products Search - Wine',
           status: 'FAILED',
@@ -594,7 +580,6 @@ Cosa ti piacerebbe sapere?`
       }
 
       // Test 2: Services Search
-      logger.info('🚚 Testing Services Search...');
       try {
         const serviceTest = await availableFunctions.getServices({
           search: 'cooking',
@@ -619,10 +604,7 @@ Cosa ti piacerebbe sapere?`
         testResults.tests.push(serviceTestResult);
         if (serviceTestResult.status === 'PASSED') testResults.summary.passed++;
         else testResults.summary.failed++;
-        
-        logger.info(`✅ Services test: ${serviceTestResult.status} - Found ${serviceTest.total} services`);
       } catch (error) {
-        logger.error('❌ Services test failed:', error);
         testResults.tests.push({
           name: 'Services Search - Cooking',
           status: 'FAILED',
@@ -632,7 +614,6 @@ Cosa ti piacerebbe sapere?`
       }
 
       // Test 3: FAQ Embedding Search
-      logger.info('❓ Testing FAQ Embedding Search...');
       try {
         const faqTest = await availableFunctions.getFAQs({
           search: 'shipping'
@@ -655,10 +636,7 @@ Cosa ti piacerebbe sapere?`
         testResults.tests.push(faqTestResult);
         if (faqTestResult.status === 'PASSED') testResults.summary.passed++;
         else testResults.summary.failed++;
-        
-        logger.info(`✅ FAQ test: ${faqTestResult.status} - Found ${faqTest.total} FAQs`);
       } catch (error) {
-        logger.error('❌ FAQ test failed:', error);
         testResults.tests.push({
           name: 'FAQ Embedding Search - Shipping',
           status: 'FAILED',
@@ -668,7 +646,6 @@ Cosa ti piacerebbe sapere?`
       }
 
       // Test 4: Full Chat Integration
-      logger.info('💬 Testing Full Chat Integration...');
       try {
         const chatMessages = [
           { role: 'user', content: 'What wines do you have and do you ship internationally?' }
@@ -701,10 +678,7 @@ Cosa ti piacerebbe sapere?`
         
         testResults.tests.push(chatTestResult);
         testResults.summary.passed++;
-        
-        logger.info('✅ Chat integration test: PASSED');
       } catch (error) {
-        logger.error('❌ Chat integration test failed:', error);
         testResults.tests.push({
           name: 'Full Chat Integration',
           status: 'FAILED',

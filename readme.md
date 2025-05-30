@@ -23,53 +23,150 @@ ShopMe is a comprehensive SaaS platform that transforms traditional e-commerce i
 
 ## 🚀 Quick Start
 
-### Prerequisites
+All system operations are now simplified with just two main scripts in the `/scripts` folder.
 
-- Node.js 18+ 
-- npm or yarn
-- Git
+### System Management
 
-### 1. Clone Repository
-
+**Start/Restart the entire system:**
 ```bash
-git clone <repository-url>
-cd AI4Devs-finalproject
+./scripts/restart-all.sh
 ```
 
-### 2. Setup Backend
+**Stop all services:**
+```bash
+./scripts/stop-all.sh
+```
 
+### Development Commands
+
+**Backend development (from backend directory):**
 ```bash
 cd backend
-
-# Install dependencies
-npm install
-
-# Setup environment variables
-cp .env.example .env
-# Edit .env with your configuration
-
-# Setup database
-npx prisma generate
-npx prisma db push
-
-# Start development server
-npm run dev
+npm run dev          # Start backend in development mode
+npm run restart      # Restart backend only
+npm run kill         # Kill backend process
 ```
 
-### 3. Setup Frontend
-
+**Frontend development (from frontend directory):**
 ```bash
 cd frontend
-
-# Install dependencies
-npm install
-
-# Create environment file
-echo "VITE_API_URL=http://localhost:3000" > .env
-
-# Start development server
-npm run dev
+npm run dev          # Start frontend in development mode
 ```
+
+### Testing
+
+**Run all tests (from backend directory):**
+```bash
+cd backend
+npm run test:all           # Run all tests
+npm run test:chatbot       # Test chatbot functionality
+npm run test:cleanup       # Clean up test data
+npm run test:integration   # Integration tests
+```
+
+### Logs
+
+**View logs:**
+```bash
+tail -f logs/backend.log   # Backend logs
+tail -f logs/frontend.log  # Frontend logs
+```
+
+### URLs
+
+- **Backend API**: http://localhost:8080
+- **Frontend**: Check terminal for port (usually 3000+)
+- **API Docs**: http://localhost:8080/api-docs
+- **Health Check**: http://localhost:8080/api/health
+
+---
+
+## 📁 Project Structure
+
+```
+AI4Devs-finalproject/
+├── backend/           # Node.js + Express + Prisma
+├── frontend/          # React + TypeScript + Vite
+├── scripts/           # System management scripts
+├── logs/              # Application logs
+└── finlprogect-AG/    # Project documentation
+```
+
+---
+
+## 🛠️ Development Notes
+
+- All scripts are in `/scripts` folder
+- No root package.json - use backend/frontend package.json
+- PostgreSQL database with Prisma ORM
+- OpenRouter API for AI functionality
+- Minimal logging for clean output
+
+## 🔧 System Requirements
+
+- **Node.js** 18+ 
+- **PostgreSQL** running on port 5434
+- **npm** for package management
+- **kill-port** package (automatically installed)
+
+## 🌐 Access Points
+
+- **Frontend**: http://localhost:3000+ (check terminal for exact port)
+- **Backend API**: http://localhost:8080
+- **API Documentation**: http://localhost:8080/api-docs
+- **Health Check**: http://localhost:8080/api/health
+
+## 📝 Logs
+
+Monitor system logs:
+```bash
+tail -f logs/backend.log    # Backend logs
+tail -f logs/frontend.log   # Frontend logs
+```
+
+## 🐛 Troubleshooting
+
+**Port conflicts:**
+```bash
+./scripts/stop-all.sh       # Stop everything
+./scripts/restart-all.sh    # Restart clean
+```
+
+**Database issues:**
+```bash
+cd backend
+npm run db:setup            # Reset and reseed database
+```
+
+**Prisma client issues:**
+```bash
+cd backend
+npx prisma generate         # Regenerate Prisma client
+```
+
+## 🧪 Testing Sofia (Chatbot)
+
+**Sample questions to test:**
+- "Where is your warehouse?"
+- "Do you have wine less than 20 Euro?"
+- "How long does shipping take?"
+- "What payment methods do you accept?"
+- "Does exist an international delivery document?"
+
+**Enable debug mode** in the chatbot interface to see function calls and processing details.
+
+## ⚡ Key Features
+
+- **Smart Port Management**: Uses `npx kill-port` for reliable process termination
+- **Automatic Prisma Setup**: Regenerates client on every restart
+- **Health Monitoring**: Built-in health checks and integration tests
+- **Process Tracking**: Saves PIDs for graceful shutdown
+- **Comprehensive Logging**: Separate logs for backend and frontend
+- **Error Handling**: Proper error detection and reporting
+
+---
+
+**Note**: All scripts are now centralized and simplified. Use `./scripts/restart-all.sh` for all system management needs.
 
 ---
 
