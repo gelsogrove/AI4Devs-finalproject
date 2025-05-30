@@ -5,6 +5,7 @@ export interface Product {
   price: number;
   category: string;
   tags: string[];
+  isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 } 

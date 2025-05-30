@@ -24,7 +24,7 @@ const isDevelopment = process.env.NODE_ENV !== 'production';
 
 // Create a separate OpenAI client for embeddings
 const openAIClient = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || process.env.OPENROUTER_API_KEY || ''
+  apiKey: process.env.OPENAI_API_KEY || ''
 });
 
 // Map of model names to their OpenRouter compatible versions
@@ -143,27 +143,37 @@ class AIService {
    * @returns An array of embeddings
    */
   async generateEmbedding(text: string): Promise<number[]> {
-    // In development mode, use fake embeddings
+    // Check if we have a valid OpenAI API key first
+    const hasValidApiKey = process.env.OPENAI_API_KEY || process.env.OPENROUTER_API_KEY;
+    
+    if (hasValidApiKey) {
+      try {
+        // Use OpenAI API when we have a valid key
+        const response = await openAIClient.embeddings.create({
+          model: "text-embedding-3-small",
+          input: text,
+          encoding_format: "float"
+        });
+
+        logger.info('Using real OpenAI embeddings');
+        return response.data[0].embedding;
+      } catch (error) {
+        logger.error('Error generating embedding:', error);
+        // Fall back to fake embeddings if API call fails
+        logger.info('Falling back to fake embeddings due to API error');
+        return generateFakeEmbedding(text);
+      }
+    }
+    
+    // In development mode without API key, use fake embeddings
     if (isDevelopment) {
-      logger.info('Using fake embeddings in development mode');
+      logger.info('Using fake embeddings in development mode (no API key)');
       return generateFakeEmbedding(text);
     }
     
-    try {
-      // In production, use OpenAI API
-      const response = await openAIClient.embeddings.create({
-        model: "text-embedding-3-small",
-        input: text,
-        encoding_format: "float"
-      });
-
-      return response.data[0].embedding;
-    } catch (error) {
-      logger.error('Error generating embedding:', error);
-      // Fall back to fake embeddings if API call fails
-      logger.info('Falling back to fake embeddings');
-      return generateFakeEmbedding(text);
-    }
+    // This should not happen in production without an API key
+    logger.error('No API key available for embeddings in production mode');
+    throw new Error('No API key available for embeddings');
   }
 
   /**
@@ -188,51 +198,77 @@ class AIService {
       logger.info('Starting generateChatCompletion...');
       logger.info(`Input messages: ${JSON.stringify(messages)}`);
       logger.info(`Model: ${model}`);
-      logger.info(`Params: ${JSON.stringify(params)}`);
       
-      // Check if OpenRouter API key is available, otherwise use OpenAI directly
-      if (!isApiKeyValid) {
-        logger.info('OpenRouter API key not valid, using OpenAI directly...');
+      // Check if we have a valid OpenAI API key and prefer it over OpenRouter
+      const openaiKey = process.env.OPENAI_API_KEY;
+      const openrouterKey = process.env.OPENROUTER_API_KEY;
+      
+      // OpenAI keys start with 'sk-' but NOT 'sk-or-' (which is OpenRouter)
+      if (openaiKey && openaiKey.startsWith('sk-') && !openaiKey.startsWith('sk-or-')) {
+        logger.info('Using direct OpenAI API');
         
-        // Use OpenAI directly with a simpler model
-        const openAIModel = model.includes('gpt') ? 'gpt-3.5-turbo' : 'gpt-3.5-turbo';
-        
-        const response = await openAIClient.chat.completions.create({
-          model: openAIModel,
-          messages,
-          temperature: params.temperature ?? 0.7,
-          max_tokens: params.maxTokens ?? 500,
-          top_p: params.topP ?? 0.9,
-          tools: params.tools ?? undefined,
-          tool_choice: params.toolChoice ?? undefined
+        // Use OpenAI directly for better reliability
+        const openaiDirectClient = new OpenAI({
+          apiKey: openaiKey
         });
         
-        logger.info('OpenAI API call successful');
+        // Map model to OpenAI compatible version
+        let openaiModel = model;
+        if (model.includes('/')) {
+          // Extract model name from OpenRouter format
+          openaiModel = model.split('/')[1] || 'gpt-3.5-turbo';
+        }
+        
+        const requestParams: any = {
+          model: openaiModel,
+          messages: messages,
+          temperature: params.temperature || 0.7,
+          max_tokens: params.maxTokens || 1000,
+          top_p: params.topP || 1.0,
+        };
+        
+        if (params.tools && params.tools.length > 0) {
+          requestParams.tools = params.tools;
+          requestParams.tool_choice = params.toolChoice || 'auto';
+        }
+        
+        logger.info(`OpenAI request params: ${JSON.stringify(requestParams)}`);
+        
+        const response = await openaiDirectClient.chat.completions.create(requestParams);
+        
+        logger.info('OpenAI response received successfully');
         return response;
       }
       
-      // Ensure the model is in the correct format for OpenRouter
-      const openRouterModel = getCompatibleModel(model);
+      // Fallback to OpenRouter if no OpenAI key or OpenRouter key is available
+      if (!isApiKeyValid) {
+        logger.error('No valid API key available for chat completion');
+        throw new Error('No valid API key available');
+      }
       
-      logger.info(`Using model: ${openRouterModel} (from ${model})`);
+      logger.info('Using OpenRouter API');
       
-      const requestPayload = {
-        model: openRouterModel,
-        messages,
-        temperature: params.temperature ?? 0.7,
-        max_tokens: params.maxTokens ?? 500,
-        top_p: params.topP ?? 0.9,
-        tools: params.tools ?? undefined,
-        tool_choice: params.toolChoice ?? undefined
+      const compatibleModel = getCompatibleModel(model);
+      logger.info(`Compatible model: ${compatibleModel}`);
+      
+      const requestParams: any = {
+        model: compatibleModel,
+        messages: messages,
+        temperature: params.temperature || 0.7,
+        max_tokens: params.maxTokens || 1000,
+        top_p: params.topP || 1.0,
       };
       
-      logger.info(`Request payload: ${JSON.stringify(requestPayload)}`);
+      if (params.tools && params.tools.length > 0) {
+        requestParams.tools = params.tools;
+        requestParams.tool_choice = params.toolChoice || 'auto';
+      }
       
-      const response = await openRouterClient.chat.completions.create(requestPayload);
-
-      logger.info('OpenRouter API call successful');
-      logger.info(`Response: ${JSON.stringify(response)}`);
+      logger.info(`OpenRouter request params: ${JSON.stringify(requestParams)}`);
       
+      const response = await openRouterClient.chat.completions.create(requestParams);
+      
+      logger.info('OpenRouter response received successfully');
       return response;
     } catch (error: unknown) {
       logger.error('Error generating chat completion:', error);

@@ -42,6 +42,9 @@ router.use('/profile', profileRoutes);
 // Document routes - Re-enabled - Prisma client works at runtime
 router.use('/documents', documentRoutes);
 
+// Embedding routes
+router.use('/embeddings', embeddingRoutes);
+
 // Chat routes (original OpenAI implementation)
 router.use('/chat', chatRoutes);
 

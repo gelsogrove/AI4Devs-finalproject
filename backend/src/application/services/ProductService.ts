@@ -31,6 +31,7 @@ export class ProductService {
       new Price(productData.price),
       productData.category,
       productData.tags || [], // Aggiungo i tags con valore di default array vuoto
+      productData.isActive !== undefined ? productData.isActive : true,
       new Date(),
       new Date()
     );
@@ -84,6 +85,10 @@ export class ProductService {
     
     if (productData.tags) {
       existingProduct.updateTags(productData.tags);
+    }
+    
+    if (productData.isActive !== undefined) {
+      existingProduct.updateIsActive(productData.isActive);
     }
     
     // Use repository to update

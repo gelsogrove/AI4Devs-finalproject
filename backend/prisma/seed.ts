@@ -222,7 +222,7 @@ async function seedFAQs() {
     },
     {
       question: 'How long does shipping take?',
-      answer: 'Orders within Italy are delivered in 1-3 business days. EU countries receive orders in 3-5 business days. International shipping to non-EU countries takes 5-10 business days. Express shipping options are available.',
+      answer: 'Here\'s our shipping timeline:\n\n• **Orders within Italy** are delivered in **1-3 business days**\n• **EU countries** receive orders in **3-5 business days**\n• **International shipping** to non-EU countries takes **5-10 business days**\n• **Express shipping options** are available for faster delivery! 🚚⚡',
       isActive: true
     },
     {
@@ -257,7 +257,7 @@ async function seedFAQs() {
     },
     {
       question: 'What payment methods do you accept?',
-      answer: 'We accept all major credit cards (Visa, Mastercard, American Express), PayPal, Apple Pay, Google Pay, and bank transfers. For orders over €200, we also offer payment in 3 installments through Klarna.',
+      answer: 'We accept a variety of payment methods to make your shopping experience as smooth as possible! Here are the options:\n\n• **All major credit cards** (Visa, Mastercard, American Express)\n• **PayPal**\n• **Apple Pay**\n• **Google Pay**\n• **Bank transfers**\n• **For orders over €200**, payment in 3 installments through Klarna is also available!',
       isActive: true
     },
     {
@@ -367,19 +367,22 @@ async function seedAgentConfig() {
   // Delete existing config
   await prisma.agentConfig.deleteMany({});
   
-  // Create initial agent config
+  // Create initial agent config with updated prompt
   const agentConfig = await prisma.agentConfig.create({
     data: {
       temperature: 0.7,
       maxTokens: 500,
       topP: 0.9,
       model: 'openai/gpt-4o-mini',
-      prompt: `You are Sofia, the friendly virtual assistant for Gusto Italiano, an Italian specialty foods store.
+      prompt: `You are SofIA, the friendly virtual assistant for Gusto Italiano, an Italian specialty foods store.
 
 YOUR IDENTITY:
 - You are passionate about authentic Italian cuisine and culture
 - You have extensive knowledge about regional Italian specialties, cooking techniques, and food pairings
 - You speak with warmth and enthusiasm, occasionally using simple Italian expressions (with translations)
+
+LANGAUGE:
+Talk the language of the user.
 
 YOUR MAIN GOALS:
 1. Help customers find products they'll love based on their preferences and needs
@@ -393,7 +396,6 @@ CRITICAL RULES - FUNCTION CALLS ARE MANDATORY:
 - If a customer asks about products, call getProducts() first
 - If a customer asks about services, call getServices() first  
 - If a customer asks about policies, shipping, returns, or common questions, call getFAQs() first
-- If a customer asks about company location, website, opening hours, or contact info, call getProfile() first
 - DO NOT use your internal knowledge - ONLY use data from function calls
 
 FUNCTION CALLING CAPABILITIES:
@@ -413,12 +415,8 @@ You have access to the following functions that you MUST use to get accurate inf
 3. getFAQs(search?)
    - Call this when users ask common questions about policies, shipping, returns, loyalty programs
    - Use 'search' parameter to find specific information
-   - Examples: "What's your return policy?", "How long does shipping take?", "Do you have a loyalty program?"
-
-4. getProfile()
-   - Call this when users ask about company information, location, contact details, or business hours
-   - Examples: "Where are you located?", "What's your website?", "When are you open?", "How can I contact you?"
-   - Note: Phone number is not included for privacy reasons
+   - For shipping questions, use broad terms like "shipping", "delivery", "return" rather than specific phrases
+   - Examples: "What's your return policy?" → search="return", "How long does shipping take?" → search="shipping", "Do you have a loyalty program?" → search="loyalty"
 
 RESPONSE GUIDELINES:
 - Always call the appropriate function before providing information
@@ -429,11 +427,35 @@ RESPONSE GUIDELINES:
 
 Remember: Your knowledge comes from the database through function calls, not from hardcoded information. Always retrieve fresh, accurate data to provide the best customer experience.
 
+COMPANY PROFILE
+if user ask CompanyName, phone email , adress, timing, Business sector, Description of the companu cann the fucntion getCompanyInfo()
+
+INTERNATIONAL TRANSPORT LOW
+- If we talk about the law , internation transport call the function
+GetDocuments() 
+- Your role is export of internation transport  you don't need to explain that there is a document, explain what you know the main concepet without mention the document try to summaryze the concepts
+
+E-COMMERCE
+- when user talk about product ask if he want to add a product on the cart?
+- when user talk about service ask if he want to add a service on the cart?
+- if user wants to add please reply with the list of the cart with quantity without any other information just product and quantity and the total.
+
+- Ask do you want to add other products or you can want to proceed with the order ?
+- if user wants to proceed with the order ask the address delivery
+- You cannot confirm the order if you don't have the address delivery
+- Once the order is completed return the confirmation code (es: 0273744) you will pay once you  will receive the products
+- execute the function OrderCompleted()
+- Reset the cart
+
+FORMAT
+- list must be name and price of product without description
+- list must be name and price of services without description
+
 Buon appetito!`
     }
   });
   
-  console.log('Seeded agent config');
+  console.log('Seeded agent config with updated prompt');
 }
 
 async function seedProfile() {
@@ -445,7 +467,7 @@ async function seedProfile() {
     data: {
       username: 'shopmefy',
       companyName: 'ShopMefy',
-      logoUrl: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=200&h=200&fit=crop&crop=center',
+      logoUrl: null,
       description: 'Authentic Italian restaurant bringing the finest Italian cuisine and products directly to your table. From premium Parmigiano Reggiano to traditional pasta from Gragnano, we curate only the best Italian specialties with DOP and IGP certifications.',
       phoneNumber: '+390612345678',
       website: 'https://www.shopmefy.com',
@@ -464,120 +486,50 @@ async function seedDocuments() {
   await prisma.documentChunk.deleteMany({});
   await prisma.document.deleteMany({});
   
-  console.log('📄 Seeding sample documents...');
+  console.log('📄 Seeding documents...');
   
-  // Sample documents from our created PDFs with proper title
-  const sampleDocuments = [
-    {
-      filename: 'trasporto-merci-italia.pdf',
-      originalName: 'Regolamento Trasporto Merci in Italia.pdf',
-      title: 'Italian Goods Transportation Regulations',
-      description: 'Comprehensive regulations for goods transportation in Italy, including licensing requirements, documentation, and legal responsibilities.'
-    },
-    {
-      filename: 'gdpr-privacy-policy.pdf',
-      originalName: 'GDPR Privacy Policy - Gusto Italiano.pdf',
-      title: 'GDPR Privacy Policy - ShopMefy',
-      description: 'Complete GDPR compliance documentation including data processing purposes, legal basis, and user rights.'
-    },
-    {
-      filename: 'catalogo-prodotti-italiani.pdf',
-      originalName: 'Catalogo Prodotti Italiani 2024.pdf',
-      title: 'Italian Products Catalog 2024',
-      description: 'Complete catalog of authentic Italian products including pasta, cheeses, wines, and traditional specialties.'
-    }
-  ];
-  
-  const sampleDir = path.join(__dirname, 'sample-documents');
   const uploadsDir = path.join(__dirname, '..', 'uploads', 'documents');
+  const existingFile = '1748550053298-695888264-international-transportation-law.pdf';
+  const filePath = path.join(uploadsDir, existingFile);
   
-  // Ensure uploads directory exists
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-    console.log('📁 Created uploads/documents directory');
-  }
-  
-  for (const docInfo of sampleDocuments) {
-    const filePath = path.join(sampleDir, docInfo.filename);
-    
-    // Check if file exists
-    if (!fs.existsSync(filePath)) {
-      console.log(`⚠️  File not found: ${docInfo.filename}, skipping...`);
-      continue;
-    }
-    
-    // Get file stats
+  // Check if the file exists
+  if (fs.existsSync(filePath)) {
     const stats = fs.statSync(filePath);
-    const uploadPath = `uploads/documents/${docInfo.filename}`;
+    const uploadPath = `uploads/documents/${existingFile}`;
     
-    // Copy file to uploads directory if it doesn't exist
-    const destinationPath = path.join(uploadsDir, docInfo.filename);
-    if (!fs.existsSync(destinationPath)) {
-      fs.copyFileSync(filePath, destinationPath);
-      console.log(`📋 Copied ${docInfo.filename} to uploads directory`);
-    }
-    
-    // Create document record with title field
+    // Create document record
     const document = await prisma.document.create({
       data: {
         id: uuidv4(),
-        filename: docInfo.filename,
-        originalName: docInfo.originalName,
-        title: docInfo.title,
+        filename: existingFile,
+        originalName: 'International Transportation Law.pdf',
+        title: 'International Transportation Law',
         mimeType: 'application/pdf',
         size: stats.size,
         uploadPath: uploadPath,
         status: 'COMPLETED',
-        userId: null, // System documents
+        isActive: true,
+        userId: null, // System document
         metadata: JSON.stringify({
-          title: docInfo.title,
-          pages: 1,
-          description: docInfo.description,
-          language: 'it'
+          title: 'International Transportation Law',
+          description: 'Comprehensive guide to international transportation law, regulations, and compliance requirements for cross-border shipping and logistics.',
+          language: 'en',
+          category: 'legal',
+          pages: Math.ceil(stats.size / 1024) // Rough estimate
         }),
         createdAt: new Date(),
         updatedAt: new Date()
       }
     });
     
-    // Create sample chunks for each document
-    const sampleChunks = [
-      {
-        content: `${docInfo.title} - This document contains important information about ${docInfo.description.toLowerCase()}`,
-        pageNumber: 1,
-        chunkIndex: 0
-      },
-      {
-        content: `Key topics covered in this document include regulations, requirements, and best practices related to ${docInfo.title.toLowerCase()}`,
-        pageNumber: 1,
-        chunkIndex: 1
-      },
-      {
-        content: `This document provides comprehensive guidance for Italian business operations.`,
-        pageNumber: 1,
-        chunkIndex: 2
-      }
-    ];
-    
-    for (const chunkInfo of sampleChunks) {
-      await prisma.documentChunk.create({
-        data: {
-          id: uuidv4(),
-          content: chunkInfo.content,
-          pageNumber: chunkInfo.pageNumber,
-          chunkIndex: chunkInfo.chunkIndex,
-          documentId: document.id,
-          embedding: null, // Will be generated later by the embedding service
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
-      });
-    }
-    
-    console.log(`✅ Seeded document: ${docInfo.title} (${stats.size} bytes)`);
+    console.log(`✅ Seeded document: International Transportation Law (${stats.size} bytes)`);
+    console.log(`📄 Document ID: ${document.id}`);
+    console.log(`📁 File path: ${uploadPath}`);
+  } else {
+    console.log(`❌ File not found: ${filePath}`);
   }
   
-  console.log(`📄 Successfully seeded ${sampleDocuments.length} sample documents with chunks and proper title fields`);
+  console.log('📄 Documents seeding completed');
 }
 
 main()

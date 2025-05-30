@@ -9,6 +9,8 @@ import { ChatMessage } from '@/types/chat';
 import { Profile } from '@/types/profile';
 import { Bot, Bug, MessageCircle, Send, Sparkles } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
+import { FaWhatsapp } from 'react-icons/fa';
+import ReactMarkdown from 'react-markdown';
 
 // Initial messages to demonstrate the chat
 // NOTA: Array vuoto per permettere agli utenti di iniziare la conversazione
@@ -96,6 +98,22 @@ const Chatbot: React.FC = () => {
       const response: ChatApiResponse = await chatApi.sendMessage({
         messages: filteredMessages,
       });
+      
+      // Capture debug information if available
+      if (response.debug && debugMode) {
+        const newDebugInfo = {
+          userMessage: inputMessage.trim(),
+          timestamp: new Date().toISOString(),
+          functionCalls: response.debug.functionCalls || [],
+          processingTime: response.debug.processingTime,
+          model: response.debug.model,
+          temperature: response.debug.temperature
+        };
+        
+        setDebugInfo(prev => [newDebugInfo, ...prev].slice(0, 10)); // Keep last 10 debug entries
+        
+        console.log('🐛 Debug Info Captured:', newDebugInfo);
+      }
       
       // Check if the response contains an OrderCompleted function call result
       const responseContent = response.message.content;
@@ -318,21 +336,36 @@ const Chatbot: React.FC = () => {
               {/* Chat header */}
               <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-gray-100 rounded-t-lg">
                 <div className="flex items-center justify-between">
-                  {/* Left side - Bot icon */}
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-shopme-500 to-shopme-600 flex items-center justify-center text-white font-medium shadow-md">
-                    <Bot className="w-5 h-5" />
-                  </div>
-                  
-                  {/* Center - Company name */}
-                  <div className="flex-1 text-center">
-                    <h3 className="font-semibold text-gray-900">
-                      {profile?.companyName || 'ShopMefy'} - Sofia
-                    </h3>
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                      <p className="text-xs text-gray-500">Online</p>
+                  {/* Left side - Bot icon and company name */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-shopme-500 to-shopme-600 flex items-center justify-center text-white font-medium shadow-md">
+                      <Bot className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">
+                        {profile?.companyName || 'Gusto Italiano'} - Sofia
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                        <p className="text-xs text-gray-500">Online</p>
+                      </div>
                     </div>
                   </div>
+                  
+                  {/* Center - WhatsApp Info */}
+                  {profile?.phoneNumber && (
+                    <div className="flex items-center gap-2 bg-green-50 px-3 py-2 rounded-lg border border-green-200 hover:bg-green-100 transition-colors cursor-pointer group">
+                      <FaWhatsapp className="w-5 h-5 text-green-600" />
+                      <div className="text-center">
+                        <div className="text-sm font-medium text-green-800">
+                          {profile.phoneNumber}
+                        </div>
+                        <div className="text-xs text-green-600 group-hover:text-green-700">
+                          WhatsApp Business API not implemented yet.
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   
                   {/* Right side - Debug and sparkles */}
                   <div className="flex items-center gap-2">
@@ -353,7 +386,7 @@ const Chatbot: React.FC = () => {
               </div>
               
               {/* Debug Panel */}
-              {/* {debugMode && (
+              {debugMode && (
                 <div className="border-b border-gray-100 bg-orange-50 p-3">
                   <div className="flex items-center gap-2 mb-2">
                     <Bug className="w-4 h-4 text-orange-600" />
@@ -366,11 +399,29 @@ const Chatbot: React.FC = () => {
                           <div className="font-medium text-orange-800">
                             Query: {info.userMessage.substring(0, 50)}...
                           </div>
-                          {info.functionCalls.length > 0 && (
+                          {info.functionCalls && info.functionCalls.length > 0 && (
                             <div className="text-orange-600 mt-1">
-                              Functions called: {info.functionCalls.map((call: any) => 
-                                call?.function?.name || call?.name || 'Unknown'
-                              ).join(', ')}
+                              <div className="font-medium">Functions called:</div>
+                              {info.functionCalls.map((call: any, callIndex: number) => (
+                                <div key={callIndex} className="ml-2 mt-1">
+                                  <span className="font-medium">{call.name}</span>
+                                  {call.arguments && (
+                                    <div className="text-gray-600 text-xs">
+                                      Args: {JSON.stringify(call.arguments)}
+                                    </div>
+                                  )}
+                                  {call.result && (
+                                    <div className="text-green-600 text-xs">
+                                      Result: {call.result.total || 0} items found
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {info.processingTime && (
+                            <div className="text-blue-600 mt-1">
+                              Processing time: {info.processingTime}ms
                             </div>
                           )}
                           <div className="text-gray-500 text-xs mt-1">
@@ -380,10 +431,10 @@ const Chatbot: React.FC = () => {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-xs text-orange-600">No function calls recorded yet</div>
+                    <div className="text-xs text-orange-600">No function calls recorded yet. Ask Sofia about products, services, or FAQs!</div>
                   )}
                 </div>
-              )} */}
+              )}
               
               {/* Chat messages */}
               <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
@@ -442,56 +493,53 @@ const Chatbot: React.FC = () => {
                           return null;
                         })()}
                         
-                        {/* Display text content */}
-                        {(message.content ?? '').split('\n').map((line, i) => {
-                          // Check for markdown headers
-                          if (line.startsWith('# ')) {
-                            return (
-                              <h1 key={i} className="text-xl font-bold mt-2 mb-2">
-                                {line.substring(2)}
-                              </h1>
-                            );
-                          } else if (line.startsWith('## ')) {
-                            return (
-                              <h2 key={i} className="text-lg font-semibold mt-2 mb-1">
-                                {line.substring(3)}
-                              </h2>
-                            );
-                          } else if (line.startsWith('- ')) {
-                            // Bullet list items
-                            return (
-                              <div key={i} className="flex items-start mt-1">
-                                <span className="mr-2">•</span>
-                                <span>{line.substring(2)}</span>
-                              </div>
-                            );
-                          } else if (line.match(/^\d+\.\s/)) {
-                            // Numbered list items
-                            const num = line.match(/^\d+/)?.[0] || '';
-                            const text = line.replace(/^\d+\.\s/, '');
-                            return (
-                              <div key={i} className="flex items-start mt-1">
-                                <span className="mr-2 font-medium">{num}.</span>
-                                <span>{text}</span>
-                              </div>
-                            );
-                          } else if (line.includes('**')) {
-                            return (
-                              <div key={i} className={line.startsWith('•') ? 'mt-2' : ''} 
-                                dangerouslySetInnerHTML={{ 
-                                  __html: line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
-                                }} 
-                              />
-                            );
-                          } else {
-                            return (
-                              <div key={i} className={`${line.startsWith('•') ? 'mt-2' : ''} ${line.trim() === '' ? 'h-2' : ''}`}>
-                                {line}
-                              </div>
-                            );
-                          }
-                        })}
-                        <div className="text-xs opacity-70 mt-2 text-right">
+                        {/* Display text content with proper markdown rendering */}
+                        <div className="prose prose-sm max-w-none">
+                          <ReactMarkdown
+                            components={{
+                              // Custom styling for markdown elements
+                              h1: ({ children }) => (
+                                <h1 className="text-xl font-bold mt-4 mb-2 text-gray-900">{children}</h1>
+                              ),
+                              h2: ({ children }) => (
+                                <h2 className="text-lg font-semibold mt-3 mb-2 text-gray-900">{children}</h2>
+                              ),
+                              h3: ({ children }) => (
+                                <h3 className="text-base font-semibold mt-3 mb-1 text-gray-900">{children}</h3>
+                              ),
+                              ul: ({ children }) => (
+                                <ul className="list-none space-y-1 my-2">{children}</ul>
+                              ),
+                              ol: ({ children }) => (
+                                <ol className="list-decimal list-inside space-y-1 my-2 ml-2">{children}</ol>
+                              ),
+                              li: ({ children }) => (
+                                <li className="flex items-start">
+                                  <span className="mr-2 text-softblue-600 mt-0.5">•</span>
+                                  <span className="flex-1">{children}</span>
+                                </li>
+                              ),
+                              p: ({ children }) => (
+                                <p className="my-1 leading-relaxed">{children}</p>
+                              ),
+                              strong: ({ children }) => (
+                                <strong className="font-semibold text-gray-900">{children}</strong>
+                              ),
+                              em: ({ children }) => (
+                                <em className="italic text-gray-700">{children}</em>
+                              ),
+                              code: ({ children }) => (
+                                <code className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono">{children}</code>
+                              ),
+                              blockquote: ({ children }) => (
+                                <blockquote className="border-l-4 border-softblue-300 pl-4 my-2 italic text-gray-700">{children}</blockquote>
+                              )
+                            }}
+                          >
+                            {message.content || ''}
+                          </ReactMarkdown>
+                        </div>
+                        <div className="text-xs mt-2 text-right text-gray-700 font-medium">
                           {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </div>
@@ -546,8 +594,8 @@ const Chatbot: React.FC = () => {
           <Card className="border-0 shadow-md hover:shadow-xl transition-all duration-300">
             <CardHeader className="pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-blue-600" />
+                <div className="w-8 h-8 bg-gradient-to-br from-shopme-100 to-shopme-200 rounded-lg flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-shopme-600" />
                 </div>
                 <div>
                   <CardTitle className="text-lg font-semibold text-gray-900">About Sofia</CardTitle>
@@ -574,10 +622,53 @@ const Chatbot: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* Available Functions Panel */}
+          {/* Try Asking Panel */}
           <Card className="border-0 shadow-md hover:shadow-xl transition-all duration-300">
-            
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-softblue-100 to-softblue-200 rounded-lg flex items-center justify-center">
+                  <MessageCircle className="w-5 h-5 text-softblue-600" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg font-semibold text-gray-900">Try Asking</CardTitle>
+                  <CardDescription className="text-sm text-gray-500">
+                    Click on any question to start
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {[
+                  "Where is your warehouse?",
+                  "Do you have wine less than 20 Euro?",
+                  "How long does shipping take?",
+                  "What payment methods do you accept?",
+                  "Does exist an international delivery document?"
+                ].map((question, index) => (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      setInputMessage(question);
+                      // Auto-send the message
+                      setTimeout(() => {
+                        const event = new KeyboardEvent('keypress', { key: 'Enter' });
+                        document.dispatchEvent(event);
+                        sendMessage();
+                      }, 100);
+                    }}
+                    className="w-full text-left p-3 text-sm bg-gray-50 hover:bg-softblue-50 border border-gray-200 hover:border-softblue-300 rounded-lg transition-all duration-200 hover:shadow-sm"
+                  >
+                    <span className="text-softblue-600 mr-2">💬</span>
+                    <span className="text-gray-700">{question}</span>
+                  </button>
+                ))}
+              </div>
+            </CardContent>
           </Card>
+
+          {/* Available Functions Panel - REMOVED */}
+
         </div>
       </div>
       

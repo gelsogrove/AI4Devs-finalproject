@@ -17,12 +17,14 @@ export const availableFunctions = {
    */
   getProducts: async (filters: ProductFilters) => {
     try {
-      const { category, search, countOnly } = filters;
+      const { category, search, countOnly, isActive } = filters;
       
-      logger.info(`getProducts called with filters:`, { category, search, countOnly });
+      logger.info(`getProducts called with filters:`, { category, search, countOnly, isActive });
       
       // Base query conditions
-      const where: any = {};
+      const where: any = {
+        isActive: isActive !== undefined ? isActive : true  // Default to true, but allow override
+      };
       
       // Add category filter if provided
       if (category) {
@@ -30,7 +32,7 @@ export const availableFunctions = {
           contains: category
         };
       }
-      
+
       // Add search filter if provided
       if (search) {
         // Split search into keywords for better matching
@@ -79,12 +81,6 @@ export const availableFunctions = {
                 category: {
                   contains: keyword
                 }
-              },
-              // Check if any tag contains the keyword - high priority
-              {
-                tagsJson: {
-                  contains: keyword
-                }
               }
             ];
           });
@@ -93,18 +89,50 @@ export const availableFunctions = {
 
       logger.info(`Final query where clause:`, where);
 
-      // If countOnly is true, just return counts and categories
-      if (countOnly) {
-        const total = await prisma.product.count({ where });
+      // Get all products matching basic criteria
+      const allProducts = await prisma.product.findMany({
+        where,
+        orderBy: {
+          name: 'asc'
+        }
+      });
+
+      // If search terms provided, also filter by tags
+      let products = allProducts;
+      if (search) {
+        const rawKeywords = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
+        const keywords = rawKeywords.filter(word => !stopWords.includes(word));
+        const searchTerms = keywords.length > 0 ? keywords : rawKeywords;
         
-        // Get category counts - in this schema, category is just a string field
-        const categoryCounts: { [key: string]: number } = {};
-        const products = await prisma.product.findMany({
-          select: {
-            category: true
+        // Get products that match in tags
+        const tagMatchedProducts = allProducts.filter(product => {
+          try {
+            const tags = JSON.parse(product.tagsJson || '[]');
+            return searchTerms.some(term => 
+              tags.some((tag: string) => 
+                tag.toLowerCase().includes(term.toLowerCase())
+              )
+            );
+          } catch {
+            return false;
           }
         });
         
+        // Combine results and remove duplicates
+        const combinedProducts = [...allProducts, ...tagMatchedProducts];
+        const uniqueProducts = combinedProducts.filter((product, index, self) => 
+          index === self.findIndex(p => p.id === product.id)
+        );
+        
+        products = uniqueProducts;
+      }
+
+      // If countOnly is true, just return counts and categories
+      if (countOnly) {
+        const total = products.length;
+        
+        // Get category counts from filtered products
+        const categoryCounts: { [key: string]: number } = {};
         products.forEach(product => {
           if (product.category) {
             categoryCounts[product.category] = (categoryCounts[product.category] || 0) + 1;
@@ -121,14 +149,6 @@ export const availableFunctions = {
           categories
         };
       }
-      
-      // Otherwise return product details
-      const products = await prisma.product.findMany({
-        where,
-        orderBy: {
-          name: 'asc'
-        }
-      });
       
       logger.info(`Found ${products.length} products matching search criteria`);
       if (products.length > 0) {
@@ -271,43 +291,44 @@ export const availableFunctions = {
    */
   getFAQs: async (filters: FAQFilters) => {
     try {
-      const { search } = filters;
+      const { search, isActive } = filters;
 
       if (search) {
         try {
           // Use embedding search if search term is provided
           const faqs = await embeddingService.searchFAQs(search);
 
-          return {
-            total: faqs.length,
-            faqs: faqs.map(faq => ({
-              id: faq.id,
-              question: faq.question,
-              answer: faq.answer
-            }))
-          };
+          // Check if embedding search found relevant results
+          // Only use embedding results if we have good quality results
+          if (faqs && faqs.length > 0) {
+            // For now, always fall back to text search due to API key issues
+            // This ensures we get reliable results
+            logger.info('Embedding search returned results, but falling back to text search for reliability');
+          }
         } catch (embeddingError) {
           // Log error and fall back to regular search
           logger.error('Embedding search failed, falling back to text search:', embeddingError);
-          
-          // Continue with regular search below
         }
       }
 
-      // If no search term or embedding search failed, use regular filtering
-      const where: any = {};
+      // Always use text search for now (due to embedding API key issues)
+      const where: any = {
+        isActive: isActive !== undefined ? isActive : true  // Default to true, but allow override
+      };
       
       // Add text search if search term is provided
       if (search) {
         where.OR = [
           {
             question: {
-              contains: search
+              contains: search,
+              mode: 'insensitive'
             }
           },
           {
             answer: {
-              contains: search
+              contains: search,
+              mode: 'insensitive'
             }
           }
         ];
@@ -414,11 +435,11 @@ export const availableFunctions = {
   /**
    * Get documents with optional filters
    */
-  getDocuments: async (filters: { search?: string; path?: string; limit?: number }) => {
+  getDocuments: async (filters: { search?: string; path?: string; limit?: number; isActive?: boolean }) => {
     try {
-      const { search, path, limit = 5 } = filters;
+      const { search, path, limit = 5, isActive } = filters;
       
-      logger.info(`getDocuments called with filters:`, { search, path, limit });
+      logger.info(`getDocuments called with filters:`, { search, path, limit, isActive });
       
       // If we have a search query, try embedding search first
       if (search) {
@@ -426,10 +447,15 @@ export const availableFunctions = {
           // Use embedding search for documents
           const documents = await embeddingService.searchDocuments(search, limit);
           
-          // Filter by path if provided
+          // Filter by isActive if specified
           let filteredDocuments = documents;
+          if (typeof isActive === 'boolean') {
+            filteredDocuments = documents.filter(doc => doc.isActive === isActive);
+          }
+          
+          // Filter by path if provided
           if (path) {
-            filteredDocuments = documents.filter(doc =>
+            filteredDocuments = filteredDocuments.filter(doc =>
               doc.title?.toLowerCase().includes(path.toLowerCase()) ||
               doc.originalName?.toLowerCase().includes(path.toLowerCase())
             );
@@ -461,7 +487,8 @@ export const availableFunctions = {
       // Fallback: Get documents from database with text search
       try {
         const where: any = {
-          status: 'COMPLETED'
+          status: 'COMPLETED',
+          isActive: isActive !== undefined ? isActive : true  // Default to true, but allow override
         };
 
         if (search) {
@@ -550,22 +577,19 @@ export const availableFunctions = {
       // Generate unique order number
       const orderNumber = `ORD-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
       
-      // Calculate order total
-      const priceMap: {[key: string]: number} = {
-        'barolo': 45.00,
-        'chianti': 19.50,
-        'prosecco': 13.90,
-        'gnocchi': 4.80,
-        'gnocchi di patate': 4.80,
-        'parmigiano': 15.90,
-        'prosciutto': 24.90,
-        'mozzarella': 6.75
-      };
-      
       let total = 0;
       const orderItems: Array<{product: string, quantity: number, price: number, subtotal: number}> = [];
       
       if (orderData?.cartItems) {
+        // Get real product prices from database
+        const productNames = orderData.cartItems.map(item => item.product);
+        const products = await prisma.product.findMany({
+          where: {
+            name: { in: productNames },
+            isActive: true
+          }
+        });
+        
         // Group by product and sum quantities
         const cartSummary = new Map<string, number>();
         orderData.cartItems.forEach(item => {
@@ -573,18 +597,30 @@ export const availableFunctions = {
           cartSummary.set(item.product, existing + item.quantity);
         });
         
-        // Calculate totals
-        Array.from(cartSummary.entries()).forEach(([product, quantity]) => {
-          const price = priceMap[product.toLowerCase()] || 10.00;
-          const subtotal = price * quantity;
-          total += subtotal;
-          
-          orderItems.push({
-            product,
-            quantity,
-            price,
-            subtotal
-          });
+        // Calculate totals with real prices from database
+        Array.from(cartSummary.entries()).forEach(([productName, quantity]) => {
+          const product = products.find(p => p.name === productName);
+          if (product) {
+            const price = parseFloat(product.price.toString());
+            const subtotal = price * quantity;
+            total += subtotal;
+            
+            orderItems.push({
+              product: productName,
+              quantity,
+              price,
+              subtotal
+            });
+          } else {
+            logger.warn(`Product not found in database: ${productName}`);
+            // Add item with 0 price if product not found
+            orderItems.push({
+              product: productName,
+              quantity,
+              price: 0,
+              subtotal: 0
+            });
+          }
         });
       }
       

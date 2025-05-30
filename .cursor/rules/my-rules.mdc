@@ -42,5 +42,33 @@ alwaysApply: false
 # FE must be on port 3000
 # BE must be in port 3001
 
+## ❌ WHAT NOT TO DO - STRICT PROHIBITIONS
+
+### 🚫 NEVER HARDCODE DATA
+* **NEVER** create hardcoded responses or fallback data in controllers
+* **NEVER** return fake/mock data outside of test environments
+* **NEVER** use hardcoded product lists, prices, or inventory data
+* **NEVER** create static responses that bypass database queries
+* **ALWAYS** use dynamic database searches and real data
+
+### 🚫 NEVER CREATE FAKE FALLBACK LOGIC
+* **NEVER** implement "intelligent fallbacks" that return hardcoded results
+* **NEVER** create pattern matching that returns static responses
+* **NEVER** bypass the AI service with fake data responses
+* **NEVER** create mock responses in production code
+* **IF** AI service fails, return a simple error message asking user to retry
+
+### 🚫 NEVER IGNORE USER REQUIREMENTS
+* **NEVER** implement solutions that don't match the actual user query
+* **NEVER** return generic results when user asks for specific filters (like price ranges)
+* **NEVER** ignore search parameters or filtering criteria
+* **ALWAYS** respect the user's exact request and search parameters
+
+### 🚫 NEVER CREATE TEMPORARY WORKAROUNDS
+* **NEVER** create "temporary" hardcoded solutions
+* **NEVER** implement quick fixes that bypass proper data flow
+* **NEVER** create workarounds that return static data
+* **ALWAYS** fix the root cause instead of creating workarounds
+
 
 

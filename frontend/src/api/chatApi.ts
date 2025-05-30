@@ -57,6 +57,17 @@ export interface ChatApiResponse {
     }>;
     tool_call_id?: string;
   };
+  debug?: {
+    functionCalls?: Array<{
+      name: string;
+      arguments: any;
+      result?: any;
+      timestamp: string;
+    }>;
+    processingTime?: number;
+    model?: string;
+    temperature?: number;
+  };
 }
 
 export const chatApi = {

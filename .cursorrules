@@ -1,0 +1,32 @@
+# Cursor Rules for AI4Devs Final Project
+
+## 🧠 Core Development Rules
+
+- Focus only on code areas relevant to the assigned task
+- NON INVENTARE NULLA
+- Keep solutions simple and avoid unnecessary complexity
+- All code and comments must be in English
+- Never run `git push` - only me can do this
+- use my name when you chat with me, es: HEllo Andrea, Andrea what do you think ?
+- DO NOT TOUCH the .env files
+- I USE PostgresSQL and not SqlLite
+- OPENAI_API_KEY esta dentro .env de backend
+- SCRIPT VANNO DENTRO LA CARTELLA SCRITP
+
+
+## ❌ STRICT PROHIBITIONS - WHAT NEVER TO DO
+
+### 🚫 NEVER HARDCODE DATA
+- **NEVER** create hardcoded responses or fallback data in controllers
+- **NEVER** return fake/mock data outside of test environments  
+- **NEVER** use hardcoded product lists, prices, or inventory data
+- **NEVER** create static responses that bypass database queries
+- **ALWAYS** use dynamic database searches and real data from Prisma
+- **NEVER**  non voglio nessun nessun nessun codice ne parole ne testo ne prompt tutto viene gestito dal DB e dal DB devi prendere i dati 
+
+
+###  NOTAS ###  
+- utente scrive > passa al primo LLM che ha un prompot e decide a que calling function indirizzare il tutto , la risposta viene dato al secondo LLM che  ha uno storico e formatta la risposta per l'utente (questo e' l'unico punto statico) se il flusso non e' questo parliamone oppure cambia il prmpt dell'agente dentro il SEED
+
+- non cambiare la GRAFICA IL LAYOUT ORA MI PIACE E NON VOGLIO CORREGGERLO SE LO DEVI FARE CHIEDI PERMESSO STRAORDINARIO
+- non voglio messaggi di catch, voglio sempre lo stack errors

@@ -10,4 +10,5 @@ export interface UpdateFAQDto {
 
 export interface FAQFilters {
   search?: string;
+  isActive?: boolean;
 } 

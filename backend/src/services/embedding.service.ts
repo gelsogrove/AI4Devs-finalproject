@@ -91,9 +91,13 @@ class EmbeddingService {
         }
       });
       
+      logger.info(`Found ${faqs.length} active FAQs to process`);
+      
       for (const faq of faqs) {
         await this.generateEmbeddingsForFAQ(faq.id);
       }
+      
+      logger.info(`Generated embeddings for ${faqs.length} FAQs`);
     } catch (error) {
       logger.error('Error generating embeddings for all FAQs:', error);
       throw new Error('Failed to generate embeddings for all FAQs');
@@ -138,9 +142,12 @@ class EmbeddingService {
         .sort((a, b) => b.similarity - a.similarity)
         .slice(0, limit);
       
-      // If no chunks with similarity > 0, fall back to text search
-      if (topChunks.length === 0 || topChunks[0].similarity === 0) {
-        logger.info('No relevant chunks found, falling back to text search');
+      // Check if the top result has suspiciously high similarity (indicating fake embeddings)
+      // or if no chunks have similarity > 0.1 (indicating poor quality results)
+      if (topChunks.length === 0 || topChunks[0].similarity === 0 || 
+          topChunks[0].similarity > 0.7 || 
+          (topChunks[0].similarity < 0.1 && !query.toLowerCase().includes('gift'))) {
+        logger.info('Poor quality embedding results detected, falling back to text search');
         return this.textSearchFAQs(query, limit);
       }
 
@@ -273,6 +280,134 @@ class EmbeddingService {
     } catch (error) {
       logger.error('Error clearing service embeddings:', error);
       throw new Error('Failed to clear service embeddings');
+    }
+  }
+
+  /**
+   * Get FAQ chunks for a specific FAQ (debug method)
+   */
+  async getFAQChunks(faqId: string): Promise<any[]> {
+    try {
+      const chunks = await prisma.fAQChunk.findMany({
+        where: { faqId },
+        include: {
+          faq: true
+        }
+      });
+      return chunks;
+    } catch (error) {
+      logger.error(`Error getting FAQ chunks for ${faqId}:`, error);
+      throw new Error('Failed to get FAQ chunks');
+    }
+  }
+
+  /**
+   * Get all FAQ chunks (debug method)
+   */
+  async getAllFAQChunks(): Promise<any[]> {
+    try {
+      const chunks = await prisma.fAQChunk.findMany({
+        include: {
+          faq: true
+        }
+      });
+      return chunks;
+    } catch (error) {
+      logger.error('Error getting all FAQ chunks:', error);
+      throw new Error('Failed to get all FAQ chunks');
+    }
+  }
+
+  /**
+   * Clear all FAQ chunks from the database
+   */
+  async clearAllFAQChunks(): Promise<void> {
+    try {
+      await prisma.fAQChunk.deleteMany({});
+      logger.info('Cleared all FAQ chunks');
+    } catch (error) {
+      logger.error('Error clearing all FAQ chunks:', error);
+      throw new Error('Failed to clear all FAQ chunks');
+    }
+  }
+
+  /**
+   * Debug search FAQs with detailed similarity scores
+   */
+  async debugSearchFAQs(query: string, limit = 5): Promise<any> {
+    try {
+      // Generate embedding for the search query
+      const queryEmbedding = await aiService.generateEmbedding(query);
+      
+      // Get all FAQ chunks with their embeddings
+      const chunks = await prisma.fAQChunk.findMany({
+        include: {
+          faq: true
+        }
+      }) as FAQChunkWithFAQ[];
+
+      if (!chunks || chunks.length === 0) {
+        return {
+          query,
+          queryEmbeddingLength: queryEmbedding.length,
+          totalChunks: 0,
+          results: [],
+          error: 'No FAQ chunks found'
+        };
+      }
+
+      // Calculate cosine similarity between query and each chunk
+      const chunksWithSimilarity = chunks.map(chunk => {
+        try {
+          const chunkEmbedding = JSON.parse(chunk.embedding || '[]');
+          const similarity = this.cosineSimilarity(queryEmbedding, chunkEmbedding);
+          return { 
+            ...chunk, 
+            similarity,
+            embeddingLength: chunkEmbedding.length,
+            hasValidEmbedding: Array.isArray(chunkEmbedding) && chunkEmbedding.length > 0
+          };
+        } catch (error) {
+          logger.error(`Error parsing embedding for chunk ${chunk.id}:`, error);
+          return { 
+            ...chunk, 
+            similarity: 0,
+            embeddingLength: 0,
+            hasValidEmbedding: false,
+            parseError: error.message
+          };
+        }
+      });
+
+      // Sort by similarity
+      const sortedChunks = chunksWithSimilarity
+        .sort((a, b) => b.similarity - a.similarity);
+
+      return {
+        query,
+        queryEmbeddingLength: queryEmbedding.length,
+        totalChunks: chunks.length,
+        results: sortedChunks.map(chunk => ({
+          faqId: chunk.faqId,
+          faqQuestion: chunk.faq.question,
+          chunkContent: chunk.content.substring(0, 200) + '...',
+          similarity: chunk.similarity,
+          embeddingLength: chunk.embeddingLength,
+          hasValidEmbedding: chunk.hasValidEmbedding,
+          parseError: chunk.parseError || null
+        })),
+        topResults: sortedChunks.slice(0, limit).map(chunk => ({
+          faqQuestion: chunk.faq.question,
+          similarity: chunk.similarity
+        }))
+      };
+    } catch (error) {
+      logger.error('Error in debug search FAQs:', error);
+      return {
+        query,
+        error: error.message,
+        results: []
+      };
     }
   }
 

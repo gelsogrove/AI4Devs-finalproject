@@ -9,6 +9,7 @@ export class Product {
   private _price: Price;
   private _category: string;
   private _tags: string[];
+  private _isActive: boolean;
   private _createdAt: Date;
   private _updatedAt: Date;
 
@@ -19,6 +20,7 @@ export class Product {
     price: Price,
     category: string,
     tags: string[] = [],
+    isActive: boolean = true,
     createdAt: Date,
     updatedAt: Date
   ) {
@@ -28,6 +30,7 @@ export class Product {
     this._price = price;
     this._category = category;
     this._tags = tags;
+    this._isActive = isActive;
     this._createdAt = createdAt;
     this._updatedAt = updatedAt;
   }
@@ -55,6 +58,10 @@ export class Product {
 
   get tags(): string[] {
     return [...this._tags];
+  }
+
+  get isActive(): boolean {
+    return this._isActive;
   }
 
   get createdAt(): Date {
@@ -91,6 +98,11 @@ export class Product {
     this._updatedAt = new Date();
   }
 
+  updateIsActive(isActive: boolean): void {
+    this._isActive = isActive;
+    this._updatedAt = new Date();
+  }
+
   addTag(tag: string): void {
     if (!this._tags.includes(tag)) {
       this._tags.push(tag);
@@ -115,6 +127,7 @@ export class Product {
       price: this._price.amount,
       category: this._category,
       tags: [...this._tags],
+      isActive: this._isActive,
       createdAt: this._createdAt,
       updatedAt: this._updatedAt
     };
@@ -129,6 +142,7 @@ export class Product {
       new Price(dto.price),
       dto.category,
       dto.tags || [],
+      dto.isActive !== undefined ? dto.isActive : true,
       dto.createdAt instanceof Date ? dto.createdAt : new Date(dto.createdAt),
       dto.updatedAt instanceof Date ? dto.updatedAt : new Date(dto.updatedAt)
     );

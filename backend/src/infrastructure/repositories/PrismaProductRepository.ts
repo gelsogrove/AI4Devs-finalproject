@@ -27,6 +27,7 @@ export class PrismaProductRepository implements ProductRepository {
           description: dto.description,
           price: dto.price,
           category: dto.category,
+          isActive: dto.isActive,
           tagsJson: JSON.stringify(dto.tags || []),
         },
       });
@@ -145,6 +146,7 @@ export class PrismaProductRepository implements ProductRepository {
           description: dto.description,
           price: dto.price,
           category: dto.category,
+          isActive: dto.isActive,
           tagsJson: JSON.stringify(dto.tags || []),
         },
       });

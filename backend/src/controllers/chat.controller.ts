@@ -93,6 +93,10 @@ const functionDefinitions = [
         countOnly: {
           type: 'boolean',
           description: 'Return only count of products (for availability checks)',
+        },
+        isActive: {
+          type: 'boolean',
+          description: 'Filter by active status (default: true - only active products)',
         }
       },
       required: [],
@@ -130,6 +134,10 @@ const functionDefinitions = [
         search: {
           type: 'string',
           description: 'Semantic search query. Examples: "shipping time", "return policy", "payment methods"',
+        },
+        isActive: {
+          type: 'boolean',
+          description: 'Filter by active status (default: true - only active FAQs)',
         }
       },
       required: [],
@@ -152,6 +160,10 @@ const functionDefinitions = [
         limit: {
           type: 'number',
           description: 'Maximum number of documents to return (default: 5)',
+        },
+        isActive: {
+          type: 'boolean',
+          description: 'Filter by active status (default: true - only active documents)',
         }
       },
       required: [],
@@ -356,7 +368,23 @@ Remember: You're Sofia - be passionate about Italian food! 🇮🇹`
               const duration = Date.now() - startTime;
               logger.info(`🏁 === CHAT FLOW COMPLETE (${duration}ms) ===`);
               
-              return res.json({ message: finalMessage });
+              // Prepare debug information
+              const debugInfo = {
+                functionCalls: [{
+                  name: functionName,
+                  arguments: functionArgs,
+                  result: functionResult,
+                  timestamp: new Date().toISOString()
+                }],
+                processingTime: duration,
+                model: agentConfig.model,
+                temperature: agentConfig.temperature
+              };
+              
+              return res.json({ 
+                message: finalMessage,
+                debug: debugInfo
+              });
             }
           }
         }
@@ -368,192 +396,45 @@ Remember: You're Sofia - be passionate about Italian food! 🇮🇹`
         const duration = Date.now() - startTime;
         logger.info(`🏁 === CHAT FLOW COMPLETE (${duration}ms) ===`);
         
-        return res.json({ message: responseMessage });
+        // Prepare debug information for direct response
+        const debugInfo = {
+          functionCalls: [], // No function calls for direct response
+          processingTime: duration,
+          model: agentConfig.model,
+          temperature: agentConfig.temperature
+        };
+        
+        return res.json({ 
+          message: responseMessage,
+          debug: debugInfo
+        });
         
       } catch (aiError) {
-        logger.error('AI service failed, using intelligent fallback');
-        // Fall through to intelligent fallback below
-      }
-      
-      // Step 6: Intelligent Query Processing Fallback
-      logger.info('🧠 SYSTEM: Using intelligent query processing...');
-      
-      const userQuery = lastUserMessage.content.toLowerCase();
-      logger.info(`🔍 SYSTEM: Analyzing query: "${userQuery}"`);
-      
-      // Extract conversation context for better understanding
-      const conversationContext = this.extractConversationContext(messages);
-      logger.info(`📚 SYSTEM: Conversation context: ${JSON.stringify(conversationContext)}`);
-      
-      // Intelligent query analysis with conversation context
-      const queryAnalysis = this.analyzeUserQueryWithContext(userQuery, conversationContext);
-      logger.info(`📊 SYSTEM: Query analysis: ${JSON.stringify(queryAnalysis)}`);
-      
-      if (queryAnalysis.intent === 'product_search') {
-        try {
-          logger.info(`🛍️ SYSTEM: Processing product search for: ${queryAnalysis.category || 'all products'}`);
-          
-          // Call getProducts with intelligent parameters
-          const searchParams: any = {};
-          if (queryAnalysis.category) {
-            searchParams.search = queryAnalysis.category;
+        logger.error('AI service failed:', aiError);
+        
+        const duration = Date.now() - startTime;
+        logger.info(`🏁 === CHAT FLOW COMPLETE (${duration}ms) ===`);
+        
+        return res.json({ 
+          message: { 
+            role: 'assistant', 
+            content: `AI Service Error - Debug Info:
+
+${aiError instanceof Error ? aiError.stack : JSON.stringify(aiError, null, 2)}
+
+Please check the logs for more details.` 
+          },
+          debug: {
+            functionCalls: [],
+            processingTime: duration,
+            model: 'error',
+            temperature: 0.7,
+            error: 'AI service temporarily unavailable',
+            errorStack: aiError instanceof Error ? aiError.stack : aiError,
+            errorMessage: aiError instanceof Error ? aiError.message : 'Unknown error'
           }
-          
-          const productResult = await availableFunctions.getProducts(searchParams) as ProductResponse;
-          logger.info(`✅ SYSTEM: Found ${productResult.total} products`);
-          
-          // Intelligent filtering and response generation
-          const filteredResponse = this.generateIntelligentProductResponse(
-            productResult, 
-            queryAnalysis, 
-            userQuery
-          );
-          
-          const duration = Date.now() - startTime;
-          logger.info(`🏁 === CHAT FLOW COMPLETE (${duration}ms) ===`);
-          
-          return res.json({ 
-            message: { 
-              role: 'assistant', 
-              content: filteredResponse 
-            } 
-          });
-          
-        } catch (error) {
-          logger.error('Product search failed:', error);
-        }
-      } else if (queryAnalysis.intent === 'cart_management') {
-        try {
-          logger.info('🛒 SYSTEM: Processing cart management...');
-          
-          if (queryAnalysis.cartOperation === 'add' && queryAnalysis.detectedProducts) {
-            // Generate cart addition response
-            const cartResponse = this.generateCartResponse(queryAnalysis.detectedProducts, conversationContext);
-            
-            const duration = Date.now() - startTime;
-            logger.info(`🏁 === CHAT FLOW COMPLETE (${duration}ms) ===`);
-            
-            return res.json({ 
-              message: { 
-                role: 'assistant', 
-                content: cartResponse 
-              } 
-            });
-          } else if (queryAnalysis.cartOperation === 'view') {
-            // Generate cart view response
-            const cartViewResponse = this.generateCartViewResponse(conversationContext);
-            
-            const duration = Date.now() - startTime;
-            logger.info(`🏁 === CHAT FLOW COMPLETE (${duration}ms) ===`);
-            
-            return res.json({ 
-              message: { 
-                role: 'assistant', 
-                content: cartViewResponse 
-              } 
-            });
-          }
-          
-        } catch (error) {
-          logger.error('Cart management failed:', error);
-        }
-      } else if (queryAnalysis.intent === 'service_inquiry') {
-        try {
-          logger.info('🚚 SYSTEM: Processing service inquiry...');
-          
-          const serviceResult = await availableFunctions.getServices({
-            search: queryAnalysis.serviceType || '',
-            isActive: true
-          }) as ServiceResponse;
-          
-          const serviceResponse = this.generateServiceResponse(serviceResult, queryAnalysis);
-          
-          const duration = Date.now() - startTime;
-          logger.info(`🏁 === CHAT FLOW COMPLETE (${duration}ms) ===`);
-          
-          return res.json({ 
-            message: { 
-              role: 'assistant', 
-              content: serviceResponse 
-            } 
-          });
-          
-        } catch (error) {
-          logger.error('Service search failed:', error);
-        }
-      } else if (queryAnalysis.intent === 'faq_inquiry') {
-        try {
-          logger.info('❓ SYSTEM: Processing FAQ inquiry...');
-          
-          const faqResult = await availableFunctions.getFAQs({
-            search: queryAnalysis.topic || userQuery
-          }) as FAQResponse;
-          
-          const faqResponse = this.generateFAQResponse(faqResult, queryAnalysis);
-          
-          const duration = Date.now() - startTime;
-          logger.info(`🏁 === CHAT FLOW COMPLETE (${duration}ms) ===`);
-          
-          return res.json({ 
-            message: { 
-              role: 'assistant', 
-              content: faqResponse 
-            } 
-          });
-          
-        } catch (error) {
-          logger.error('FAQ search failed:', error);
-        }
+        });
       }
-      
-      // Step 7: Contextual general responses
-      let generalResponse = '';
-      
-      if (userQuery.includes('chi sei') || userQuery.includes('who are you') || userQuery.includes('cosa fai')) {
-        generalResponse = `Ciao! Sono Sofia, la tua esperta di prodotti italiani di ShopMefy! 🇮🇹
-
-Sono qui per aiutarti con:
-• **Prodotti autentici italiani** - Vini, formaggi, pasta e specialità
-• **Servizi personalizzati** - Corsi di cucina e degustazioni
-• **Informazioni spedizioni** - Consegne in tutta Europa
-• **Assistenza ordini** - Pagamenti e politiche
-
-Cosa ti piacerebbe sapere sui nostri prodotti italiani?`;
-      } else if (userQuery.includes('ciao') || userQuery.includes('hello') || userQuery.includes('hi') || userQuery.includes('salve')) {
-        generalResponse = `Ciao! Benvenuto da ShopMefy! Sono Sofia, la tua esperta di prodotti italiani! 🇮🇹
-
-Posso aiutarti con:
-• **Prodotti** - Le nostre specialità italiane autentiche
-• **Servizi** - Corsi di cucina e degustazioni  
-• **Spedizioni** - Informazioni consegne
-• **Ordini** - Pagamenti e politiche
-
-Cosa ti piacerebbe sapere sui nostri prodotti italiani oggi?`;
-      } else if (userQuery.includes('grazie') || userQuery.includes('thank')) {
-        generalResponse = `Prego! È stato un piacere aiutarti! 😊
-
-Se hai altre domande sui nostri prodotti italiani autentici o servizi, sono sempre qui per te.
-
-Buona giornata e... buon appetito! 🇮🇹✨`;
-      } else {
-        // Intelligent suggestion based on query content
-        const suggestions = this.generateIntelligentSuggestions(userQuery);
-        generalResponse = `Ciao! Sono Sofia da ShopMefy! 🇮🇹
-
-${suggestions}
-
-Cosa ti piacerebbe sapere? Puoi chiedermi dei nostri vini, formaggi, pasta o qualsiasi altra specialità italiana!`;
-      }
-      
-      const duration = Date.now() - startTime;
-      logger.info(`🏁 === CHAT FLOW COMPLETE (${duration}ms) ===`);
-      
-      return res.json({ 
-        message: { 
-          role: 'assistant', 
-          content: generalResponse 
-        } 
-      });
 
     } catch (error: unknown) {
       const duration = Date.now() - startTime;
@@ -855,510 +736,25 @@ Cosa ti piacerebbe sapere?`
   }
 
   /**
-   * Intelligent query analysis without hardcoded patterns
-   * Analyzes user intent and extracts relevant information
+   * Simple query analysis for basic fallback only
+   * The AI should handle all function calling decisions
    */
   private analyzeUserQuery(query: string): {
-    intent: 'product_search' | 'service_inquiry' | 'faq_inquiry' | 'general';
-    category?: string;
-    serviceType?: string;
-    topic?: string;
-    priceFilter?: { operator: 'less' | 'greater' | 'equal'; value: number };
+    intent: 'greeting' | 'thanks' | 'general';
     confidence: number;
-  } {
-    // Product-related keywords and patterns
-    const productKeywords = ['wine', 'vino', 'cheese', 'formaggio', 'pasta', 'oil', 'olio', 'vinegar', 'aceto', 'meat', 'carne', 'prosciutto', 'salami'];
-    const priceKeywords = ['price', 'prezzo', 'cost', 'costo', 'euro', '€', 'less', 'meno', 'under', 'sotto', 'below', 'above', 'sopra', 'over'];
-    const serviceKeywords = ['service', 'servizio', 'cooking', 'cucina', 'class', 'corso', 'catering', 'consultation'];
-    const faqKeywords = ['shipping', 'spedizione', 'return', 'reso', 'payment', 'pagamento', 'policy', 'politica', 'how', 'come'];
-
-    // Check for product search intent
-    const hasProductKeywords = productKeywords.some(keyword => query.includes(keyword));
-    const hasPriceKeywords = priceKeywords.some(keyword => query.includes(keyword));
-    
-    if (hasProductKeywords || query.includes('have') || query.includes('sell') || query.includes('avete') || query.includes('vendete')) {
-      // Extract category
-      let category = '';
-      if (query.includes('wine') || query.includes('vino')) category = 'wine';
-      else if (query.includes('cheese') || query.includes('formaggio')) category = 'cheese';
-      else if (query.includes('pasta')) category = 'pasta';
-      else if (query.includes('oil') || query.includes('olio')) category = 'oil';
-      
-      // Extract price filter
-      let priceFilter;
-      if (hasPriceKeywords) {
-        // Simple price extraction - look for numbers
-        const numbers = query.match(/\d+/g);
-        if (numbers) {
-          const value = parseInt(numbers[0]);
-          if (query.includes('less') || query.includes('under') || query.includes('below') || query.includes('meno') || query.includes('sotto')) {
-            priceFilter = { operator: 'less' as const, value };
-          } else if (query.includes('over') || query.includes('above') || query.includes('sopra')) {
-            priceFilter = { operator: 'greater' as const, value };
-          }
-        }
-      }
-      
-      return {
-        intent: 'product_search',
-        category,
-        priceFilter,
-        confidence: 0.8
-      };
-    }
-    
-    // Check for service inquiry
-    const hasServiceKeywords = serviceKeywords.some(keyword => query.includes(keyword));
-    if (hasServiceKeywords) {
-      let serviceType = '';
-      if (query.includes('cooking') || query.includes('cucina')) serviceType = 'cooking';
-      else if (query.includes('catering')) serviceType = 'catering';
-      
-      return {
-        intent: 'service_inquiry',
-        serviceType,
-        confidence: 0.7
-      };
-    }
-    
-    // Check for FAQ inquiry
-    const hasFAQKeywords = faqKeywords.some(keyword => query.includes(keyword));
-    if (hasFAQKeywords) {
-      let topic = '';
-      if (query.includes('shipping') || query.includes('spedizione')) topic = 'shipping';
-      else if (query.includes('return') || query.includes('reso')) topic = 'return';
-      else if (query.includes('payment') || query.includes('pagamento')) topic = 'payment';
-      
-      return {
-        intent: 'faq_inquiry',
-        topic,
-        confidence: 0.6
-      };
-    }
-    
-    return {
-      intent: 'general',
-      confidence: 0.3
-    };
-  }
-
-  /**
-   * Generate intelligent product response with filtering
-   */
-  private generateIntelligentProductResponse(
-    productResult: ProductResponse, 
-    queryAnalysis: any, 
-    originalQuery: string
-  ): string {
-    let products = productResult.products || [];
-    
-    // Apply intelligent filtering
-    if (queryAnalysis.category) {
-      // Filter by category - only actual wine products
-      if (queryAnalysis.category === 'wine') {
-        products = products.filter(p => 
-          p.category?.toLowerCase() === 'wine' || 
-          p.tags?.some(tag => tag.toLowerCase() === 'wine')
-        );
-      }
-    }
-    
-    // Apply price filtering
-    if (queryAnalysis.priceFilter) {
-      const { operator, value } = queryAnalysis.priceFilter;
-      products = products.filter(p => {
-        const price = parseFloat(p.price);
-        if (operator === 'less') return price < value;
-        if (operator === 'greater') return price > value;
-        return price === value;
-      });
-    }
-    
-    // Generate response
-    if (products.length === 0) {
-      if (queryAnalysis.priceFilter) {
-        // Find cheapest alternative
-        const allWines = productResult.products?.filter(p => 
-          p.category?.toLowerCase() === 'wine' || 
-          p.tags?.some(tag => tag.toLowerCase() === 'wine')
-        ) || [];
-        
-        if (allWines.length > 0) {
-          const cheapest = allWines.reduce((min, wine) => 
-            parseFloat(wine.price) < parseFloat(min.price) ? wine : min
-          );
-          
-          return `Mi dispiace, non abbiamo vini sotto €${queryAnalysis.priceFilter.value}. 😔
-
-Tuttavia, il nostro vino più conveniente è:
-• **${cheapest.name}** - €${cheapest.price}
-
-${cheapest.description}
-
-Ti piacerebbe saperne di più su questo vino o vedere altre opzioni? 🍷`;
-        }
-      }
-      
-      return `Mi dispiace, al momento non abbiamo prodotti che corrispondono alla tua ricerca. 😔
-
-Posso aiutarti con:
-• **Vini** - Barolo, Chianti, Prosecco
-• **Formaggi** - Parmigiano, Gorgonzola, Mozzarella
-• **Pasta** - Spaghetti, Tagliatelle, Gnocchi
-
-Cosa ti piacerebbe vedere? 🇮🇹`;
-    }
-    
-    // Format successful results
-    let response = `Ecco i nostri ${queryAnalysis.category || 'prodotti'}`;
-    if (queryAnalysis.priceFilter) {
-      response += ` ${queryAnalysis.priceFilter.operator === 'less' ? 'sotto' : 'sopra'} €${queryAnalysis.priceFilter.value}`;
-    }
-    response += `! 🍷\n\n`;
-    
-    products.forEach(product => {
-      response += `• **${product.name}** - €${product.price}\n`;
-      response += `  ${product.description}\n\n`;
-    });
-    
-    response += `Ti piacerebbe saperne di più su qualcuno di questi prodotti? 😊`;
-    
-    return response;
-  }
-
-  /**
-   * Generate service response
-   */
-  private generateServiceResponse(serviceResult: ServiceResponse, queryAnalysis: any): string {
-    const services = serviceResult.services || [];
-    
-    if (services.length === 0) {
-      return `Al momento non abbiamo servizi attivi per "${queryAnalysis.serviceType || 'la tua richiesta'}". 😔
-
-I nostri servizi includono:
-• **Corsi di cucina italiana**
-• **Servizi di catering**
-• **Consulenze personalizzate**
-
-Contattaci per maggiori informazioni! 📞`;
-    }
-    
-    let response = `Ecco i nostri servizi disponibili! 🚚\n\n`;
-    
-    services.forEach(service => {
-      response += `• **${service.name}** - €${service.price}\n`;
-      response += `  ${service.description}\n\n`;
-    });
-    
-    response += `Ti piacerebbe prenotare uno di questi servizi? 😊`;
-    
-    return response;
-  }
-
-  /**
-   * Generate FAQ response
-   */
-  private generateFAQResponse(faqResult: FAQResponse, queryAnalysis: any): string {
-    const faqs = faqResult.faqs || [];
-    
-    if (faqs.length === 0) {
-      return `Non ho trovato informazioni specifiche su "${queryAnalysis.topic || 'questo argomento'}". 😔
-
-Puoi contattarci direttamente per assistenza:
-📧 support@shopmefy.com
-📞 +39 02 1234 5678
-
-Oppure chiedi di spedizioni, resi, pagamenti! 💬`;
-    }
-    
-    // Return the most relevant FAQ
-    const topFAQ = faqs[0];
-    
-    return `Ecco le informazioni che cercavi! ℹ️
-
-**${topFAQ.question}**
-
-${topFAQ.answer}
-
-Hai altre domande? Sono qui per aiutarti! 😊`;
-  }
-
-  /**
-   * Generate intelligent suggestions based on query content
-   */
-  private generateIntelligentSuggestions(query: string): string {
-    if (query.includes('wine') || query.includes('vino')) {
-      return `Vedo che ti interessano i vini! 🍷
-
-Abbiamo una selezione fantastica:
-• **Vini rossi** - Barolo, Chianti Classico
-• **Vini bianchi** - Pinot Grigio, Vermentino  
-• **Spumanti** - Prosecco di Valdobbiadene`;
-    }
-    
-    if (query.includes('cheese') || query.includes('formaggio')) {
-      return `I formaggi italiani sono la mia passione! 🧀
-
-Ti consiglio:
-• **Parmigiano Reggiano** - Il re dei formaggi
-• **Gorgonzola** - Cremoso e saporito
-• **Mozzarella di Bufala** - Freschissima dalla Campania`;
-    }
-    
-    if (query.includes('pasta')) {
-      return `La pasta italiana autentica! 🍝
-
-Le nostre specialità:
-• **Spaghetti di Gragnano** - Trafilati al bronzo
-• **Tagliatelle all'uovo** - Fresche dall'Emilia
-• **Gnocchi di patate** - Tradizione del Nord`;
-    }
-    
-    return `Posso aiutarti con informazioni sui nostri:
-• **Prodotti** - Vini, formaggi, pasta e specialità italiane
-• **Servizi** - Corsi di cucina e degustazioni
-• **Spedizioni** - Informazioni consegne
-• **Ordini** - Pagamenti e politiche`;
-  }
-
-  /**
-   * Extract conversation context for better understanding
-   */
-  private extractConversationContext(messages: any[]): {
-    previousProducts: string[];
-    cartItems: Array<{product: string, quantity: number}>;
-    conversationFlow: string[];
-  } {
-    const context = {
-      previousProducts: [] as string[],
-      cartItems: [] as Array<{product: string, quantity: number}>,
-      conversationFlow: [] as string[]
-    };
-    
-    // Analyze conversation for products mentioned and cart operations
-    messages.forEach(msg => {
-      if (msg.role === 'user') {
-        context.conversationFlow.push(`USER: ${msg.content}`);
-        
-        // Extract product mentions and quantities
-        const productMatches = msg.content.toLowerCase().match(/(\d+)\s*(bottiglie?|confezioni?|pezzi?)?\s*(di|del)?\s*([a-zA-Z\s]+)/g);
-        if (productMatches) {
-          productMatches.forEach((match: string) => {
-            const quantityMatch = match.match(/(\d+)/);
-            const productMatch = match.match(/(?:di|del)\s*([a-zA-Z\s]+)/);
-            
-            if (quantityMatch && productMatch) {
-              const quantity = parseInt(quantityMatch[1]);
-              const product = productMatch[1].trim();
-              context.cartItems.push({ product, quantity });
-              context.previousProducts.push(product);
-            }
-          });
-        }
-        
-        // Extract product names from general mentions
-        const productKeywords = ['vino', 'barolo', 'chianti', 'prosecco', 'gnocchi', 'pasta', 'formaggio', 'prosciutto'];
-        productKeywords.forEach(keyword => {
-          if (msg.content.toLowerCase().includes(keyword)) {
-            context.previousProducts.push(keyword);
-          }
-        });
-      } else if (msg.role === 'assistant') {
-        context.conversationFlow.push(`SOFIA: ${msg.content.substring(0, 100)}...`);
-      }
-    });
-    
-    return context;
-  }
-
-  /**
-   * Intelligent query analysis with conversation context
-   */
-  private analyzeUserQueryWithContext(query: string, context: {
-    previousProducts: string[];
-    cartItems: Array<{product: string, quantity: number}>;
-    conversationFlow: string[];
-  }): {
-    intent: 'product_search' | 'service_inquiry' | 'faq_inquiry' | 'general' | 'cart_management';
-    category?: string;
-    serviceType?: string;
-    topic?: string;
-    priceFilter?: { operator: 'less' | 'greater' | 'equal'; value: number };
-    confidence: number;
-    cartOperation?: 'add' | 'view' | 'modify';
-    detectedProducts?: Array<{product: string, quantity: number}>;
   } {
     const lowerQuery = query.toLowerCase();
     
-    // Check for cart management operations
-    if (lowerQuery.match(/(\d+)\s*(bottiglie?|confezioni?|pezzi?)/i) || 
-        lowerQuery.includes('si') && context.cartItems.length > 0 ||
-        lowerQuery.includes('aggiungi') || 
-        lowerQuery.includes('carrello') ||
-        lowerQuery.includes('ordine')) {
-      
-      // Extract quantities and products from current query
-      const detectedProducts: Array<{product: string, quantity: number}> = [];
-      
-      // Pattern for "3 bottiglie di Barolo" or "si 3 bottiglie di Barolo"
-      const quantityMatches = lowerQuery.match(/(\d+)\s*(bottiglie?|confezioni?|pezzi?)?\s*(di|del)?\s*([a-zA-Z\s]+)/g);
-      if (quantityMatches) {
-        quantityMatches.forEach(match => {
-          const quantityMatch = match.match(/(\d+)/);
-          const productMatch = match.match(/(?:di|del)\s*([a-zA-Z\s]+)/) || match.match(/(\d+)\s*([a-zA-Z\s]+)/);
-          
-          if (quantityMatch && productMatch) {
-            const quantity = parseInt(quantityMatch[1]);
-            const product = productMatch[productMatch.length - 1].trim();
-            detectedProducts.push({ product, quantity });
-          }
-        });
-      }
-      
-      // If just "si" and we have previous products, assume confirmation
-      if (lowerQuery.includes('si') && context.previousProducts.length > 0 && detectedProducts.length === 0) {
-        // Use the last mentioned product
-        const lastProduct = context.previousProducts[context.previousProducts.length - 1];
-        detectedProducts.push({ product: lastProduct, quantity: 1 });
-      }
-      
-      return {
-        intent: 'cart_management',
-        cartOperation: 'add',
-        detectedProducts,
-        confidence: 0.9
-      };
+    // Only handle basic greetings and thanks - everything else goes to AI
+    if (lowerQuery.includes('ciao') || lowerQuery.includes('hello') || lowerQuery.includes('hi') || lowerQuery.includes('salve')) {
+      return { intent: 'greeting', confidence: 0.9 };
     }
     
-    // Check for cart viewing
-    if (lowerQuery.includes('carrello') || lowerQuery.includes('ordine') || lowerQuery.includes('lista')) {
-      return {
-        intent: 'cart_management',
-        cartOperation: 'view',
-        confidence: 0.8
-      };
+    if (lowerQuery.includes('grazie') || lowerQuery.includes('thank')) {
+      return { intent: 'thanks', confidence: 0.9 };
     }
     
-    // Use existing analysis for other intents
-    const baseAnalysis = this.analyzeUserQuery(query);
-    
-    // Boost confidence if we have context
-    if (context.conversationFlow.length > 2) {
-      baseAnalysis.confidence = Math.min(baseAnalysis.confidence + 0.2, 1.0);
-    }
-    
-    return baseAnalysis;
-  }
-
-  /**
-   * Generate cart addition response
-   */
-  private generateCartResponse(products: Array<{product: string, quantity: number}>, context: {
-    previousProducts: string[];
-    cartItems: Array<{product: string, quantity: number}>;
-    conversationFlow: string[];
-  }): string {
-    // Combine all cart items (previous + new)
-    const allCartItems = [...context.cartItems, ...products];
-    
-    // Group by product and sum quantities
-    const cartSummary = new Map<string, number>();
-    allCartItems.forEach(item => {
-      const existing = cartSummary.get(item.product) || 0;
-      cartSummary.set(item.product, existing + item.quantity);
-    });
-    
-    // Generate response for newly added items
-    const newItemsText = products.map(item => 
-      `• ${item.product} - ${item.quantity} ${item.quantity > 1 ? 'pezzi' : 'pezzo'}`
-    ).join('\n');
-    
-    // Calculate estimated total (using sample prices)
-    const priceMap: {[key: string]: number} = {
-      'barolo': 45.00,
-      'chianti': 19.50,
-      'prosecco': 13.90,
-      'gnocchi': 4.80,
-      'gnocchi di patate': 4.80,
-      'parmigiano': 15.90,
-      'prosciutto': 24.90,
-      'mozzarella': 6.75
-    };
-    
-    let total = 0;
-    const cartItemsText = Array.from(cartSummary.entries()).map(([product, quantity]) => {
-      const price = priceMap[product.toLowerCase()] || 10.00; // Default price
-      const itemTotal = price * quantity;
-      total += itemTotal;
-      return `• ${product} - €${price.toFixed(2)} x ${quantity} = €${itemTotal.toFixed(2)}`;
-    }).join('\n');
-    
-    return `Perfetto! ✅ Ho aggiunto al tuo carrello:
-
-${newItemsText}
-
-🛒 **Il tuo carrello ora contiene:**
-${cartItemsText}
-
-💰 **Totale: €${total.toFixed(2)}**
-
-Vuoi aggiungere qualcos'altro o preferisci completare l'ordine? 🇮🇹✨`;
-  }
-
-  /**
-   * Generate cart view response
-   */
-  private generateCartViewResponse(context: {
-    previousProducts: string[];
-    cartItems: Array<{product: string, quantity: number}>;
-    conversationFlow: string[];
-  }): string {
-    if (context.cartItems.length === 0) {
-      return `Il tuo carrello è vuoto! 🛒
-
-Posso aiutarti a trovare alcuni dei nostri prodotti italiani autentici:
-• **Vini** - Barolo, Chianti, Prosecco 🍷
-• **Formaggi** - Parmigiano, Gorgonzola, Mozzarella 🧀
-• **Pasta** - Gnocchi, Spaghetti di Gragnano 🍝
-• **Salumi** - Prosciutto di Parma, Bresaola 🥓
-
-Cosa ti piacerebbe ordinare?`;
-    }
-    
-    // Group by product and sum quantities
-    const cartSummary = new Map<string, number>();
-    context.cartItems.forEach(item => {
-      const existing = cartSummary.get(item.product) || 0;
-      cartSummary.set(item.product, existing + item.quantity);
-    });
-    
-    // Calculate total with sample prices
-    const priceMap: {[key: string]: number} = {
-      'barolo': 45.00,
-      'chianti': 19.50,
-      'prosecco': 13.90,
-      'gnocchi': 4.80,
-      'gnocchi di patate': 4.80,
-      'parmigiano': 15.90,
-      'prosciutto': 24.90,
-      'mozzarella': 6.75
-    };
-    
-    let total = 0;
-    const cartItemsText = Array.from(cartSummary.entries()).map(([product, quantity]) => {
-      const price = priceMap[product.toLowerCase()] || 10.00;
-      const itemTotal = price * quantity;
-      total += itemTotal;
-      return `• ${product} - €${price.toFixed(2)} x ${quantity} = €${itemTotal.toFixed(2)}`;
-    }).join('\n');
-    
-    return `🛒 **Il tuo carrello:**
-
-${cartItemsText}
-
-💰 **Totale: €${total.toFixed(2)}**
-
-Vuoi modificare qualcosa o procedere con l'ordine? 🇮🇹✨`;
+    return { intent: 'general', confidence: 0.3 };
   }
 
   /**

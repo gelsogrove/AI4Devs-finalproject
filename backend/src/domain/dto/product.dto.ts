@@ -4,6 +4,7 @@ export interface CreateProductDto {
   price: number;
   category: string;
   tags?: string[];
+  isActive?: boolean;
 }
 
 export interface UpdateProductDto {
@@ -12,6 +13,7 @@ export interface UpdateProductDto {
   price?: number;
   category?: string;
   tags?: string[];
+  isActive?: boolean;
 }
 
 export interface ProductFilters {
@@ -20,4 +22,5 @@ export interface ProductFilters {
   maxPrice?: number;
   search?: string;
   countOnly?: boolean;
+  isActive?: boolean;
 } 
