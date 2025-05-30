@@ -39,4 +39,7 @@
   * don't create package.json in root use backend or frontend folders for install packages
   * DONT' CREATE ANYYTHING IN ROOT use temp or use `/finlprogect-AG`
 
- 
+
+
+*** 🚫 DON'T USE THE HARDCODE WORLD IN THE BACKEND NEVER !!!!! ****
+*** 🚫  NEVER lowerQuery.includes('vino') || lowerQuery.includes('export')🚫 ****

@@ -410,29 +410,180 @@ Remember: You're Sofia - be passionate about Italian food! 🇮🇹`
         });
         
       } catch (aiError) {
-        logger.error('AI service failed:', aiError);
+        logger.error('🚨 AI service failed, using intelligent fallback:', aiError);
+        
+        // Step 8: Intelligent fallback with function calling
+        logger.info('🔄 FALLBACK: Analyzing user query for function calling...');
+        
+        const analysis = this.analyzeUserQuery(lastUserMessage.content);
+        logger.info(`🧠 FALLBACK: Query analysis - Intent: ${analysis.intent}, Confidence: ${analysis.confidence}`);
+        
+        let fallbackResponse: any;
+        let functionCalls: any[] = [];
+        
+        try {
+          if (analysis.intent === 'products') {
+            logger.info('🛍️ FALLBACK: Executing getProducts...');
+            const result = await availableFunctions.getProducts(analysis.params || {});
+            functionCalls.push({
+              name: 'getProducts',
+              arguments: analysis.params || {},
+              result,
+              timestamp: new Date().toISOString()
+            });
+            
+            // Use ONLY database data - NO hardcoded responses
+            if (result.products && result.products.length > 0) {
+              const productList = result.products.map(p => `• **${p.name}** - €${p.price}`).join('\n');
+              fallbackResponse = {
+                role: 'assistant',
+                content: `${productList}`
+              };
+            } else {
+              fallbackResponse = {
+                role: 'assistant',
+                content: 'No products found for your search.'
+              };
+            }
+          } else if (analysis.intent === 'services') {
+            logger.info('🎯 FALLBACK: Executing getServices...');
+            const result = await availableFunctions.getServices(analysis.params || {});
+            functionCalls.push({
+              name: 'getServices',
+              arguments: analysis.params || {},
+              result,
+              timestamp: new Date().toISOString()
+            });
+            
+            // Use ONLY database data - NO hardcoded responses
+            if (result.services && result.services.length > 0) {
+              const serviceList = result.services.map(s => `• **${s.name}** - €${s.price}`).join('\n');
+              fallbackResponse = {
+                role: 'assistant',
+                content: `${serviceList}`
+              };
+            } else {
+              fallbackResponse = {
+                role: 'assistant',
+                content: 'No services found.'
+              };
+            }
+          } else if (analysis.intent === 'faq') {
+            logger.info('❓ FALLBACK: Executing getFAQs...');
+            const result = await availableFunctions.getFAQs(analysis.params || {});
+            functionCalls.push({
+              name: 'getFAQs',
+              arguments: analysis.params || {},
+              result,
+              timestamp: new Date().toISOString()
+            });
+            
+            // Use ONLY database data - NO hardcoded responses
+            if (result.faqs && result.faqs.length > 0) {
+              const faq = result.faqs[0];
+              fallbackResponse = {
+                role: 'assistant',
+                content: `**${faq.question}**\n\n${faq.answer}`
+              };
+            } else {
+              fallbackResponse = {
+                role: 'assistant',
+                content: 'No FAQ information found.'
+              };
+            }
+          } else if (analysis.intent === 'company') {
+            logger.info('🏢 FALLBACK: Executing getCompanyInfo...');
+            const result = await availableFunctions.getCompanyInfo();
+            functionCalls.push({
+              name: 'getCompanyInfo',
+              arguments: {},
+              result,
+              timestamp: new Date().toISOString()
+            });
+            
+            // Use ONLY database data - NO hardcoded responses
+            if (result.companyName) {
+              fallbackResponse = {
+                role: 'assistant',
+                content: `**${result.companyName}**\n\n${result.address}\n${result.email}\n${result.openingTime}\n\n${result.description}`
+              };
+            } else {
+              fallbackResponse = {
+                role: 'assistant',
+                content: 'Company information not available.'
+              };
+            }
+          } else if (analysis.intent === 'documents') {
+            logger.info('📄 FALLBACK: Executing getDocuments...');
+            const result = await availableFunctions.getDocuments(analysis.params || {});
+            functionCalls.push({
+              name: 'getDocuments',
+              arguments: analysis.params || {},
+              result,
+              timestamp: new Date().toISOString()
+            });
+            
+            // Use ONLY database data - NO hardcoded responses
+            if (result.documents && result.documents.length > 0) {
+              const docInfo = result.documents[0];
+              fallbackResponse = {
+                role: 'assistant',
+                content: `Document: ${docInfo.title || docInfo.originalName}`
+              };
+            } else {
+              fallbackResponse = {
+                role: 'assistant',
+                content: 'No documents found.'
+              };
+            }
+          } else {
+            // For greeting/thanks/general - try to get some basic data from database
+            logger.info('🔄 FALLBACK: Getting basic company info for general response...');
+            const companyResult = await availableFunctions.getCompanyInfo();
+            functionCalls.push({
+              name: 'getCompanyInfo',
+              arguments: {},
+              result: companyResult,
+              timestamp: new Date().toISOString()
+            });
+            
+            // Use ONLY database data - NO hardcoded responses
+            if (companyResult.companyName) {
+              fallbackResponse = {
+                role: 'assistant',
+                content: `Welcome to ${companyResult.companyName}. How can I help you?`
+              };
+            } else {
+              fallbackResponse = {
+                role: 'assistant',
+                content: 'How can I help you?'
+              };
+            }
+          }
+          
+        } catch (functionError) {
+          logger.error('🚨 Function execution failed in fallback:', functionError);
+          fallbackResponse = {
+            role: 'assistant',
+            content: 'Service temporarily unavailable. Please try again.'
+          };
+        }
         
         const duration = Date.now() - startTime;
-        logger.info(`🏁 === CHAT FLOW COMPLETE (${duration}ms) ===`);
+        logger.info(`🏁 === FALLBACK COMPLETE (${duration}ms) ===`);
+        
+        const debugInfo = {
+          functionCalls,
+          processingTime: duration,
+          model: agentConfig.model,
+          temperature: agentConfig.temperature,
+          fallbackUsed: true,
+          aiError: aiError instanceof Error ? aiError.message : 'Unknown AI error'
+        };
         
         return res.json({ 
-          message: { 
-            role: 'assistant', 
-            content: `AI Service Error - Debug Info:
-
-${aiError instanceof Error ? aiError.stack : JSON.stringify(aiError, null, 2)}
-
-Please check the logs for more details.` 
-          },
-          debug: {
-            functionCalls: [],
-            processingTime: duration,
-            model: 'error',
-            temperature: 0.7,
-            error: 'AI service temporarily unavailable',
-            errorStack: aiError instanceof Error ? aiError.stack : aiError,
-            errorMessage: aiError instanceof Error ? aiError.message : 'Unknown error'
-          }
+          message: fallbackResponse,
+          debug: debugInfo
         });
       }
 
@@ -710,24 +861,119 @@ Cosa ti piacerebbe sapere?`
   }
 
   /**
-   * Simple query analysis for basic fallback only
-   * The AI should handle all function calling decisions
+   * Enhanced query analysis for intelligent fallback
+   * Analyzes user queries to determine intent and extract parameters
    */
   private analyzeUserQuery(query: string): {
-    intent: 'greeting' | 'thanks' | 'general';
+    intent: 'greeting' | 'thanks' | 'general' | 'products' | 'services' | 'faq' | 'company' | 'documents';
     confidence: number;
+    params?: any;
   } {
     const lowerQuery = query.toLowerCase();
     
-    // Only handle basic greetings and thanks - everything else goes to AI
-    if (lowerQuery.includes('ciao') || lowerQuery.includes('hello') || lowerQuery.includes('hi') || lowerQuery.includes('salve')) {
+    // Product-related queries
+    if (lowerQuery.includes('prodotti') || lowerQuery.includes('product') || 
+        lowerQuery.includes('formaggio') || lowerQuery.includes('cheese') ||
+        lowerQuery.includes('vino') || lowerQuery.includes('wine') ||
+        lowerQuery.includes('pasta') || lowerQuery.includes('olio') || lowerQuery.includes('oil') ||
+        lowerQuery.includes('aceto') || lowerQuery.includes('vinegar') ||
+        lowerQuery.includes('prezzo') || lowerQuery.includes('price') ||
+        lowerQuery.includes('euro') || lowerQuery.includes('€')) {
+      
+      let params: any = {};
+      
+      // Extract search terms
+      if (lowerQuery.includes('formaggio') || lowerQuery.includes('cheese')) {
+        params.category = 'Cheese';
+      } else if (lowerQuery.includes('vino') || lowerQuery.includes('wine')) {
+        params.category = 'Wine';
+      } else if (lowerQuery.includes('pasta')) {
+        params.category = 'Pasta';
+      } else if (lowerQuery.includes('olio') || lowerQuery.includes('oil')) {
+        params.category = 'Oil';
+      }
+      
+      // Extract price filters
+      const priceMatch = lowerQuery.match(/(\d+)\s*(euro|€)/);
+      if (priceMatch) {
+        params.maxPrice = parseFloat(priceMatch[1]);
+      }
+      
+      return { intent: 'products', confidence: 0.9, params };
+    }
+    
+    // Service-related queries
+    if (lowerQuery.includes('servizi') || lowerQuery.includes('service') ||
+        lowerQuery.includes('degustazione') || lowerQuery.includes('tasting') ||
+        lowerQuery.includes('consulenza') || lowerQuery.includes('consultation')) {
+      return { intent: 'services', confidence: 0.9, params: {} };
+    }
+    
+    // FAQ/Policy queries
+    if (lowerQuery.includes('spedizione') || lowerQuery.includes('shipping') ||
+        lowerQuery.includes('consegna') || lowerQuery.includes('delivery') ||
+        lowerQuery.includes('pagamento') || lowerQuery.includes('payment') ||
+        lowerQuery.includes('reso') || lowerQuery.includes('return') ||
+        lowerQuery.includes('policy') || lowerQuery.includes('quanto tempo') ||
+        lowerQuery.includes('how long') || lowerQuery.includes('metodi') ||
+        lowerQuery.includes('methods')) {
+      
+      let searchTerm = '';
+      if (lowerQuery.includes('spedizione') || lowerQuery.includes('shipping')) {
+        searchTerm = 'shipping';
+      } else if (lowerQuery.includes('pagamento') || lowerQuery.includes('payment')) {
+        searchTerm = 'payment';
+      } else if (lowerQuery.includes('reso') || lowerQuery.includes('return')) {
+        searchTerm = 'return';
+      }
+      
+      return { intent: 'faq', confidence: 0.9, params: { search: searchTerm } };
+    }
+    
+    // Company information queries
+    if (lowerQuery.includes('dove') || lowerQuery.includes('where') ||
+        lowerQuery.includes('indirizzo') || lowerQuery.includes('address') ||
+        lowerQuery.includes('magazzino') || lowerQuery.includes('warehouse') ||
+        lowerQuery.includes('sede') || lowerQuery.includes('location') ||
+        lowerQuery.includes('telefono') || lowerQuery.includes('phone') ||
+        lowerQuery.includes('email') || lowerQuery.includes('contatto') ||
+        lowerQuery.includes('contact') || lowerQuery.includes('orari') ||
+        lowerQuery.includes('hours') || lowerQuery.includes('website')) {
+      return { intent: 'company', confidence: 0.9, params: {} };
+    }
+    
+    // Document/regulation queries
+    if (lowerQuery.includes('documento') || lowerQuery.includes('document') ||
+        lowerQuery.includes('internazionale') || lowerQuery.includes('international') ||
+        lowerQuery.includes('trasporto') || lowerQuery.includes('transport') ||
+        lowerQuery.includes('legge') || lowerQuery.includes('law') ||
+        lowerQuery.includes('normativa') || lowerQuery.includes('regulation') ||
+        lowerQuery.includes('dogana') || lowerQuery.includes('customs') ||
+        lowerQuery.includes('import') || lowerQuery.includes('export')) {
+      
+      let searchTerm = '';
+      if (lowerQuery.includes('internazionale') || lowerQuery.includes('international')) {
+        searchTerm = 'international';
+      } else if (lowerQuery.includes('trasporto') || lowerQuery.includes('transport')) {
+        searchTerm = 'transport';
+      }
+      
+      return { intent: 'documents', confidence: 0.9, params: { search: searchTerm } };
+    }
+    
+    // Greeting queries
+    if (lowerQuery.includes('ciao') || lowerQuery.includes('hello') || 
+        lowerQuery.includes('hi') || lowerQuery.includes('salve') ||
+        lowerQuery.includes('buongiorno') || lowerQuery.includes('buonasera')) {
       return { intent: 'greeting', confidence: 0.9 };
     }
     
+    // Thanks queries
     if (lowerQuery.includes('grazie') || lowerQuery.includes('thank')) {
       return { intent: 'thanks', confidence: 0.9 };
     }
     
+    // Default to general
     return { intent: 'general', confidence: 0.3 };
   }
 

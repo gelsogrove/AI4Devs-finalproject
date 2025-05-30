@@ -1,75 +1,68 @@
-# ShopMe - AI-Powered E-commerce Platform
+# 🍝 Gusto Italiano - AI4Devs Final Project
 
-## 📋 Overview
-
-ShopMe is a comprehensive SaaS platform that transforms traditional e-commerce into an AI-powered sales channel. The platform features:
-
-- **AI Chatbot (Sofia)**: Intelligent customer service assistant
-- **Product Management**: Complete catalog management system
-- **Document Processing**: PDF upload and AI-powered content extraction
-- **Service Management**: Business services catalog
-- **User Authentication**: Secure login and profile management
-- **Modern UI/UX**: Beautiful, responsive interface with animations
-
-### 🏗️ Architecture
-
-- **Frontend**: React + TypeScript + TailwindCSS + Vite
-- **Backend**: Node.js + Express + TypeScript + Prisma
-- **Database**: SQLite (development) / PostgreSQL (production)
-- **AI Integration**: OpenRouter API for chatbot functionality
-- **File Processing**: PDF parsing and embedding generation
+**Complete e-commerce platform with AI-powered chatbot for Italian gourmet products**
 
 ---
 
 ## 🚀 Quick Start
 
-All system operations are now simplified with just two main scripts in the `/scripts` folder.
-
-### System Management
-
-**Start/Restart the entire system:**
+**Start everything with one command:**
 ```bash
 ./scripts/restart-all.sh
 ```
 
-**Stop all services:**
+**Stop everything:**
 ```bash
-./scripts/stop-all.sh
+# Use Ctrl+C in the terminal running restart-all.sh
+# Or kill processes manually if needed
 ```
 
-### Development Commands
+**That's it!** ✨
 
-**Backend development (from backend directory):**
+---
+
+## 📋 Prerequisites
+
+Before starting, ensure you have:
+
+1. **Node.js 18+** installed
+2. **PostgreSQL** running on port **5434**
+3. **npm** package manager
+
+**Database Setup:**
 ```bash
-cd backend
-npm run dev          # Start backend in development mode
-npm run restart      # Restart backend only
-npm run kill         # Kill backend process
+# Start PostgreSQL (if not running)
+brew services start postgresql@14  # macOS
+# or
+sudo systemctl start postgresql    # Linux
+
+# Create database
+createdb gusto_italiano
 ```
 
-**Frontend development (from frontend directory):**
+---
+
+## 🎯 System Management
+
+### Start Development Environment
+
 ```bash
-cd frontend
-npm run dev          # Start frontend in development mode
+# Start everything (backend + frontend)
+./scripts/restart-all.sh
 ```
 
-### Testing
+**What this does:**
+- ✅ Stops any running services
+- ✅ Kills processes on common ports
+- ✅ Regenerates Prisma client
+- ✅ Starts backend on port 8080
+- ✅ Starts frontend (check terminal for port)
 
-**Run all tests (from backend directory):**
+### Stop All Services
+
 ```bash
-cd backend
-npm run test:all           # Run all tests
-npm run test:chatbot       # Test chatbot functionality
-npm run test:cleanup       # Clean up test data
-npm run test:integration   # Integration tests
-```
-
-### Logs
-
-**View logs:**
-```bash
-tail -f logs/backend.log   # Backend logs
-tail -f logs/frontend.log  # Frontend logs
+# Use Ctrl+C in the terminal running restart-all.sh
+# The script automatically handles cleanup on restart
 ```
 
 ### URLs
@@ -88,7 +81,6 @@ AI4Devs-finalproject/
 ├── backend/           # Node.js + Express + Prisma
 ├── frontend/          # React + TypeScript + Vite
 ├── scripts/           # System management scripts
-├── logs/              # Application logs
 └── finlprogect-AG/    # Project documentation
 ```
 
@@ -100,7 +92,7 @@ AI4Devs-finalproject/
 - No root package.json - use backend/frontend package.json
 - PostgreSQL database with Prisma ORM
 - OpenRouter API for AI functionality
-- Minimal logging for clean output
+- Clean output with no persistent logs
 
 ## 🔧 System Requirements
 
@@ -116,20 +108,11 @@ AI4Devs-finalproject/
 - **API Documentation**: http://localhost:8080/api-docs
 - **Health Check**: http://localhost:8080/api/health
 
-## 📝 Logs
-
-Monitor system logs:
-```bash
-tail -f logs/backend.log    # Backend logs
-tail -f logs/frontend.log   # Frontend logs
-```
-
 ## 🐛 Troubleshooting
 
 **Port conflicts:**
 ```bash
-./scripts/stop-all.sh       # Stop everything
-./scripts/restart-all.sh    # Restart clean
+./scripts/restart-all.sh    # Automatically stops and restarts everything
 ```
 
 **Database issues:**
@@ -161,7 +144,7 @@ npx prisma generate         # Regenerate Prisma client
 - **Automatic Prisma Setup**: Regenerates client on every restart
 - **Health Monitoring**: Built-in health checks and integration tests
 - **Process Tracking**: Saves PIDs for graceful shutdown
-- **Comprehensive Logging**: Separate logs for backend and frontend
+- **Clean Output**: No persistent log files, output redirected to /dev/null
 - **Error Handling**: Proper error detection and reporting
 
 ---
@@ -190,7 +173,7 @@ npx prisma db push --force-reset
 npx prisma studio
 ```
 
-**Backend runs on**: `http://localhost:3000`
+**Backend runs on**: `http://localhost:8080`
 
 ### Frontend Development
 
@@ -207,33 +190,40 @@ npm run build
 npm run preview
 ```
 
-**Frontend runs on**: `http://localhost:3001` (or next available port)
+**Frontend runs on**: `http://localhost:3000+` (or next available port)
 
 ### Environment Configuration
 
 #### Backend (.env)
 ```env
-# Database
-DATABASE_URL="file:./dev.db"
-
 # Server
-PORT=3000
+PORT=8080
 NODE_ENV=development
 
 # OpenRouter API (for AI chatbot)
 OPENROUTER_API_KEY=your_openrouter_api_key
 
-# File Upload
+# File Upload (optional - has defaults)
 MAX_FILE_SIZE=10485760
 UPLOAD_DIR=uploads/documents
 
-# JWT (optional for production)
+# Frontend URL (optional - for CORS)
+FRONTEND_URL=http://localhost:3000
+
+# JWT (optional - only if implementing authentication)
 JWT_SECRET=your_jwt_secret
+JWT_EXPIRES_IN=24h
+
+# AWS S3 (optional - only for production file storage)
+AWS_S3_BUCKET=your_bucket
+AWS_ACCESS_KEY_ID=your_key
+AWS_SECRET_ACCESS_KEY=your_secret
+AWS_REGION=eu-west-1
 ```
 
 #### Frontend (.env)
 ```env
-VITE_API_URL=http://localhost:3000
+VITE_API_URL=http://localhost:8080
 ```
 
 ---
@@ -290,10 +280,10 @@ npm run cypress:run
 
 | Service | URL | Description |
 |---------|-----|-------------|
-| Frontend | `http://localhost:3001` | Main application interface |
-| Backend API | `http://localhost:3000` | REST API server |
-| API Documentation | `http://localhost:3000/api-docs` | Swagger/OpenAPI docs |
-| Health Check | `http://localhost:3000/api/health` | Server health status |
+| Frontend | `http://localhost:3000+` | Main application interface |
+| Backend API | `http://localhost:8080` | REST API server |
+| API Documentation | `http://localhost:8080/api-docs` | Swagger/OpenAPI docs |
+| Health Check | `http://localhost:8080/api/health` | Server health status |
 | Prisma Studio | `http://localhost:5555` | Database management UI |
 
 ### Main API Endpoints

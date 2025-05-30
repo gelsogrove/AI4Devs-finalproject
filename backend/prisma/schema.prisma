@@ -93,6 +93,7 @@ model Document {
   filename     String
   originalName String
   title        String?         // Document title (from metadata or user input)
+  path         String?         // Document category/path for organization
   mimeType     String
   size         Int
   uploadPath   String

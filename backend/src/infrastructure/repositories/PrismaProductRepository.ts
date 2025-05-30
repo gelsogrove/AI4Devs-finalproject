@@ -1,10 +1,10 @@
 import { PrismaClient } from '@prisma/client';
 import { Product } from '../../domain/entities/Product';
 import {
-    PaginatedResult,
-    PaginationOptions,
-    ProductFilters,
-    ProductRepository
+  PaginatedResult,
+  PaginationOptions,
+  ProductFilters,
+  ProductRepository
 } from '../../domain/repositories/ProductRepository';
 import { ProductId } from '../../domain/valueObjects/ProductId';
 import logger from '../../utils/logger';
@@ -96,7 +96,7 @@ export class PrismaProductRepository implements ProductRepository {
         where.OR = [
           { name: { contains: filters.search } },
           { description: { contains: filters.search } },
-          // Not possible to search in tags with SQLite, but in a real app we could add it back
+       
         ];
       }
       

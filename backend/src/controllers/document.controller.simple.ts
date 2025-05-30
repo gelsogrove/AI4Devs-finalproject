@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import fs from 'fs';
 import multer from 'multer';
 import path from 'path';
@@ -48,13 +48,35 @@ export class SimpleDocumentController {
    */
   uploadDocument = [
     upload.single('document'),
+    (error: any, req: Request, res: Response, next: NextFunction) => {
+      // Handle multer errors
+      if (error instanceof multer.MulterError) {
+        if (error.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({ error: 'File too large' });
+        }
+        return res.status(400).json({ error: error.message });
+      }
+      
+      // Handle file type validation error
+      if (error instanceof Error && error.message === 'Only PDF files are allowed') {
+        return res.status(400).json({ error: 'Only PDF files are allowed' });
+      }
+      
+      // If no error, continue to the next middleware
+      if (!error) {
+        return next();
+      }
+      
+      // Handle other errors
+      return res.status(500).json({ error: 'Upload failed' });
+    },
     async (req: Request, res: Response) => {
       try {
         if (!req.file) {
           return res.status(400).json({ error: 'No file uploaded' });
         }
 
-        const { title } = req.body;
+        const { title, path } = req.body;
         
         // Create document in database with real file information
         const document = await prisma.document.create({
@@ -62,10 +84,11 @@ export class SimpleDocumentController {
             filename: req.file.filename,
             originalName: req.file.originalname,
             title: title || req.file.originalname.replace('.pdf', ''),
+            path: path || null,
             mimeType: req.file.mimetype,
             size: req.file.size,
             uploadPath: req.file.path,
-            status: 'COMPLETED',
+            status: 'PROCESSING',
             metadata: JSON.stringify({
               title: title || req.file.originalname.replace('.pdf', ''),
               description: 'Document uploaded via API',
@@ -78,7 +101,16 @@ export class SimpleDocumentController {
 
         res.status(201).json({ 
           message: 'Document uploaded successfully',
-          document
+          document: {
+            id: document.id,
+            filename: document.filename,
+            originalName: document.originalName,
+            title: document.title,
+            path: document.path,
+            size: document.size,
+            status: document.status,
+            createdAt: document.createdAt
+          }
         });
       } catch (error) {
         logger.error('Error uploading document:', error);
@@ -86,13 +118,6 @@ export class SimpleDocumentController {
         // Clean up uploaded file if database save failed
         if (req.file && fs.existsSync(req.file.path)) {
           fs.unlinkSync(req.file.path);
-        }
-        
-        if (error instanceof multer.MulterError) {
-          if (error.code === 'LIMIT_FILE_SIZE') {
-            return res.status(400).json({ error: 'File too large (max 10MB)' });
-          }
-          return res.status(400).json({ error: error.message });
         }
         
         res.status(500).json({ error: 'Failed to upload document' });
@@ -145,16 +170,35 @@ export class SimpleDocumentController {
         return this.getDocuments(req, res);
       }
 
-      // Use embedding service for search
-      const results = await embeddingService.searchDocuments(query as string);
+      // Use simple database search instead of embedding service
+      const documents = await prisma.document.findMany({
+        where: {
+          OR: [
+            { title: { contains: query as string } },
+            { originalName: { contains: query as string } }
+          ]
+        },
+        skip: offset,
+        take: limit,
+        orderBy: { createdAt: 'desc' }
+      });
+
+      const totalCount = await prisma.document.count({
+        where: {
+          OR: [
+            { title: { contains: query as string } },
+            { originalName: { contains: query as string } }
+          ]
+        }
+      });
 
       res.json({
-        documents: results,
+        documents,
         pagination: {
-          total: results.length,
+          total: totalCount,
           limit,
           offset,
-          hasMore: false
+          hasMore: offset + limit < totalCount
         },
         query
       });

@@ -23,178 +23,120 @@ async function main() {
       description: 'Premium red wine from Piedmont region, aged in oak barrels for 24 months.',
       price: 45.99,
       category: 'Wine',
-      stock: 25,
-      imageUrl: '/images/barolo-docg.jpg',
       isActive: true,
-      tags: ['wine', 'red', 'premium', 'piedmont', 'docg', 'barolo'],
-      origin: 'Piedmont, Italy',
-      alcoholContent: 14.5,
-      vintage: 2018
+      tagsJson: JSON.stringify(['wine', 'red', 'premium', 'piedmont', 'docg', 'barolo'])
     },
     {
       name: 'Chianti Classico DOCG 2020',
       description: 'Traditional Tuscan red wine with notes of cherry and herbs.',
       price: 28.50,
       category: 'Wine',
-      stock: 40,
-      imageUrl: '/images/chianti-classico.jpg',
       isActive: true,
-      tags: ['wine', 'red', 'chianti', 'tuscany', 'docg', 'classic'],
-      origin: 'Tuscany, Italy',
-      alcoholContent: 13.5,
-      vintage: 2020
+      tagsJson: JSON.stringify(['wine', 'red', 'chianti', 'tuscany', 'docg', 'classic'])
     },
     {
       name: 'Prosecco di Valdobbiadene DOCG',
       description: 'Sparkling wine from Veneto with fresh and fruity notes.',
       price: 18.75,
       category: 'Wine',
-      stock: 60,
-      imageUrl: '/images/prosecco-valdobbiadene.jpg',
       isActive: true,
-      tags: ['wine', 'sparkling', 'prosecco', 'veneto', 'docg', 'fresh'],
-      origin: 'Veneto, Italy',
-      alcoholContent: 11.0,
-      vintage: 2022
+      tagsJson: JSON.stringify(['wine', 'sparkling', 'prosecco', 'veneto', 'docg', 'fresh'])
     },
     {
       name: 'Amarone della Valpolicella DOCG 2017',
       description: 'Full-bodied red wine made from dried grapes, complex and intense.',
       price: 65.00,
       category: 'Wine',
-      stock: 15,
-      imageUrl: '/images/amarone-valpolicella.jpg',
       isActive: true,
-      tags: ['wine', 'red', 'amarone', 'valpolicella', 'docg', 'premium'],
-      origin: 'Veneto, Italy',
-      alcoholContent: 15.5,
-      vintage: 2017
+      tagsJson: JSON.stringify(['wine', 'red', 'amarone', 'valpolicella', 'docg', 'premium'])
     },
     {
       name: 'Pinot Grigio delle Venezie DOC 2022',
       description: 'Light and crisp white wine, perfect as an aperitif.',
       price: 12.90,
       category: 'Wine',
-      stock: 80,
-      imageUrl: '/images/pinot-grigio-venezie.jpg',
       isActive: true,
-      tags: ['wine', 'white', 'pinot grigio', 'venezie', 'doc', 'light'],
-      origin: 'Veneto, Italy',
-      alcoholContent: 12.0,
-      vintage: 2022
+      tagsJson: JSON.stringify(['wine', 'white', 'pinot grigio', 'venezie', 'doc', 'light'])
     },
     {
       name: 'Brunello di Montalcino DOCG 2018',
       description: 'Prestigious Tuscan red wine, aged for at least 5 years.',
       price: 85.00,
       category: 'Wine',
-      stock: 12,
-      imageUrl: '/images/brunello-montalcino.jpg',
       isActive: true,
-      tags: ['wine', 'red', 'brunello', 'montalcino', 'docg', 'prestigious'],
-      origin: 'Tuscany, Italy',
-      alcoholContent: 14.0,
-      vintage: 2018
+      tagsJson: JSON.stringify(['wine', 'red', 'brunello', 'montalcino', 'docg', 'prestigious'])
     },
     {
       name: 'Parmigiano Reggiano DOP 24 months',
       description: 'Authentic Parmigiano Reggiano cheese aged for 24 months.',
       price: 32.50,
       category: 'Cheese',
-      stock: 30,
-      imageUrl: '/images/parmigiano-reggiano-24.jpg',
       isActive: true,
-      tags: ['cheese', 'parmigiano', 'reggiano', 'dop', 'aged', 'authentic'],
-      origin: 'Emilia-Romagna, Italy'
+      tagsJson: JSON.stringify(['cheese', 'parmigiano', 'reggiano', 'dop', 'aged', 'authentic'])
     },
     {
       name: 'Gorgonzola DOP Dolce',
       description: 'Creamy blue cheese from Lombardy, sweet and delicate.',
       price: 18.90,
       category: 'Cheese',
-      stock: 25,
-      imageUrl: '/images/gorgonzola-dolce.jpg',
       isActive: true,
-      tags: ['cheese', 'gorgonzola', 'blue', 'dop', 'creamy', 'lombardy'],
-      origin: 'Lombardy, Italy'
+      tagsJson: JSON.stringify(['cheese', 'gorgonzola', 'blue', 'dop', 'creamy', 'lombardy'])
     },
     {
       name: 'Prosciutto di Parma DOP',
       description: 'Traditional cured ham from Parma, aged for 18 months.',
       price: 45.00,
       category: 'Cured Meat',
-      stock: 20,
-      imageUrl: '/images/prosciutto-parma.jpg',
       isActive: true,
-      tags: ['meat', 'prosciutto', 'parma', 'dop', 'cured', 'traditional'],
-      origin: 'Emilia-Romagna, Italy'
+      tagsJson: JSON.stringify(['meat', 'prosciutto', 'parma', 'dop', 'cured', 'traditional'])
     },
     {
       name: 'Extra Virgin Olive Oil Toscano IGP',
       description: 'Premium extra virgin olive oil from Tuscany.',
       price: 24.50,
       category: 'Oil',
-      stock: 50,
-      imageUrl: '/images/olive-oil-toscano.jpg',
       isActive: true,
-      tags: ['oil', 'olive', 'extra virgin', 'toscano', 'igp', 'premium'],
-      origin: 'Tuscany, Italy'
+      tagsJson: JSON.stringify(['oil', 'olive', 'extra virgin', 'toscano', 'igp', 'premium'])
     },
     {
       name: 'Pasta di Gragnano IGP - Spaghetti',
       description: 'Traditional pasta from Gragnano, bronze-drawn and slow-dried.',
       price: 8.50,
       category: 'Pasta',
-      stock: 100,
-      imageUrl: '/images/pasta-gragnano-spaghetti.jpg',
       isActive: true,
-      tags: ['pasta', 'gragnano', 'igp', 'spaghetti', 'bronze', 'traditional'],
-      origin: 'Campania, Italy'
+      tagsJson: JSON.stringify(['pasta', 'gragnano', 'igp', 'spaghetti', 'bronze', 'traditional'])
     },
     {
       name: 'Gnocchi di Patate',
       description: 'Fresh potato gnocchi, ready to cook.',
       price: 6.90,
       category: 'Pasta',
-      stock: 35,
-      imageUrl: '/images/gnocchi-patate.jpg',
       isActive: true,
-      tags: ['pasta', 'gnocchi', 'potato', 'fresh', 'ready'],
-      origin: 'Italy'
+      tagsJson: JSON.stringify(['pasta', 'gnocchi', 'potato', 'fresh', 'ready'])
     },
     {
       name: 'Risotto Rice Carnaroli',
       description: 'Premium Carnaroli rice, perfect for risotto.',
       price: 12.00,
       category: 'Rice',
-      stock: 45,
-      imageUrl: '/images/rice-carnaroli.jpg',
       isActive: true,
-      tags: ['rice', 'carnaroli', 'risotto', 'premium', 'italian'],
-      origin: 'Piedmont, Italy'
+      tagsJson: JSON.stringify(['rice', 'carnaroli', 'risotto', 'premium', 'italian'])
     },
     {
       name: 'Balsamic Vinegar of Modena IGP',
       description: 'Traditional balsamic vinegar aged in wooden barrels.',
       price: 16.75,
       category: 'Vinegar',
-      stock: 40,
-      imageUrl: '/images/balsamic-modena.jpg',
       isActive: true,
-      tags: ['vinegar', 'balsamic', 'modena', 'igp', 'aged', 'traditional'],
-      origin: 'Emilia-Romagna, Italy'
+      tagsJson: JSON.stringify(['vinegar', 'balsamic', 'modena', 'igp', 'aged', 'traditional'])
     },
     {
       name: 'Limoncello di Sorrento',
       description: 'Traditional lemon liqueur from the Amalfi Coast.',
       price: 22.00,
       category: 'Liqueur',
-      stock: 30,
-      imageUrl: '/images/limoncello-sorrento.jpg',
       isActive: true,
-      tags: ['liqueur', 'limoncello', 'sorrento', 'lemon', 'traditional', 'amalfi'],
-      origin: 'Campania, Italy',
-      alcoholContent: 30.0
+      tagsJson: JSON.stringify(['liqueur', 'limoncello', 'sorrento', 'lemon', 'traditional', 'amalfi'])
     }
   ];
 
@@ -203,74 +145,69 @@ async function main() {
   // Seed FAQs
   const faqs = [
     {
-      question: 'What are your shipping times?',
-      answer: 'We offer different shipping options: Standard shipping (5-7 business days), Express shipping (2-3 business days), and Premium shipping (1-2 business days). All orders are processed within 24 hours.',
-      category: 'Shipping',
-      isActive: true,
-      tags: ['shipping', 'delivery', 'times', 'standard', 'express', 'premium']
+      question: 'What are your shipping options?',
+      answer: 'We offer standard shipping (3-5 business days) for €5.99, express shipping (1-2 business days) for €12.99, and free shipping on orders over €75.',
+      isActive: true
     },
     {
       question: 'Do you ship internationally?',
-      answer: 'Yes, we ship to most countries worldwide. International shipping times vary by destination: EU countries (3-5 business days), North America (7-10 business days), Other countries (10-15 business days). Additional customs fees may apply.',
-      category: 'Shipping',
-      isActive: true,
-      tags: ['international', 'shipping', 'worldwide', 'eu', 'customs', 'delivery']
+      answer: 'Yes, we ship to most European countries. International shipping costs vary by destination and are calculated at checkout.',
+      isActive: true
     },
     {
       question: 'What payment methods do you accept?',
-      answer: 'We accept all major credit cards (Visa, Mastercard, American Express), PayPal, Apple Pay, Google Pay, and bank transfers. All payments are processed securely through our encrypted payment system.',
-      category: 'Payment',
-      isActive: true,
-      tags: ['payment', 'credit card', 'paypal', 'apple pay', 'google pay', 'bank transfer']
+      answer: 'We accept all major credit cards (Visa, MasterCard, American Express), PayPal, and bank transfers.',
+      isActive: true
     },
     {
-      question: 'How do you package wine bottles?',
-      answer: 'All wine bottles are carefully packaged in protective foam inserts and sturdy cardboard boxes. For orders of 6+ bottles, we use specialized wine shipping boxes with dividers. We guarantee safe delivery or full replacement.',
-      category: 'Packaging',
-      isActive: true,
-      tags: ['wine', 'packaging', 'protection', 'foam', 'shipping', 'bottles']
+      question: 'How do I store wine properly?',
+      answer: 'Store wine in a cool, dark place at 12-15°C with consistent temperature. Keep bottles horizontal to keep the cork moist.',
+      isActive: true
     },
     {
-      question: 'What is your return policy?',
-      answer: 'We offer a 30-day return policy for unopened products. Wine and perishable items can be returned only if damaged during shipping. Return shipping costs are covered by us for defective items.',
-      category: 'Returns',
-      isActive: true,
-      tags: ['returns', 'policy', '30 days', 'unopened', 'damaged', 'defective']
+      question: 'What is the difference between DOCG and DOC wines?',
+      answer: 'DOCG (Denominazione di Origine Controllata e Garantita) is the highest Italian wine classification, with stricter regulations than DOC (Denominazione di Origine Controllata).',
+      isActive: true
     },
     {
-      question: 'Do you offer bulk discounts?',
-      answer: 'Yes! We offer volume discounts: 5% off orders over €200, 10% off orders over €500, 15% off orders over €1000. Corporate customers can contact us for special pricing.',
-      category: 'Pricing',
-      isActive: true,
-      tags: ['bulk', 'discount', 'volume', 'corporate', 'pricing', 'special']
+      question: 'Can I return products if I\'m not satisfied?',
+      answer: 'Yes, we offer a 30-day return policy for unopened products. Wine returns are accepted only if the product is defective.',
+      isActive: true
     },
     {
-      question: 'How do you ensure product authenticity?',
-      answer: 'All our products are sourced directly from certified Italian producers. We maintain strict quality control and provide certificates of authenticity for premium items like DOP and DOCG products.',
-      category: 'Quality',
-      isActive: true,
-      tags: ['authenticity', 'quality', 'certified', 'producers', 'dop', 'docg']
+      question: 'Do you offer wine tastings?',
+      answer: 'Yes, we offer guided wine tasting experiences with our sommelier. Check our services section for available dates and booking.',
+      isActive: true
+    },
+    {
+      question: 'How long does shipping take?',
+      answer: 'Standard shipping takes 3-5 business days, express shipping takes 1-2 business days. International orders may take 5-10 business days.',
+      isActive: true
+    },
+    {
+      question: 'Are your products authentic Italian?',
+      answer: 'Yes, all our products are sourced directly from certified Italian producers and come with authenticity guarantees.',
+      isActive: true
+    },
+    {
+      question: 'Do you have a minimum order amount?',
+      answer: 'No minimum order amount required. However, orders over €75 qualify for free shipping.',
+      isActive: true
     },
     {
       question: 'Can I track my order?',
       answer: 'Yes, once your order ships, you will receive a tracking number via email. You can track your package in real-time through our website or the carrier\'s tracking system.',
-      category: 'Shipping',
-      isActive: true,
-      tags: ['tracking', 'order', 'email', 'real-time', 'carrier', 'package']
+      isActive: true
     },
     {
       question: 'Do you have a customer loyalty program?',
       answer: 'Yes! Our "Gusto Club" loyalty program offers points for every purchase, exclusive discounts, early access to new products, and special member-only events.',
-      category: 'Loyalty',
-      isActive: true,
-      tags: ['loyalty', 'gusto club', 'points', 'discounts', 'exclusive', 'events']
+      isActive: true
     },
     {
       question: 'What temperature should wine be stored at?',
       answer: 'Red wines should be stored at 12-18°C, white wines at 8-12°C, and sparkling wines at 6-10°C. Keep bottles horizontal in a dark, humid environment away from vibrations.',
-      category: 'Wine Care',
-      isActive: true,
-      tags: ['wine', 'storage', 'temperature', 'red', 'white', 'sparkling', 'care']
+      isActive: true
     }
   ];
 
@@ -282,55 +219,37 @@ async function main() {
       name: 'Wine Tasting Experience',
       description: 'Professional wine tasting session with our sommelier, including 6 premium Italian wines with detailed explanations of origin, production methods, and tasting notes.',
       price: 75.00,
-      duration: 120,
-      isActive: true,
-      category: 'Experience',
-      tags: ['wine', 'tasting', 'sommelier', 'premium', 'experience', 'education']
+      isActive: true
     },
     {
       name: 'Italian Cooking Class',
       description: 'Learn to cook authentic Italian dishes with our chef. Includes hands-on preparation of pasta, risotto, and traditional sauces using our premium ingredients.',
       price: 95.00,
-      duration: 180,
-      isActive: true,
-      category: 'Cooking',
-      tags: ['cooking', 'class', 'chef', 'pasta', 'risotto', 'authentic', 'hands-on']
+      isActive: true
     },
     {
       name: 'Cheese & Wine Pairing',
       description: 'Discover the perfect combinations of Italian cheeses and wines. Guided tasting of 5 cheese varieties paired with complementary wines.',
       price: 65.00,
-      duration: 90,
-      isActive: true,
-      category: 'Pairing',
-      tags: ['cheese', 'wine', 'pairing', 'tasting', 'guided', 'combinations']
+      isActive: true
     },
     {
       name: 'Premium Gift Wrapping',
       description: 'Elegant gift wrapping service with premium Italian paper, ribbons, and personalized cards. Perfect for special occasions.',
       price: 12.50,
-      duration: 15,
-      isActive: true,
-      category: 'Gift',
-      tags: ['gift', 'wrapping', 'premium', 'elegant', 'personalized', 'special']
+      isActive: true
     },
     {
       name: 'Personal Shopping Consultation',
       description: 'One-on-one consultation with our Italian food expert to create a personalized selection based on your preferences and dietary requirements.',
       price: 45.00,
-      duration: 60,
-      isActive: true,
-      category: 'Consultation',
-      tags: ['personal', 'shopping', 'consultation', 'expert', 'personalized', 'dietary']
+      isActive: true
     },
     {
       name: 'Corporate Catering',
       description: 'Professional catering service for corporate events featuring authentic Italian cuisine and premium wine selection.',
       price: 150.00,
-      duration: 240,
-      isActive: true,
-      category: 'Catering',
-      tags: ['corporate', 'catering', 'events', 'authentic', 'cuisine', 'professional']
+      isActive: true
     }
   ];
 
@@ -382,8 +301,8 @@ AVAILABLE FUNCTIONS:
 - OrderCompleted: Process completed orders with customer details
 
 Remember: You represent a premium Italian food brand, so maintain high standards and showcase the authenticity and quality of Italian products.`,
-      model: 'gpt-4-turbo',
-      temperature: 0.7,
+      model: 'openai/gpt-4o-mini',
+      temperature: 0.3,
       maxTokens: 500,
       topP: 0.9
     }
@@ -417,7 +336,7 @@ Remember: You represent a premium Italian food brand, so maintain high standards
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
 
-    const targetFilename = `international-transportation-law-${Date.now()}.pdf`;
+    const targetFilename = 'international-transportation-law.pdf';
     const uploadPath = path.join(uploadsDir, targetFilename);
     
     fs.copyFileSync(sampleDocPath, uploadPath);

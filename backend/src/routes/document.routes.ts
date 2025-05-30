@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { SimpleDocumentController } from '../controllers/document.controller.simple';
+import { authenticate } from '../middlewares/auth.middleware';
 
 const router = Router();
 const simpleDocumentController = new SimpleDocumentController();
@@ -89,7 +90,7 @@ const simpleDocumentController = new SimpleDocumentController();
  *       500:
  *         description: Server error
  */
-router.post('/upload', simpleDocumentController.uploadDocument);
+router.post('/upload', authenticate, simpleDocumentController.uploadDocument);
 
 /**
  * @swagger
@@ -139,7 +140,7 @@ router.post('/upload', simpleDocumentController.uploadDocument);
  *       500:
  *         description: Server error
  */
-router.get('/', simpleDocumentController.getDocuments);
+router.get('/', authenticate, simpleDocumentController.getDocuments);
 
 /**
  * @swagger
@@ -196,7 +197,7 @@ router.get('/', simpleDocumentController.getDocuments);
  *       500:
  *         description: Server error
  */
-router.get('/search', simpleDocumentController.searchDocuments);
+router.get('/search', authenticate, simpleDocumentController.searchDocuments);
 
 /**
  * @swagger
@@ -214,7 +215,7 @@ router.get('/search', simpleDocumentController.searchDocuments);
  *       500:
  *         description: Server error
  */
-router.get('/stats', simpleDocumentController.getDocumentStats);
+router.get('/stats', authenticate, simpleDocumentController.getDocumentStats);
 
 /**
  * @swagger
@@ -237,7 +238,7 @@ router.get('/stats', simpleDocumentController.getDocumentStats);
  *       500:
  *         description: Server error
  */
-router.post('/embeddings', simpleDocumentController.generateEmbeddings);
+router.post('/embeddings', authenticate, simpleDocumentController.generateEmbeddings);
 
 /**
  * @swagger
@@ -267,7 +268,7 @@ router.post('/embeddings', simpleDocumentController.generateEmbeddings);
  *       500:
  *         description: Server error
  */
-router.post('/:id/embeddings', simpleDocumentController.generateEmbeddings);
+router.post('/:id/embeddings', authenticate, simpleDocumentController.generateEmbeddings);
 
 /**
  * @swagger
@@ -360,8 +361,8 @@ router.post('/:id/embeddings', simpleDocumentController.generateEmbeddings);
  *       500:
  *         description: Server error
  */
-router.get('/:id', simpleDocumentController.getDocumentById);
-router.put('/:id', simpleDocumentController.updateDocument);
-router.delete('/:id', simpleDocumentController.deleteDocument);
+router.get('/:id', authenticate, simpleDocumentController.getDocumentById);
+router.put('/:id', authenticate, simpleDocumentController.updateDocument);
+router.delete('/:id', authenticate, simpleDocumentController.deleteDocument);
 
 export default router; 
