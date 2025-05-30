@@ -20,7 +20,15 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "db:reset": "prisma migrate reset --force && prisma migrate deploy",
     "db:seed": "prisma db seed",
-    "db:setup": "npm run db:reset && npm run db:seed"
+    "db:setup": "npm run db:reset && npm run db:seed",
+    "test:watch": "cross-env NODE_ENV=test jest --watch",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "security:audit": "npm audit --audit-level=moderate",
+    "security:fix": "npm audit fix",
+    "security:check": "npm run security:audit && npm outdated"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
@@ -46,6 +54,8 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.4",
     "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "express-validator": "^7.0.1",
     "file-type": "^18.7.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
@@ -61,6 +71,7 @@
     "swagger-ui-express": "^5.0.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3",
+    "winston": "^3.11.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {

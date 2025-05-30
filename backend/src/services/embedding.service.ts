@@ -373,8 +373,7 @@ class EmbeddingService {
             ...chunk, 
             similarity: 0,
             embeddingLength: 0,
-            hasValidEmbedding: false,
-            parseError: error.message
+            hasValidEmbedding: false
           };
         }
       });
@@ -393,8 +392,7 @@ class EmbeddingService {
           chunkContent: chunk.content.substring(0, 200) + '...',
           similarity: chunk.similarity,
           embeddingLength: chunk.embeddingLength,
-          hasValidEmbedding: chunk.hasValidEmbedding,
-          parseError: chunk.parseError || null
+          hasValidEmbedding: chunk.hasValidEmbedding
         })),
         topResults: sortedChunks.slice(0, limit).map(chunk => ({
           faqQuestion: chunk.faq.question,
@@ -405,7 +403,7 @@ class EmbeddingService {
       logger.error('Error in debug search FAQs:', error);
       return {
         query,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         results: []
       };
     }
