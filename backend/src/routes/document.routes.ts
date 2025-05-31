@@ -272,9 +272,9 @@ router.post('/:id/embeddings', authenticate, simpleDocumentController.generateEm
 
 /**
  * @swagger
- * /api/documents/{id}:
+ * /api/documents/{id}/preview:
  *   get:
- *     summary: Get document by ID
+ *     summary: Preview document (serve PDF file)
  *     tags: [Documents]
  *     parameters:
  *       - in: path
@@ -283,84 +283,28 @@ router.post('/:id/embeddings', authenticate, simpleDocumentController.generateEm
  *         schema:
  *           type: string
  *         description: Document ID
- *     responses:
- *       200:
- *         description: Document details
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Document'
- *       403:
- *         description: Access denied
- *       404:
- *         description: Document not found
- *       500:
- *         description: Server error
- *   put:
- *     summary: Update document
- *     tags: [Documents]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
+ *       - in: query
+ *         name: token
+ *         required: false
  *         schema:
  *           type: string
- *         description: Document ID
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               title:
- *                 type: string
- *                 description: Document title
+ *         description: Authentication token (alternative to Authorization header)
  *     responses:
  *       200:
- *         description: Document updated successfully
+ *         description: PDF file content
  *         content:
- *           application/json:
+ *           application/pdf:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                 document:
- *                   $ref: '#/components/schemas/Document'
- *       403:
- *         description: Access denied
- *       404:
- *         description: Document not found
- *       500:
- *         description: Server error
- *   delete:
- *     summary: Delete document
- *     tags: [Documents]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: Document ID
- *     responses:
- *       200:
- *         description: Document deleted successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *       403:
- *         description: Access denied
+ *               type: string
+ *               format: binary
+ *       401:
+ *         description: Authentication required
  *       404:
  *         description: Document not found
  *       500:
  *         description: Server error
  */
+router.get('/:id/preview', simpleDocumentController.previewDocument);
 router.get('/:id', authenticate, simpleDocumentController.getDocumentById);
 router.put('/:id', authenticate, simpleDocumentController.updateDocument);
 router.delete('/:id', authenticate, simpleDocumentController.deleteDocument);

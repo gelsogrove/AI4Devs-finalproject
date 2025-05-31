@@ -3,6 +3,16 @@ import axios from 'axios';
 const API_URL = import.meta.env.VITE_API_URL || '';
 const DOCUMENTS_ENDPOINT = API_URL ? `${API_URL}/api/documents` : '/api/documents';
 
+// Get authentication token from localStorage
+const getAuthHeader = () => {
+  const token = localStorage.getItem('token');
+  return {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
+};
+
 export interface Document {
   id: string;
   filename: string;
@@ -69,9 +79,11 @@ class DocumentService {
       formData.append('title', request.title);
     }
 
+    const authHeaders = getAuthHeader();
     const response = await axios.post(`${DOCUMENTS_ENDPOINT}/upload`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
+        ...authHeaders.headers,
       },
     });
 
@@ -83,7 +95,8 @@ class DocumentService {
    */
   async getDocuments(limit = 10, offset = 0): Promise<DocumentListResponse> {
     const response = await axios.get(DOCUMENTS_ENDPOINT, {
-      params: { limit, offset }
+      params: { limit, offset },
+      ...getAuthHeader()
     });
 
     return response.data;
@@ -94,7 +107,8 @@ class DocumentService {
    */
   async searchDocuments(query: string, limit = 10, offset = 0): Promise<DocumentSearchResponse> {
     const response = await axios.get(`${DOCUMENTS_ENDPOINT}/search`, {
-      params: { query, limit, offset }
+      params: { query, limit, offset },
+      ...getAuthHeader()
     });
 
     return response.data;
@@ -104,7 +118,7 @@ class DocumentService {
    * Get document by ID
    */
   async getDocumentById(id: string): Promise<Document> {
-    const response = await axios.get(`${DOCUMENTS_ENDPOINT}/${id}`);
+    const response = await axios.get(`${DOCUMENTS_ENDPOINT}/${id}`, getAuthHeader());
     return response.data;
   }
 
@@ -112,7 +126,7 @@ class DocumentService {
    * Delete document
    */
   async deleteDocument(id: string): Promise<{ message: string }> {
-    const response = await axios.delete(`${DOCUMENTS_ENDPOINT}/${id}`);
+    const response = await axios.delete(`${DOCUMENTS_ENDPOINT}/${id}`, getAuthHeader());
     return response.data;
   }
 
@@ -120,7 +134,7 @@ class DocumentService {
    * Get document statistics
    */
   async getDocumentStats(): Promise<DocumentStats> {
-    const response = await axios.get(`${DOCUMENTS_ENDPOINT}/stats`);
+    const response = await axios.get(`${DOCUMENTS_ENDPOINT}/stats`, getAuthHeader());
     return response.data;
   }
 
@@ -128,7 +142,7 @@ class DocumentService {
    * Generate embeddings for a specific document
    */
   async generateEmbeddingsForDocument(documentId: string): Promise<{ message: string; documentId: string }> {
-    const response = await axios.post(`${DOCUMENTS_ENDPOINT}/${documentId}/embeddings`, {});
+    const response = await axios.post(`${DOCUMENTS_ENDPOINT}/${documentId}/embeddings`, {}, getAuthHeader());
     return response.data;
   }
 
@@ -136,7 +150,7 @@ class DocumentService {
    * Generate embeddings for all documents
    */
   async generateEmbeddingsForAllDocuments(): Promise<{ message: string; count: number }> {
-    const response = await axios.post(`${DOCUMENTS_ENDPOINT}/embeddings`, {});
+    const response = await axios.post(`${DOCUMENTS_ENDPOINT}/embeddings`, {}, getAuthHeader());
     return response.data;
   }
 
@@ -193,7 +207,7 @@ class DocumentService {
    * Update document
    */
   async updateDocument(id: string, request: UpdateDocumentRequest): Promise<UpdateDocumentResponse> {
-    const response = await axios.put(`${DOCUMENTS_ENDPOINT}/${id}`, request);
+    const response = await axios.put(`${DOCUMENTS_ENDPOINT}/${id}`, request, getAuthHeader());
     return response.data;
   }
 }

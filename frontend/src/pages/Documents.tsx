@@ -391,8 +391,11 @@ export default function Documents() {
 
   // Handle PDF preview
   const handlePreviewDocument = (document: Document) => {
-    // Construct the PDF URL using the correct backend server endpoint
-    const pdfUrl = `http://localhost:8080/uploads/documents/${document.filename}`;
+    // Get the authentication token
+    const token = localStorage.getItem('token');
+    
+    // Construct the PDF URL using the preview endpoint with authentication
+    const pdfUrl = `/api/documents/${document.id}/preview?token=${token}`;
     setPdfPreview({
       isOpen: true,
       url: pdfUrl,

@@ -299,11 +299,18 @@ export const availableFunctions = {
           const faqs = await embeddingService.searchFAQs(search);
 
           // Check if embedding search found relevant results
-          // Only use embedding results if we have good quality results
           if (faqs && faqs.length > 0) {
-            // For now, always fall back to text search due to API key issues
-            // This ensures we get reliable results
-            logger.info('Embedding search returned results, but falling back to text search for reliability');
+            logger.info(`Embedding search found ${faqs.length} FAQs for query: ${search}`);
+            return {
+              total: faqs.length,
+              faqs: faqs.map(faq => ({
+                id: faq.id,
+                question: faq.question,
+                answer: faq.answer
+              }))
+            };
+          } else {
+            logger.info('Embedding search returned no results, falling back to text search');
           }
         } catch (embeddingError) {
           // Log error and fall back to regular search
@@ -311,7 +318,7 @@ export const availableFunctions = {
         }
       }
 
-      // Always use text search for now (due to embedding API key issues)
+      // Fall back to text search if embedding search failed or returned no results
       const where: any = {
         isActive: isActive !== undefined ? isActive : true  // Default to true, but allow override
       };

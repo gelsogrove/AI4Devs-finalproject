@@ -46,12 +46,12 @@ const techStack: TechItem[] = [
   },
   {
     name: "AI Chatbot",
-    description: "OpenRouter + LangChain + calling functions + Embedding",
+    description: "OpenRouter + LangChain + calling functions",
     completed: true
   },
   {
     name: "Document Upload & Processing",
-    description: "PDF Upload, Text Extraction, Embedding Generation",
+    description: "PDF Upload, pdf-parse Text Extraction, Hugging Face Embedding Generation",
     completed: true
   },
   {

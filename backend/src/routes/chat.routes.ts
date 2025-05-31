@@ -65,46 +65,6 @@ router.get('/test-functions', chatController.testFunctions.bind(chatController))
 
 /**
  * @swagger
- * /api/chat/integration-test:
- *   get:
- *     summary: Comprehensive chatbot integration test
- *     description: Tests all chatbot functionality including products, services, and FAQ embedding search
- *     tags:
- *       - Chat
- *     responses:
- *       200:
- *         description: Integration test completed
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                 successRate:
- *                   type: string
- *                 timestamp:
- *                   type: string
- *                 tests:
- *                   type: array
- *                   items:
- *                     type: object
- *                 summary:
- *                   type: object
- *                   properties:
- *                     total:
- *                       type: number
- *                     passed:
- *                       type: number
- *                     failed:
- *                       type: number
- *       500:
- *         description: Integration test failed
- */
-router.get('/integration-test', chatController.testChatbotIntegration.bind(chatController));
-
-/**
- * @swagger
  * /api/chat/test-order-completed:
  *   get:
  *     summary: Test OrderCompleted function directly

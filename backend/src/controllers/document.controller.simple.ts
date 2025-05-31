@@ -270,6 +270,63 @@ export class SimpleDocumentController {
   };
 
   /**
+   * Preview document (serve PDF file)
+   */
+  previewDocument = async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { token } = req.query;
+      
+      // Check authentication - either from header or query parameter
+      let isAuthenticated = false;
+      
+      // Check header first
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const headerToken = authHeader.substring(7);
+        if (headerToken && headerToken.startsWith('demo-token-')) {
+          isAuthenticated = true;
+        }
+      }
+      
+      // If not authenticated via header, check query parameter
+      if (!isAuthenticated && token && typeof token === 'string' && token.startsWith('demo-token-')) {
+        isAuthenticated = true;
+      }
+      
+      if (!isAuthenticated) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      
+      // Get document from database
+      const document = await prisma.document.findUnique({
+        where: { id }
+      });
+      
+      if (!document) {
+        return res.status(404).json({ error: 'Document not found' });
+      }
+
+      // Check if file exists
+      if (!fs.existsSync(document.uploadPath)) {
+        return res.status(404).json({ error: 'File not found on disk' });
+      }
+
+      // Set headers for PDF preview
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="${document.originalName}"`);
+      
+      // Stream the file
+      const fileStream = fs.createReadStream(document.uploadPath);
+      fileStream.pipe(res);
+      
+    } catch (error) {
+      logger.error('Error previewing document:', error);
+      res.status(500).json({ error: 'Failed to preview document' });
+    }
+  };
+
+  /**
    * Delete document
    */
   deleteDocument = async (req: Request, res: Response) => {
@@ -332,10 +389,16 @@ export class SimpleDocumentController {
         });
       } else {
         // Generate embeddings for all documents
-        await embeddingService.generateEmbeddingsForAllDocuments();
+        const result = await embeddingService.generateEmbeddingsForAllDocuments();
+        
+        // Get the actual count of documents processed
+        const documentCount = await prisma.document.count({
+          where: { isActive: true }
+        });
+        
         return res.json({ 
           message: 'Embeddings generated for all documents',
-          count: 3
+          count: documentCount
         });
       }
     } catch (error) {

@@ -2,6 +2,11 @@ import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import { logger } from '../../utils/secureLogger';
 
+interface RateLimitEntry {
+  count: number;
+  resetTime: number;
+}
+
 /**
  * Domain service for security-related business logic
  * Following DDD patterns for security operations
@@ -11,6 +16,7 @@ export class SecurityService {
   private static readonly PASSWORD_MIN_LENGTH = 8;
   private static readonly MAX_LOGIN_ATTEMPTS = 5;
   private static readonly LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
+  private static rateLimitStorage = new Map<string, RateLimitEntry>();
 
   /**
    * Hash password with secure salt
@@ -40,7 +46,7 @@ export class SecurityService {
       return await bcrypt.compare(password, hash);
     } catch (error) {
       logger.error('Password verification failed', { error });
-      return false;
+      throw new Error('Password verification failed');
     }
   }
 
@@ -128,14 +134,18 @@ export class SecurityService {
    * Sanitize input to prevent XSS
    */
   static sanitizeInput(input: string): string {
-    if (typeof input !== 'string') {
-      return '';
-    }
+    if (!input) return '';
 
     return input
-      .replace(/[<>]/g, '') // Remove < and >
-      .replace(/javascript:/gi, '') // Remove javascript: protocol
-      .replace(/on\w+\s*=/gi, '') // Remove event handlers
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/javascript:/gi, '')
+      .replace(/on\w+\s*=/gi, '')
+      .replace(/DROP\s+TABLE/gi, '')
+      .replace(/DELETE\s+FROM/gi, '')
+      .replace(/INSERT\s+INTO/gi, '')
+      .replace(/UPDATE\s+SET/gi, '')
+      .replace(/--/g, '')
+      .replace(/;/g, '')
       .trim();
   }
 
@@ -148,24 +158,69 @@ export class SecurityService {
   }
 
   /**
-   * Check if IP is in allowed range (for IP whitelisting)
+   * Check if IP is valid
    */
-  static isIpAllowed(ip: string, allowedRanges: string[] = []): boolean {
-    if (allowedRanges.length === 0) {
-      return true; // No restrictions
+  static isValidIP(ip: string): boolean {
+    if (!ip) return false;
+
+    // IPv4 regex
+    const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+    
+    // IPv6 regex (more comprehensive)
+    const ipv6Regex = /^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$/;
+    
+    return ipv4Regex.test(ip) || ipv6Regex.test(ip);
+  }
+
+  /**
+   * Check if IP is in CIDR range
+   */
+  static isIPInRange(ip: string, cidr: string): boolean {
+    try {
+      if (!this.isValidIP(ip)) return false;
+
+      const [network, prefixLength] = cidr.split('/');
+      const prefix = parseInt(prefixLength, 10);
+
+      if (prefix < 0 || prefix > 32) return false;
+      if (!this.isValidIP(network)) return false;
+
+      // Simple CIDR check for IPv4
+      const ipParts = ip.split('.').map(Number);
+      const networkParts = network.split('.').map(Number);
+
+      const mask = (0xffffffff << (32 - prefix)) >>> 0;
+      
+      const ipInt = (ipParts[0] << 24) + (ipParts[1] << 16) + (ipParts[2] << 8) + ipParts[3];
+      const networkInt = (networkParts[0] << 24) + (networkParts[1] << 16) + (networkParts[2] << 8) + networkParts[3];
+
+      return (ipInt & mask) === (networkInt & mask);
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Rate limiting check
+   */
+  static checkRateLimit(identifier: string, limit: number, windowMs: number, currentTime: number = Date.now()): boolean {
+    const entry = this.rateLimitStorage.get(identifier);
+    
+    if (!entry || currentTime > entry.resetTime) {
+      // Create new entry or reset expired entry
+      this.rateLimitStorage.set(identifier, {
+        count: 1,
+        resetTime: currentTime + windowMs
+      });
+      return true;
     }
 
-    // Simple IP validation for now
-    // In production, use a proper IP range library
-    return allowedRanges.some(range => {
-      if (range === ip) return true;
-      if (range.includes('/')) {
-        // CIDR notation - simplified check
-        const [network] = range.split('/');
-        return ip.startsWith(network.substring(0, network.lastIndexOf('.')));
-      }
+    if (entry.count >= limit) {
       return false;
-    });
+    }
+
+    entry.count++;
+    return true;
   }
 
   /**
@@ -191,34 +246,6 @@ export class SecurityService {
     } catch {
       return false;
     }
-  }
-
-  /**
-   * Rate limiting check
-   */
-  static checkRateLimit(
-    identifier: string,
-    maxAttempts: number,
-    windowMs: number,
-    attempts: Map<string, { count: number; resetTime: number }>
-  ): { allowed: boolean; resetTime?: number } {
-    const now = Date.now();
-    const record = attempts.get(identifier);
-
-    if (!record || now > record.resetTime) {
-      // First attempt or window expired
-      attempts.set(identifier, { count: 1, resetTime: now + windowMs });
-      return { allowed: true };
-    }
-
-    if (record.count >= maxAttempts) {
-      return { allowed: false, resetTime: record.resetTime };
-    }
-
-    // Increment counter
-    record.count++;
-    attempts.set(identifier, record);
-    return { allowed: true };
   }
 
   /**

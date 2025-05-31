@@ -322,7 +322,7 @@ const Chatbot: React.FC = () => {
             <MessageCircle className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">AI Chatbot</h1>
+            <h1 className="text-2xl font-bold text-gray-900">AI Chatbot Playground</h1>
             <p className="text-gray-600">Test your AI-powered product assistant</p>
           </div>
         </div>

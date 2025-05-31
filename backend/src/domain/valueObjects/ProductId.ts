@@ -1,22 +1,48 @@
+import { v4 as uuidv4 } from 'uuid';
+
 export class ProductId {
-  constructor(private readonly _value: string, private readonly isNew: boolean = false) {
-    // In a testing environment or for new products, allow empty IDs
-    if (process.env.NODE_ENV !== 'test' && !isNew) {
-      this.validate(_value);
+  private readonly value: string;
+
+  constructor(value: string) {
+    this.validateId(value);
+    this.value = value.toLowerCase();
+  }
+
+  private validateId(value: string): void {
+    if (!value || value.trim() === '') {
+      throw new Error('ProductId cannot be empty');
+    }
+
+    if (!ProductId.isValid(value)) {
+      throw new Error('Invalid UUID format');
     }
   }
 
-  get value(): string {
-    return this._value;
+  getValue(): string {
+    return this.value;
   }
 
-  private validate(id: string): void {
-    if (!id || id.trim() === '') {
-      throw new Error('Product ID cannot be empty');
-    }
+  static generate(): ProductId {
+    return new ProductId(uuidv4());
+  }
+
+  static isValid(value: string): boolean {
+    if (!value) return false;
+    
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(value);
+  }
+
+  static fromString(value: string): ProductId {
+    const trimmed = value.trim();
+    return new ProductId(trimmed);
   }
 
   equals(other: ProductId): boolean {
-    return this._value === other.value;
+    return this.value === other.value;
+  }
+
+  toString(): string {
+    return this.value;
   }
 } 

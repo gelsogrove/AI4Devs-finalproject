@@ -6,12 +6,12 @@ import morgan from 'morgan';
 import path from 'path';
 import swaggerUi from 'swagger-ui-express';
 import {
-    apiRateLimiter,
-    authRateLimiter,
-    corsSecurityCheck,
-    sanitizeInput,
-    securityHeaders,
-    securityLogger
+  apiRateLimiter,
+  authRateLimiter,
+  corsSecurityCheck,
+  sanitizeInput,
+  securityHeaders,
+  securityLogger
 } from './middlewares/security.middleware';
 import routes from './routes';
 import swaggerSpec from './swagger';

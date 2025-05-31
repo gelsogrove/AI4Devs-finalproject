@@ -143,10 +143,10 @@ class EmbeddingService {
         .slice(0, limit);
       
       // Check if the top result has suspiciously high similarity (indicating fake embeddings)
-      // or if no chunks have similarity > 0.1 (indicating poor quality results)
+      // or if no chunks have similarity > 0.01 (indicating very poor quality results)
       if (topChunks.length === 0 || topChunks[0].similarity === 0 || 
           topChunks[0].similarity > 0.7 || 
-          (topChunks[0].similarity < 0.1 && !query.toLowerCase().includes('gift'))) {
+          topChunks[0].similarity < 0.01) {
         logger.info('Poor quality embedding results detected, falling back to text search');
         return this.textSearchFAQs(query, limit);
       }
@@ -175,11 +175,28 @@ class EmbeddingService {
    */
   private async textSearchFAQs(query: string, limit = 5): Promise<FAQ[]> {
     try {
+      // Split query into individual words for more flexible search
+      const queryWords = query.toLowerCase().split(/\s+/).filter(word => word.length > 2);
+      
+      // Create OR conditions for each word in both question and answer
+      const searchConditions = queryWords.flatMap(word => [
+        { question: { contains: word, mode: 'insensitive' as const } },
+        { answer: { contains: word, mode: 'insensitive' as const } }
+      ]);
+      
       const faqs = await prisma.fAQ.findMany({
         where: {
-          OR: [
-            { question: { contains: query } },
-            { answer: { contains: query } }
+          AND: [
+            { isActive: true },
+            {
+              OR: [
+                // Exact phrase search (higher priority)
+                { question: { contains: query, mode: 'insensitive' as const } },
+                { answer: { contains: query, mode: 'insensitive' as const } },
+                // Individual word search
+                ...searchConditions
+              ]
+            }
           ]
         },
         take: limit

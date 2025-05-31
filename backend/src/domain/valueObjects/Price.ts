@@ -1,51 +1,90 @@
 export class Price {
-  constructor(private readonly _amount: number) {
-    this.validate(_amount);
+  private readonly value: number;
+
+  constructor(value: number) {
+    this.validatePrice(value);
+    this.value = Math.round(value * 100) / 100; // Round to 2 decimal places
   }
 
-  get amount(): number {
-    return this._amount;
-  }
-
-  private validate(amount: number): void {
-    if (isNaN(amount)) {
-      throw new Error('Price must be a number');
+  private validatePrice(value: number): void {
+    if (value == null || isNaN(value) || !isFinite(value)) {
+      throw new Error('Price must be a valid number');
     }
 
-    if (amount < 0) {
+    if (value < 0) {
       throw new Error('Price cannot be negative');
     }
 
-    // Ensure price has maximum 2 decimal places
-    const decimalPlaces = ((amount.toString().split('.')[1] || '').length);
+    // Check decimal places
+    const decimalPlaces = (value.toString().split('.')[1] || '').length;
     if (decimalPlaces > 2) {
       throw new Error('Price cannot have more than 2 decimal places');
     }
   }
 
-  add(other: Price): Price {
-    return new Price(this._amount + other.amount);
+  getValue(): number {
+    return this.value;
   }
 
-  subtract(other: Price): Price {
-    const result = this._amount - other.amount;
-    return new Price(result);
+  static fromString(priceString: string): Price {
+    const trimmed = priceString.trim();
+    const parsed = parseFloat(trimmed);
+    
+    if (isNaN(parsed) || trimmed === '') {
+      throw new Error('Invalid price format');
+    }
+
+    return new Price(parsed);
   }
 
-  multiply(factor: number): Price {
-    return new Price(this._amount * factor);
-  }
-
-  equals(other: Price): boolean {
-    return this._amount === other.amount;
+  toEuro(): string {
+    return `€${this.value.toFixed(2)}`;
   }
 
   toString(): string {
-    return this._amount.toFixed(2);
+    return this.value.toFixed(2);
   }
 
-  // Format price for display with currency symbol
-  format(currencySymbol = '€'): string {
-    return `${currencySymbol}${this._amount.toFixed(2)}`;
+  equals(other: Price): boolean {
+    return this.value === other.value;
+  }
+
+  isGreaterThan(other: Price): boolean {
+    return this.value > other.value;
+  }
+
+  isLessThan(other: Price): boolean {
+    return this.value < other.value;
+  }
+
+  add(other: Price): Price {
+    return new Price(this.value + other.value);
+  }
+
+  subtract(other: Price): Price {
+    const result = this.value - other.value;
+    if (result < 0) {
+      throw new Error('Price cannot be negative');
+    }
+    return new Price(result);
+  }
+
+  multiply(multiplier: number): Price {
+    if (multiplier < 0) {
+      throw new Error('Multiplier cannot be negative');
+    }
+    return new Price(this.value * multiplier);
+  }
+
+  applyDiscount(percentage: number): Price {
+    if (percentage < 0) {
+      throw new Error('Discount percentage cannot be negative');
+    }
+    if (percentage > 100) {
+      throw new Error('Discount percentage cannot exceed 100%');
+    }
+    
+    const discountAmount = (this.value * percentage) / 100;
+    return new Price(this.value - discountAmount);
   }
 } 

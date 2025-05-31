@@ -48,13 +48,16 @@ class EmbeddingController {
    */
   async searchFAQs(req: Request, res: Response) {
     try {
-      const { query } = req.query;
+      const { query, limit } = req.query;
       
       if (!query || typeof query !== 'string') {
         return res.status(400).json({ error: 'Search query is required' });
       }
       
-      const results = await embeddingService.searchFAQs(query);
+      // Parse limit parameter, default to 5
+      const searchLimit = limit ? parseInt(limit as string, 10) : 5;
+      
+      const results = await embeddingService.searchFAQs(query, searchLimit);
       
       return res.status(200).json(results);
     } catch (error) {

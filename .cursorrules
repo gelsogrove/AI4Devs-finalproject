@@ -43,3 +43,4 @@
 
 *** 🚫 DON'T USE THE HARDCODE WORLD IN THE BACKEND NEVER !!!!! ****
 *** 🚫  NEVER lowerQuery.includes('vino') || lowerQuery.includes('export')🚫 ****
+- DO NOT USE OPENAI use OPENROUTER

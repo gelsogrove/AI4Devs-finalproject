@@ -7,10 +7,10 @@ import logger from '../utils/logger';
 const createProfileSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters'),
   companyName: z.string().min(2, 'Company name must be at least 2 characters'),
-  logoUrl: z.string().url('Logo URL must be a valid URL').optional(),
+  logoUrl: z.string().url('Logo URL must be a valid URL').optional().or(z.literal('')).transform(val => val === '' ? undefined : val),
   description: z.string().min(10, 'Description must be at least 10 characters'),
   phoneNumber: z.string().min(10, 'Phone number must be at least 10 characters'),
-  website: z.string().url('Website must be a valid URL').optional(),
+  website: z.string().url('Website must be a valid URL').optional().or(z.literal('')).transform(val => val === '' ? undefined : val),
   email: z.string().email('Email must be a valid email address'),
   openingTime: z.string().min(5, 'Opening time must be at least 5 characters'),
   address: z.string().min(10, 'Address must be at least 10 characters'),
@@ -19,10 +19,10 @@ const createProfileSchema = z.object({
 
 const updateProfileSchema = z.object({
   companyName: z.string().min(2, 'Company name must be at least 2 characters').optional(),
-  logoUrl: z.string().url('Logo URL must be a valid URL').optional(),
+  logoUrl: z.string().url('Logo URL must be a valid URL').optional().or(z.literal('')).transform(val => val === '' ? undefined : val),
   description: z.string().min(10, 'Description must be at least 10 characters').optional(),
   phoneNumber: z.string().min(10, 'Phone number must be at least 10 characters').optional(),
-  website: z.string().url('Website must be a valid URL').optional(),
+  website: z.string().url('Website must be a valid URL').optional().or(z.literal('')).transform(val => val === '' ? undefined : val),
   email: z.string().email('Email must be a valid email address').optional(),
   openingTime: z.string().min(5, 'Opening time must be at least 5 characters').optional(),
   address: z.string().min(10, 'Address must be at least 10 characters').optional(),
