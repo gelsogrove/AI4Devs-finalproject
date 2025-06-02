@@ -28,9 +28,9 @@ jobs:
       - name: Start PostgreSQL with Docker Compose
         run: |
           echo "Starting PostgreSQL with Docker Compose..."
-          docker-compose up -d db
+          docker compose up -d db
           echo "Waiting for PostgreSQL to be ready..."
-          timeout 60s bash -c 'until docker-compose exec -T db pg_isready -U shopmefy; do sleep 2; done'
+          timeout 60s bash -c 'until docker compose exec -T db pg_isready -U shopmefy; do sleep 2; done'
           echo "PostgreSQL is ready!"
 
       - name: Install backend dependencies
@@ -103,4 +103,4 @@ jobs:
         if: always()
         run: |
           echo "Stopping Docker Compose services..."
-          docker-compose down 
+          docker compose down 
