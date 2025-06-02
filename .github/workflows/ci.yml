@@ -93,57 +93,56 @@ jobs:
           echo "Running unit tests..."
           npm run test:unit
           
-      # TODO: Re-enable integration tests after fixing CI data consistency issues
-      # Integration tests pass locally (70/70) but fail in CI environment
-      # - name: Run backend integration tests
-      #   working-directory: ./backend
-      #   run: |
-      #     echo "Running integration tests..."
-      #     npm run test:integration
+      - name: Run backend integration tests (with debug)
+        working-directory: ./backend
+        run: |
+          echo "Running integration tests with debug output..."
+          echo "Database URL: $DATABASE_URL"
+          echo "Node Environment: $NODE_ENV"
+          npm run test:integration -- --verbose --detectOpenHandles --forceExit
 
-      # TODO: Re-enable E2E tests after integration tests are stable
-      # - name: Start backend for E2E tests
-      #   working-directory: ./backend
-      #   run: |
-      #     echo "Starting backend for E2E tests..."
-      #     npm run dev &
-      #     echo $! > backend.pid
-      #     
-      #     # Wait for backend to be ready
-      #     echo "Waiting for backend to be ready..."
-      #     timeout 60s bash -c 'until curl -s http://localhost:8080/api/health > /dev/null; do sleep 2; done'
-      #     echo "Backend is ready for E2E tests!"
-      #
-      # - name: Start frontend for E2E tests
-      #   working-directory: ./frontend
-      #   run: |
-      #     echo "Starting frontend for E2E tests..."
-      #     npm run dev &
-      #     echo $! > frontend.pid
-      #     
-      #     # Wait for frontend to be ready
-      #     echo "Waiting for frontend to be ready..."
-      #     timeout 60s bash -c 'until curl -s http://localhost:3000 > /dev/null; do sleep 2; done'
-      #     echo "Frontend is ready for E2E tests!"
-      #
-      # - name: Run E2E tests
-      #   working-directory: ./frontend
-      #   run: |
-      #     echo "Running E2E tests with Cypress..."
-      #     npx cypress run
-      #
-      # - name: Stop frontend and backend
-      #   if: always()
-      #   run: |
-      #     echo "Stopping frontend and backend servers..."
-      #     if [ -f frontend/frontend.pid ]; then
-      #       kill $(cat frontend/frontend.pid) || true
-      #       rm frontend/frontend.pid
-      #     fi
-      #     if [ -f backend/backend.pid ]; then
-      #       kill $(cat backend/backend.pid) || true
-      #       rm backend/backend.pid
-      #     fi
+      - name: Start backend for E2E tests
+        working-directory: ./backend
+        run: |
+          echo "Starting backend for E2E tests..."
+          npm run dev &
+          echo $! > backend.pid
+          
+          # Wait for backend to be ready
+          echo "Waiting for backend to be ready..."
+          timeout 60s bash -c 'until curl -s http://localhost:8080/api/health > /dev/null; do sleep 2; done'
+          echo "Backend is ready for E2E tests!"
+
+      - name: Start frontend for E2E tests
+        working-directory: ./frontend
+        run: |
+          echo "Starting frontend for E2E tests..."
+          npm run dev &
+          echo $! > frontend.pid
+          
+          # Wait for frontend to be ready
+          echo "Waiting for frontend to be ready..."
+          timeout 60s bash -c 'until curl -s http://localhost:3000 > /dev/null; do sleep 2; done'
+          echo "Frontend is ready for E2E tests!"
+
+      - name: Run E2E tests
+        working-directory: ./frontend
+        run: |
+          echo "Running E2E tests with Cypress..."
+          npx cypress run --headless
+
+      - name: Stop frontend and backend
+        if: always()
+        run: |
+          echo "Stopping frontend and backend servers..."
+          if [ -f frontend/frontend.pid ]; then
+            kill $(cat frontend/frontend.pid) || true
+            rm frontend/frontend.pid
+          fi
+          if [ -f backend/backend.pid ]; then
+            kill $(cat backend/backend.pid) || true
+            rm backend/backend.pid
+          fi
 
       - name: Stop Docker Compose
         if: always()

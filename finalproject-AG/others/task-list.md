@@ -946,31 +946,31 @@ Fixed critical dependency conflicts between @langchain/community and @huggingfac
 
 ### Task 0.2: Integration Test CI Debugging (🚧 IN PROGRESS)
 **Description**: 
-Debug and resolve the integration test failures in CI environment. Tests pass locally (70/70) but fail in GitHub Actions CI, indicating environment-specific issues with data consistency, timing, or configuration.
+Debug and resolve the integration test failures in CI environment. Tests pass locally (70/70) but fail in GitHub Actions CI, indicating environment-specific issues with data consistency, timing, or configuration. Re-enabled tests with debug output to identify specific failures.
 
 **Key Tasks**:
+- ✅ Re-enabled integration tests with debug output (--verbose --detectOpenHandles --forceExit)
+- ✅ Re-enabled E2E tests with Cypress headless mode
+- ✅ Added environment variable logging for debugging
 - 🚧 Analyze specific integration test failures in CI logs
 - 🚧 Compare local vs CI environment differences
 - 🚧 Debug database seeding and data consistency issues
 - 🚧 Investigate timing issues with async operations
-- 🚧 Check environment variable differences
-- 🚧 Verify Docker Compose database state in CI
-- 🚧 Add debugging output to identify root cause
 - 🚧 Implement fixes for CI-specific issues
 
 **Acceptance Criteria**:
 - 🚧 Integration tests pass consistently in CI (70/70)
+- 🚧 E2E tests pass consistently in CI
 - 🚧 No data consistency issues between test runs
 - 🚧 Proper database state management in CI
-- 🚧 E2E tests can be re-enabled after integration tests are stable
 - 🚧 CI environment matches local development exactly
 
-**Status**: 🚧 **IN PROGRESS** - Investigating CI-specific test failures
+**Status**: 🚧 **ACTIVE DEBUGGING** - Tests re-enabled with debug output
 
 **Notes**: 
 - Tests work perfectly in local development environment
-- Issue appears to be CI-specific (GitHub Actions environment)
-- Likely related to database seeding, timing, or environment differences
-- Unit tests (213/213) continue to pass in CI
-- Integration and E2E tests temporarily disabled until resolved
+- Added Jest flags: --verbose --detectOpenHandles --forceExit for better debugging
+- Added environment variable logging to identify configuration differences
+- Cypress running in headless mode for CI compatibility
+- Will analyze specific failure patterns from next CI run
 
