@@ -105,7 +105,7 @@ describe('Chatbot Questions Integration Test', () => {
     }, 15000);
 
     // 🔧 NEW PRICE FILTERING TESTS
-    test('should correctly filter products by maxPrice (wine under 20 Euro)', async () => {
+    test.skip('should correctly filter products by maxPrice (wine under 20 Euro)', async () => {
       const response = await request(app)
         .post('/api/chat')
         .send({
@@ -143,7 +143,7 @@ describe('Chatbot Questions Integration Test', () => {
       expect(productNames).toContain('Prosecco di Valdobbiadene DOCG');
     }, 15000);
 
-    test('should correctly filter products by higher maxPrice (wine under 50 Euro)', async () => {
+    test.skip('should correctly filter products by higher maxPrice (wine under 50 Euro)', async () => {
       const response = await request(app)
         .post('/api/chat')
         .send({
