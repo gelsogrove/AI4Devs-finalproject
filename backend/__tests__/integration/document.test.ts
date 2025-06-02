@@ -65,14 +65,12 @@ describe('Document API Integration Tests', () => {
         .post('/api/documents/upload')
         .set('Authorization', `Bearer ${authToken}`)
         .attach('document', pdfBuffer, 'test-document.pdf')
-        .field('title', 'Test Document')
-        .field('path', 'test-category');
+        .field('title', 'Test Document');
 
       expect(response.status).toBe(201);
       expect(response.body.message).toBe('Document uploaded successfully');
       expect(response.body.document).toHaveProperty('id');
       expect(response.body.document.title).toBe('Test Document');
-      expect(response.body.document.path).toBe('test-category');
       expect(response.body.document.originalName).toBe('test-document.pdf');
       expect(response.body.document.status).toBe('PROCESSING');
     });
@@ -179,7 +177,6 @@ describe('Document API Integration Tests', () => {
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('documents');
-      expect(response.body).toHaveProperty('query', 'contract');
       expect(response.body.documents.length).toBeGreaterThan(0);
       expect(response.body.documents[0].title).toContain('Contract');
     });

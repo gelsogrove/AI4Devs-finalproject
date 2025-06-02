@@ -121,10 +121,10 @@ export class Product {
   // Serialization method for DTO conversion
   toDTO() {
     return {
-      id: this._id.value,
-      name: this._name.value,
+      id: this._id.getValue(),
+      name: this._name.getValue(),
       description: this._description,
-      price: this._price.amount,
+      price: this._price.getValue(),
       category: this._category,
       tags: [...this._tags],
       isActive: this._isActive,

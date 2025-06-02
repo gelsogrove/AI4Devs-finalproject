@@ -1,6 +1,6 @@
 import { loginUser } from '@/api/authApi';
 import { useToast } from '@/components/ui/use-toast';
-import { AuthState, LoginCredentials, User } from '@/types/auth';
+import { AuthState, LoginCredentials, User } from '@/types/dto';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
 interface AuthContextType {

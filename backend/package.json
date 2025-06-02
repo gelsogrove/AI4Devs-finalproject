@@ -5,30 +5,16 @@
   "scripts": {
     "start": "node dist/index.js",
     "dev": "ts-node-dev --respawn --transpile-only --require dotenv/config src/index.ts",
-    "restart": "npm run kill && sleep 2 && npm run dev",
-    "kill": "lsof -ti:8080 | xargs kill -9 2>/dev/null || echo 'No process found on port 8080'",
     "build": "tsc",
     "test": "jest",
     "test:unit": "cross-env NODE_ENV=test jest __tests__/unit",
     "test:integration": "cross-env NODE_ENV=test jest __tests__/integration",
     "test:chatbot": "cross-env NODE_ENV=test jest __tests__/integration/chatbot-questions.integration.test.ts",
-    "test:chatbot:curl": "../scripts/test-chatbot-questions.sh",
-    "test:cleanup": "cross-env NODE_ENV=test jest __tests__/integration/cleanup-documents.test.ts",
-    "test:e2e": "echo 'E2E tests not implemented yet'",
-    "test:all": "npm run test:unit && npm run test:integration && npm run test:chatbot",
-    "lint": "eslint . --ext .ts",
-    "format": "prettier --write \"src/**/*.ts\"",
     "db:reset": "prisma migrate reset --force && prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:setup": "npm run db:reset && npm run db:seed",
-    "test:watch": "cross-env NODE_ENV=test jest --watch",
-    "lint:fix": "eslint src/**/*.ts --fix",
     "db:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:studio": "prisma studio",
-    "security:audit": "npm audit --audit-level=moderate",
-    "security:fix": "npm audit fix",
-    "security:check": "npm run security:audit && npm outdated"
+    "db:push": "prisma db push"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
@@ -38,6 +24,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@huggingface/inference": "^4.0.0",
     "@langchain/community": "^0.3.45",
     "@langchain/core": "^0.3.57",
     "@langchain/openai": "^0.5.11",
@@ -57,6 +44,7 @@
     "express-rate-limit": "^7.1.5",
     "express-validator": "^7.0.1",
     "file-type": "^18.7.0",
+    "fs-extra": "^11.3.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "langchain": "^0.3.27",
@@ -64,6 +52,7 @@
     "ms": "^2.1.3",
     "multer": "^1.4.5-lts.1",
     "openai": "^4.29.0",
+    "pdf-lib": "^1.17.1",
     "pdf-parse": "^1.1.1",
     "prisma": "^5.22.0",
     "sanitize-filename": "^1.6.3",
@@ -76,6 +65,7 @@
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
+    "@types/fs-extra": "^11.0.4",
     "@types/helmet": "^0.0.48",
     "@types/jest": "^29.5.12",
     "@types/jsonwebtoken": "^9.0.9",

@@ -1,11 +1,14 @@
-import { toast } from '@/components/ui/use-toast';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertCircle, Briefcase, Building, Clock, Globe, Mail, MapPin, Phone, Save, User } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { Briefcase, Building, Clock, Globe, Mail, MapPin, Phone, Save, User } from 'lucide-react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { profileApi } from '../api/profileApi';
-import { Profile, UpdateProfileDto } from '../types/profile';
+import { ActionButton } from '../components/ui/action-button';
+import { ErrorAlert } from '../components/ui/error-alert';
+import { LoadingPage } from '../components/ui/loading-spinner';
+import { PageHeader } from '../components/ui/page-header';
+import { useProfileState } from '../hooks/useProfileState';
+import { UpdateProfileDto } from '../types/profile';
 
 // Validation schema
 const profileSchema = z.object({
@@ -23,10 +26,8 @@ const profileSchema = z.object({
 type ProfileFormData = z.infer<typeof profileSchema>;
 
 const ProfilePage: React.FC = () => {
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { state, loadProfile, updateProfile, clearError } = useProfileState();
+  const { profile, loading, saving, error } = state;
 
   const {
     register,
@@ -37,44 +38,37 @@ const ProfilePage: React.FC = () => {
     resolver: zodResolver(profileSchema)
   });
 
-  // Load profile data
+  // Load profile data on mount ONLY
   useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        setLoading(true);
-        const profileData = await profileApi.getProfile();
-        setProfile(profileData);
-        
-        // Reset form with profile data
-        reset({
-          companyName: profileData.companyName,
-          logoUrl: profileData.logoUrl || '',
-          description: profileData.description,
-          phoneNumber: profileData.phoneNumber,
-          website: profileData.website || '',
-          email: profileData.email,
-          openingTime: profileData.openingTime,
-          address: profileData.address,
-          sector: profileData.sector,
-        });
-      } catch (err) {
-        setError('Failed to load profile');
-        console.error('Error loading profile:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadProfile();
-  }, [reset]);
+  }, []); // Empty dependency array - run only on mount
+
+  // Reset form when profile data is loaded
+  useEffect(() => {
+    if (profile) {
+      reset({
+        companyName: profile.companyName,
+        logoUrl: profile.logoUrl || '',
+        description: profile.description,
+        phoneNumber: profile.phoneNumber,
+        website: profile.website || '',
+        email: profile.email,
+        openingTime: profile.openingTime,
+        address: profile.address,
+        sector: profile.sector,
+      });
+    }
+  }, [profile, reset]);
+
+  // Clear error when component unmounts ONLY
+  useEffect(() => {
+    return () => clearError();
+  }, []); // Empty dependency array - run only on mount/unmount
 
   const onSubmit = async (data: ProfileFormData) => {
     if (!profile) return;
 
     try {
-      setSaving(true);
-      setError(null);
-
       const updateData: UpdateProfileDto = {
         companyName: data.companyName,
         logoUrl: data.logoUrl || undefined,
@@ -87,66 +81,37 @@ const ProfilePage: React.FC = () => {
         sector: data.sector,
       };
 
-      const response = await profileApi.updateProfile(profile.id, updateData);
-      setProfile(response.profile);
-      toast({
-        title: "Success",
-        description: "Profile updated successfully!",
-      });
+      await updateProfile(profile.id, updateData);
       
       // Reset form dirty state
       reset(data);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to update profile');
-      toast({
-        title: "Error",
-        description: err.response?.data?.error || 'Failed to update profile',
-        variant: "destructive",
-      });
-      console.error('Error updating profile:', err);
-    } finally {
-      setSaving(false);
+      // Error handling is done in the hook
+      console.error('Profile update failed:', err);
     }
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-shopme-600"></div>
-      </div>
-    );
+    return <LoadingPage text="Loading profile..." />;
   }
 
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Header Section */}
-      <div className="bg-gradient-to-r from-shopme-50 to-green-50 rounded-xl p-6 border border-shopme-100 animate-slide-up">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center shadow-lg">
-            <User className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Company Profile</h1>
-            <p className="text-gray-600">Manage your company information and settings</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title="Company Profile"
+        description="Manage your company information and settings"
+        icon={User}
+        iconColor="orange"
+      />
 
       <div className="animate-scale-in">
         <div className="bg-white border-0 shadow-md hover:shadow-xl transition-all duration-300 rounded-xl">
           {/* Form */}
           <form onSubmit={handleSubmit(onSubmit)} className="p-8 space-y-8">
-            {/* Error/Success Messages */}
+            {/* Error Messages */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 animate-slide-up">
-                <div className="flex items-center gap-3">
-                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-                  <div>
-                    <h3 className="text-sm font-medium text-red-800">Error</h3>
-                    <div className="mt-1 text-sm text-red-700">{error}</div>
-                  </div>
-                </div>
-              </div>
+              <ErrorAlert error={error} onClose={clearError} />
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -180,7 +145,7 @@ const ProfilePage: React.FC = () => {
                   />
                   {errors.companyName && (
                     <p className="text-sm text-red-600 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />
+                      <span className="w-3 h-3">⚠</span>
                       {errors.companyName.message}
                     </p>
                   )}
@@ -200,8 +165,28 @@ const ProfilePage: React.FC = () => {
                   />
                   {errors.logoUrl && (
                     <p className="text-sm text-red-600 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />
+                      <span className="w-3 h-3">⚠</span>
                       {errors.logoUrl.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Description */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                    <Briefcase className="w-4 h-4 text-gray-400" />
+                    Description *
+                  </label>
+                  <textarea
+                    {...register('description')}
+                    rows={4}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-shopme-500 focus:border-shopme-500 transition-colors resize-none"
+                    placeholder="Describe your company..."
+                  />
+                  {errors.description && (
+                    <p className="text-sm text-red-600 flex items-center gap-1">
+                      <span className="w-3 h-3">⚠</span>
+                      {errors.description.message}
                     </p>
                   )}
                 </div>
@@ -216,17 +201,19 @@ const ProfilePage: React.FC = () => {
                     type="tel"
                     {...register('phoneNumber')}
                     className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-shopme-500 focus:border-shopme-500 transition-colors"
-                    placeholder="+39 06 1234 5678"
+                    placeholder="+1 (555) 123-4567"
                   />
                   {errors.phoneNumber && (
                     <p className="text-sm text-red-600 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />
+                      <span className="w-3 h-3">⚠</span>
                       {errors.phoneNumber.message}
                     </p>
                   )}
-                  <p className="text-xs text-gray-500">Used for WhatsApp configuration</p>
                 </div>
+              </div>
 
+              {/* Right Column */}
+              <div className="space-y-6">
                 {/* Website */}
                 <div className="space-y-2">
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
@@ -237,19 +224,16 @@ const ProfilePage: React.FC = () => {
                     type="url"
                     {...register('website')}
                     className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-shopme-500 focus:border-shopme-500 transition-colors"
-                    placeholder="https://www.example.com"
+                    placeholder="https://example.com"
                   />
                   {errors.website && (
                     <p className="text-sm text-red-600 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />
+                      <span className="w-3 h-3">⚠</span>
                       {errors.website.message}
                     </p>
                   )}
                 </div>
-              </div>
 
-              {/* Right Column */}
-              <div className="space-y-6">
                 {/* Email */}
                 <div className="space-y-2">
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
@@ -260,11 +244,11 @@ const ProfilePage: React.FC = () => {
                     type="email"
                     {...register('email')}
                     className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-shopme-500 focus:border-shopme-500 transition-colors"
-                    placeholder="info@example.com"
+                    placeholder="contact@company.com"
                   />
                   {errors.email && (
                     <p className="text-sm text-red-600 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />
+                      <span className="w-3 h-3">⚠</span>
                       {errors.email.message}
                     </p>
                   )}
@@ -280,11 +264,11 @@ const ProfilePage: React.FC = () => {
                     type="text"
                     {...register('openingTime')}
                     className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-shopme-500 focus:border-shopme-500 transition-colors"
-                    placeholder="Monday-Friday: 9:00-18:00"
+                    placeholder="Mon-Fri 9:00-18:00"
                   />
                   {errors.openingTime && (
                     <p className="text-sm text-red-600 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />
+                      <span className="w-3 h-3">⚠</span>
                       {errors.openingTime.message}
                     </p>
                   )}
@@ -300,11 +284,11 @@ const ProfilePage: React.FC = () => {
                     {...register('address')}
                     rows={3}
                     className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-shopme-500 focus:border-shopme-500 transition-colors resize-none"
-                    placeholder="Via Roma 123, 00186 Roma, Italy"
+                    placeholder="123 Main St, City, State, ZIP"
                   />
                   {errors.address && (
                     <p className="text-sm text-red-600 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />
+                      <span className="w-3 h-3">⚠</span>
                       {errors.address.message}
                     </p>
                   )}
@@ -320,11 +304,11 @@ const ProfilePage: React.FC = () => {
                     type="text"
                     {...register('sector')}
                     className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-shopme-500 focus:border-shopme-500 transition-colors"
-                    placeholder="Italian Food E-commerce"
+                    placeholder="e.g., Technology, Retail, Healthcare"
                   />
                   {errors.sector && (
                     <p className="text-sm text-red-600 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />
+                      <span className="w-3 h-3">⚠</span>
                       {errors.sector.message}
                     </p>
                   )}
@@ -332,40 +316,17 @@ const ProfilePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Description - Full Width */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                <Building className="w-4 h-4 text-gray-400" />
-                Description *
-              </label>
-              <textarea
-                {...register('description')}
-                rows={4}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-shopme-500 focus:border-shopme-500 transition-colors resize-none"
-                placeholder="Describe your company..."
-              />
-              {errors.description && (
-                <p className="text-sm text-red-600 flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3" />
-                  {errors.description.message}
-                </p>
-              )}
-            </div>
-
             {/* Submit Button */}
-            <div className="flex justify-end pt-6 border-t border-gray-100">
-              <button
+            <div className="flex justify-end pt-6 border-t border-gray-200">
+              <ActionButton
                 type="submit"
-                disabled={saving || !isDirty}
-                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
-                  saving || !isDirty
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-shopme-500 to-shopme-600 hover:from-shopme-600 hover:to-shopme-700 text-white shadow-md hover:shadow-lg'
-                }`}
+                icon={Save}
+                loading={saving}
+                disabled={!isDirty}
+                variant="warning"
               >
-                <Save className="w-4 h-4" />
-                {saving ? 'Saving...' : 'Save Changes'}
-              </button>
+                {saving ? "Saving..." : "Save Changes"}
+              </ActionButton>
             </div>
           </form>
         </div>

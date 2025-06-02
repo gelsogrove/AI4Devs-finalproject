@@ -48,7 +48,7 @@ export class PrismaProductRepository implements ProductRepository {
   async findById(id: ProductId): Promise<Product | null> {
     try {
       const product = await this.prisma.product.findUnique({
-        where: { id: id.value },
+        where: { id: id.getValue() },
       });
       
       if (!product) {
@@ -63,7 +63,7 @@ export class PrismaProductRepository implements ProductRepository {
       
       return Product.fromDTO(productWithTags);
     } catch (error) {
-      logger.error(`Error finding product with ID ${id.value}:`, error);
+      logger.error(`Error finding product with ID ${id.getValue()}:`, error);
       throw new Error('Failed to find product');
     }
   }
@@ -159,7 +159,7 @@ export class PrismaProductRepository implements ProductRepository {
       
       return Product.fromDTO(productWithTags);
     } catch (error) {
-      logger.error(`Error updating product with ID ${product.id.value}:`, error);
+      logger.error(`Error updating product with ID ${product.id.getValue()}:`, error);
       throw new Error('Failed to update product');
     }
   }
@@ -167,12 +167,12 @@ export class PrismaProductRepository implements ProductRepository {
   async delete(id: ProductId): Promise<boolean> {
     try {
       await this.prisma.product.delete({
-        where: { id: id.value },
+        where: { id: id.getValue() },
       });
       
       return true;
     } catch (error) {
-      logger.error(`Error deleting product with ID ${id.value}:`, error);
+      logger.error(`Error deleting product with ID ${id.getValue()}:`, error);
       throw new Error('Failed to delete product');
     }
   }

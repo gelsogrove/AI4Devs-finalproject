@@ -104,7 +104,7 @@ class UserService {
       const passwordMatches = await comparePasswords(password, user.password);
       
       // Log for debugging
-      logger.info(`Password verification result for ${email}: ${passwordMatches}`);
+      // logger.info(`Password verification result for ${email}: ${passwordMatches}`);
       
       if (!passwordMatches) {
         logger.warn(`Failed login attempt for ${email}: incorrect password`);
@@ -117,7 +117,7 @@ class UserService {
 
       // Generate a simple token for demo
       const token = 'demo-token-' + Date.now();
-      logger.info(`Successful login for ${email}`);
+      // logger.info(`Successful login for ${email}`);
 
       // Return user info and token
       return {

@@ -21,11 +21,11 @@ export const comparePasswords = async (
 ): Promise<boolean> => {
   try {
     // Log for debugging
-    logger.info(`Comparing password with hash: ${hashedPassword.substring(0, 10)}...`);
+    // logger.info(`Comparing password with hash: ${hashedPassword.substring(0, 10)}...`);
     
     const result = await bcrypt.compare(plainPassword, hashedPassword);
     
-    logger.info(`Password comparison result: ${result}`);
+    // logger.info(`Password comparison result: ${result}`);
     return result;
   } catch (error) {
     logger.error(`Password comparison error: ${error}`);

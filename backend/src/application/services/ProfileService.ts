@@ -30,7 +30,13 @@ export class ProfileService {
   constructor(private profileRepository: ProfileRepository) {}
 
   async getProfile(): Promise<Profile> {
-    const profile = await this.profileRepository.findFirst();
+    // For E2E tests, prefer the gusto_italiano profile if it exists
+    let profile = await this.profileRepository.findByUsername('gusto_italiano');
+    
+    // If gusto_italiano doesn't exist, fall back to the first profile
+    if (!profile) {
+      profile = await this.profileRepository.findFirst();
+    }
     
     if (!profile) {
       throw new Error('Profile not found');

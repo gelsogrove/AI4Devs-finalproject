@@ -1,12 +1,12 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "ShopMe API",
+    "title": "ShopMefy API",
     "version": "1.0.0",
-    "description": "API documentation for ShopMe e-commerce platform",
+    "description": "API documentation for ShopMefy e-commerce platform",
     "contact": {
-      "name": "ShopMe Support",
-      "email": "support@shopme.example.com"
+      "name": "ShopMefy Support",
+      "email": "support@shopmefy.example.com"
     }
   },
   "servers": [
@@ -25,7 +25,8 @@
     { "name": "FAQs", "description": "FAQ management endpoints" },
     { "name": "Agent Config", "description": "Agent configuration endpoints" },
     { "name": "Services", "description": "Service management endpoints" },
-    { "name": "Chat", "description": "Chat interaction endpoints" }
+    { "name": "Chat", "description": "Chat interaction endpoints" },
+    { "name": "LangChain Chat", "description": "Enhanced chat with LangChain and function calling" }
   ],
   "components": {
     "securitySchemes": {
@@ -1243,6 +1244,83 @@
           },
           "404": {
             "description": "Service not found"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/langchain/chat": {
+      "post": {
+        "tags": ["LangChain Chat"],
+        "summary": "Process chat messages using LangChain",
+        "description": "Enhanced chat processing with LangChain agents and function calling capabilities",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "messages": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "enum": ["user", "assistant", "system"]
+                        },
+                        "content": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["role", "content"]
+                    }
+                  }
+                },
+                "required": ["messages"],
+                "example": {
+                  "messages": [
+                    {
+                      "role": "user",
+                      "content": "Do you have wine under 20 euros?"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Chat response generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "example": "assistant"
+                        },
+                        "content": {
+                          "type": "string",
+                          "example": "Buongiorno! Welcome to Gusto Italiano. Yes, we have several excellent wines under 20 euros..."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request format"
           },
           "500": {
             "description": "Server error"

@@ -1,3 +1,12 @@
+import {
+    Document,
+    DocumentListResponse,
+    DocumentSearchResponse,
+    UpdateDocumentRequest,
+    UpdateDocumentResponse,
+    UploadDocumentRequest,
+    UploadDocumentResponse
+} from '@/types/dto';
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
@@ -13,122 +22,106 @@ const getAuthHeader = () => {
   };
 };
 
-export interface Document {
-  id: string;
-  filename: string;
-  originalName: string;
-  title?: string;
-  size: number;
-  status: 'UPLOADING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
-  isActive: boolean;
-  metadata?: any;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface DocumentStats {
   totalDocuments: number;
   totalSize: number;
   statusBreakdown: Record<string, number>;
 }
 
-export interface DocumentListResponse {
-  documents: Document[];
-  pagination: {
-    total: number;
-    limit: number;
-    offset: number;
-    hasMore: boolean;
-  };
-}
-
-export interface DocumentSearchResponse extends DocumentListResponse {
-  query?: string;
-}
-
-export interface UploadDocumentRequest {
-  document: File;
-  title?: string;
-}
-
-export interface UploadDocumentResponse {
-  message: string;
-  document: Document;
-}
-
-export interface UpdateDocumentRequest {
-  title?: string;
-  filename?: string;
-  isActive?: boolean;
-}
-
-export interface UpdateDocumentResponse {
-  message: string;
-  document: Document;
-}
-
-class DocumentService {
-  /**
-   * Upload a new document
-   */
-  async uploadDocument(request: UploadDocumentRequest): Promise<UploadDocumentResponse> {
-    const formData = new FormData();
-    formData.append('document', request.document);
-    
-    if (request.title) {
-      formData.append('title', request.title);
-    }
-
-    const authHeaders = getAuthHeader();
-    const response = await axios.post(`${DOCUMENTS_ENDPOINT}/upload`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-        ...authHeaders.headers,
-      },
-    });
-
-    return response.data;
-  }
-
-  /**
-   * Get user documents with pagination
-   */
+export const documentService = {
+  // Get all documents with pagination
   async getDocuments(limit = 10, offset = 0): Promise<DocumentListResponse> {
-    const response = await axios.get(DOCUMENTS_ENDPOINT, {
-      params: { limit, offset },
-      ...getAuthHeader()
-    });
+    try {
+      const response = await axios.get(
+        `${DOCUMENTS_ENDPOINT}?limit=${limit}&offset=${offset}`,
+        getAuthHeader()
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+      throw error;
+    }
+  },
 
-    return response.data;
-  }
-
-  /**
-   * Search documents
-   */
+  // Search documents
   async searchDocuments(query: string, limit = 10, offset = 0): Promise<DocumentSearchResponse> {
-    const response = await axios.get(`${DOCUMENTS_ENDPOINT}/search`, {
-      params: { query, limit, offset },
-      ...getAuthHeader()
-    });
+    try {
+      const response = await axios.get(
+        `${DOCUMENTS_ENDPOINT}/search?q=${encodeURIComponent(query)}&limit=${limit}&offset=${offset}`,
+        getAuthHeader()
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error searching documents:', error);
+      throw error;
+    }
+  },
 
-    return response.data;
-  }
+  // Upload a document
+  async uploadDocument(request: UploadDocumentRequest): Promise<UploadDocumentResponse> {
+    try {
+      const formData = new FormData();
+      formData.append('document', request.document);
+      if (request.title) {
+        formData.append('title', request.title);
+      }
 
-  /**
-   * Get document by ID
-   */
-  async getDocumentById(id: string): Promise<Document> {
-    const response = await axios.get(`${DOCUMENTS_ENDPOINT}/${id}`, getAuthHeader());
-    return response.data;
-  }
+      const response = await axios.post(`${DOCUMENTS_ENDPOINT}/upload`, formData, {
+        ...getAuthHeader(),
+        headers: {
+          ...getAuthHeader().headers,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error uploading document:', error);
+      throw error;
+    }
+  },
 
-  /**
-   * Delete document
-   */
+  // Update a document
+  async updateDocument(id: string, request: UpdateDocumentRequest): Promise<UpdateDocumentResponse> {
+    try {
+      const response = await axios.put(
+        `${DOCUMENTS_ENDPOINT}/${id}`,
+        request,
+        getAuthHeader()
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error updating document:', error);
+      throw error;
+    }
+  },
+
+  // Delete a document
   async deleteDocument(id: string): Promise<{ message: string }> {
-    const response = await axios.delete(`${DOCUMENTS_ENDPOINT}/${id}`, getAuthHeader());
-    return response.data;
-  }
+    try {
+      const response = await axios.delete(
+        `${DOCUMENTS_ENDPOINT}/${id}`,
+        getAuthHeader()
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      throw error;
+    }
+  },
+
+  // Get a single document
+  async getDocument(id: string): Promise<Document> {
+    try {
+      const response = await axios.get(
+        `${DOCUMENTS_ENDPOINT}/${id}`,
+        getAuthHeader()
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching document:', error);
+      throw error;
+    }
+  },
 
   /**
    * Get document statistics
@@ -136,7 +129,7 @@ class DocumentService {
   async getDocumentStats(): Promise<DocumentStats> {
     const response = await axios.get(`${DOCUMENTS_ENDPOINT}/stats`, getAuthHeader());
     return response.data;
-  }
+  },
 
   /**
    * Generate embeddings for a specific document
@@ -144,7 +137,7 @@ class DocumentService {
   async generateEmbeddingsForDocument(documentId: string): Promise<{ message: string; documentId: string }> {
     const response = await axios.post(`${DOCUMENTS_ENDPOINT}/${documentId}/embeddings`, {}, getAuthHeader());
     return response.data;
-  }
+  },
 
   /**
    * Generate embeddings for all documents
@@ -152,7 +145,7 @@ class DocumentService {
   async generateEmbeddingsForAllDocuments(): Promise<{ message: string; count: number }> {
     const response = await axios.post(`${DOCUMENTS_ENDPOINT}/embeddings`, {}, getAuthHeader());
     return response.data;
-  }
+  },
 
   /**
    * Format file size for display
@@ -165,7 +158,7 @@ class DocumentService {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  }
+  },
 
   /**
    * Get status color for UI
@@ -183,7 +176,7 @@ class DocumentService {
       default:
         return 'text-gray-600';
     }
-  }
+  },
 
   /**
    * Get status badge color for UI
@@ -201,15 +194,5 @@ class DocumentService {
       default:
         return 'bg-gray-100 text-gray-800';
     }
-  }
-
-  /**
-   * Update document
-   */
-  async updateDocument(id: string, request: UpdateDocumentRequest): Promise<UpdateDocumentResponse> {
-    const response = await axios.put(`${DOCUMENTS_ENDPOINT}/${id}`, request, getAuthHeader());
-    return response.data;
-  }
-}
-
-export const documentService = new DocumentService(); 
+  },
+}; 

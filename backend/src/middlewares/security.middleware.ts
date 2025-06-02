@@ -23,8 +23,8 @@ export const createRateLimiter = (windowMs: number = 15 * 60 * 1000, max: number
       });
     },
     skip: (req: Request) => {
-      // Skip rate limiting for health checks
-      return req.path === '/api/health';
+      // Skip rate limiting for health checks and profile endpoint (temporary fix)
+      return req.path === '/api/health' || req.path === '/api/profile';
     }
   });
 };
@@ -32,12 +32,18 @@ export const createRateLimiter = (windowMs: number = 15 * 60 * 1000, max: number
 /**
  * Stricter rate limiting for authentication endpoints
  */
-export const authRateLimiter = createRateLimiter(15 * 60 * 1000, 5); // 5 attempts per 15 minutes
+export const authRateLimiter = createRateLimiter(
+  15 * 60 * 1000, 
+  process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development' ? 1000 : 5
+);
 
 /**
  * General API rate limiter
  */
-export const apiRateLimiter = createRateLimiter(15 * 60 * 1000, 100); // 100 requests per 15 minutes
+export const apiRateLimiter = createRateLimiter(
+  15 * 60 * 1000, 
+  process.env.NODE_ENV === 'development' ? 500 : 100 // Higher limit for development
+); // 500 requests per 15 minutes in dev, 100 in production
 
 /**
  * File upload rate limiter

@@ -10,7 +10,7 @@ import {
 import PageLoader from '@/components/ui/PageLoader';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePageTransition } from '@/hooks/usePageTransition';
-import { Profile } from '@/types/profile';
+import { Profile } from '@/types/dto';
 import {
     ChevronDown,
     FileText,
@@ -234,8 +234,8 @@ const MainLayout: React.FC = () => {
             
             <div className="mt-auto pt-6 border-t border-gray-100">
               <div className="text-xs text-gray-500 text-center">
-                <p className="font-medium">ShopMe MVP</p>
-                <p>© {new Date().getFullYear()} ShopMe</p>
+                <p className="font-medium">ShopMefy Platform</p>
+                <p>© {new Date().getFullYear()} ShopMefy</p>
               </div>
             </div>
           </div>

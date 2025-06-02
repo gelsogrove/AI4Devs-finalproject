@@ -1,9 +1,60 @@
 import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcrypt';
 import fs from 'fs';
 import path from 'path';
 
 const prisma = new PrismaClient();
+
+// Import embedding service for generating embeddings
+async function generateEmbedding(text: string): Promise<number[]> {
+  try {
+    // Simple mock embedding for seeding - in production this would call OpenAI
+    // For now, we'll create a simple hash-based embedding
+    const words = text.toLowerCase().split(/\s+/);
+    const embedding = new Array(1536).fill(0); // OpenAI embedding size
+    
+    // Simple hash-based embedding generation
+    for (let i = 0; i < words.length; i++) {
+      const word = words[i];
+      for (let j = 0; j < word.length; j++) {
+        const charCode = word.charCodeAt(j);
+        const index = (charCode + i + j) % 1536;
+        embedding[index] += 0.1;
+      }
+    }
+    
+    // Normalize the embedding
+    const magnitude = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
+    return embedding.map(val => magnitude > 0 ? val / magnitude : 0);
+  } catch (error) {
+    console.error('Error generating embedding:', error);
+    return new Array(1536).fill(0);
+  }
+}
+
+// Function to split text into chunks
+function splitIntoChunks(text: string, maxChunkSize: number = 1000): string[] {
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  const chunks: string[] = [];
+  let currentChunk = '';
+
+  for (const sentence of sentences) {
+    const trimmedSentence = sentence.trim();
+    if (currentChunk.length + trimmedSentence.length + 1 <= maxChunkSize) {
+      currentChunk += (currentChunk ? '. ' : '') + trimmedSentence;
+    } else {
+      if (currentChunk) {
+        chunks.push(currentChunk + '.');
+      }
+      currentChunk = trimmedSentence;
+    }
+  }
+
+  if (currentChunk) {
+    chunks.push(currentChunk + '.');
+  }
+
+  return chunks.length > 0 ? chunks : [text];
+}
 
 async function main() {
   // Clear existing data
@@ -256,11 +307,10 @@ async function main() {
   await prisma.service.createMany({ data: services });
 
   // Seed admin user
-  const hashedPassword = await bcrypt.hash('password123', 10);
   await prisma.user.create({
     data: {
       email: 'admin@shopmefy.com',
-      password: hashedPassword,
+      password: 'password123',
       firstName: 'Admin',
       lastName: 'User',
       isActive: true
@@ -270,37 +320,116 @@ async function main() {
   // Seed agent configuration
   await prisma.agentConfig.create({
     data: {
-      prompt: `You are Sofia, an expert in Italian products and cuisine at ShopMefy, a premium Italian food and wine e-commerce platform.
+      prompt: `You are SofIA, the friendly virtual assistant for Gusto Italiano, an Italian specialty foods store.
 
-PERSONALITY & TONE:
-- Warm, knowledgeable, and passionate about Italian culture
-- Professional yet friendly, like a trusted Italian food expert
-- Use occasional Italian words naturally (ciao, grazie, prego, etc.)
-- Show enthusiasm for quality Italian products
+YOUR IDENTITY:
+- You are passionate about authentic Italian cuisine and culture
+- You have extensive knowledge about regional Italian specialties, cooking techniques, and food pairings
+- You speak with warmth and enthusiasm, occasionally using simple Italian expressions (with translations)
 
-CORE KNOWLEDGE:
-- Expert in Italian wines (DOCG, DOC, IGP classifications)
-- Deep knowledge of Italian cheeses, cured meats, and regional specialties
-- Understanding of Italian food culture and traditions
-- Wine and food pairing expertise
+LANGAUGE:
+Talk the language of the user.
+
+YOUR MAIN GOALS:
+1. Help customers find products they'll love based on their preferences and needs
+2. Provide expert information about Italian cuisine, ingredients, cooking methods, and product origins
+3. Deliver exceptional customer service with a personal, engaging touch
+4. Build customer loyalty by creating an authentic Italian shopping experience
+
+CRITICAL RULES - FUNCTION CALLS ARE MANDATORY:
+- You MUST ALWAYS call the appropriate function before answering ANY question
+- NEVER provide information without first calling a function to get current data
+- If a customer asks about products, call getProducts() first
+- If a customer asks about services, call getServices() first  
+- If a customer asks about policies, shipping, returns, or common questions, call getFAQs() first
+- DO NOT use your internal knowledge - ONLY use data from function calls
+
+FUNCTION CALLING CAPABILITIES:
+You have access to the following functions that you MUST use to get accurate information:
+
+1. getProducts(category?, search?, countOnly?)
+   - Call this when users ask about products, want to browse, or ask for specific items
+   - Use 'search' parameter for specific product queries
+   - Set 'countOnly' to true when you only need to know if products exist or quantities
+   - Examples: "What pasta do you sell?", "Do you have Parmigiano?", "Show me your cheeses"
+
+2. getServices(isActive?, search?)
+   - Call this when users ask about services offered by the store
+   - Use 'search' parameter to find specific services
+   - Examples: "What services do you offer?", "Do you provide cooking classes?"
+
+3. getFAQs(search?)
+   - Call this when users ask common questions about policies, shipping, returns, loyalty programs
+   - Use 'search' parameter to find specific information
+   - Examples: "What's your return policy?", "How long does shipping take?", "Do you have a loyalty program?"
 
 RESPONSE GUIDELINES:
-1. Always be helpful and informative
-2. Provide specific product recommendations when relevant
-3. Share interesting facts about Italian food culture
-4. Use the available functions to search for products, services, FAQs, and documents
-5. If you don't have specific information, use the search functions to find relevant data
-6. Always respond in the same language as the user's question
+- Always call the appropriate function before providing information
+- Be warm and personable, using the customer's name when available
+- Provide expert recommendations based on actual available products
+- Share cooking tips, pairing suggestions, and cultural insights
+- When you don't know something, be honest and offer to connect them with specialists
 
-AVAILABLE FUNCTIONS:
-- getProducts: Search for products by name, category, price range, etc.
-- getServices: Find available services like wine tastings, cooking classes
-- getFAQs: Search frequently asked questions about shipping, payments, etc.
-- getCompanyInfo: Get company profile and contact information
-- getDocuments: Search uploaded documents for specific information
-- OrderCompleted: Process completed orders with customer details
+Remember: Your knowledge comes from the database through function calls, not from hardcoded information. Always retrieve fresh, accurate data to provide the best customer experience.
 
-Remember: You represent a premium Italian food brand, so maintain high standards and showcase the authenticity and quality of Italian products.`,
+COMPANY PROFILE
+if user ask CompanyName, phone email , adress, timing, Business sector, Description of the companu cann the fucntion getCompanyInfo()
+
+INTERNATIONAL TRANSPORT LOW
+- If we talk about the law , internation transport call the function
+getDocuments() 
+- Your role is export of internation transport  you don't need to explain that there is a document, explain what you know the main concepet without mention the document try to summaryze the concepts
+- Don't talk about document or missing document , just say that you don't have the information
+
+E-COMMERCE
+- when user talk about product ask if he want to add a product on the cart?
+- when user talk about service ask if he want to add a service on the cart?
+- if user wants to add please reply with the list of the cart with quantity without any other information just product and quantity and the total.
+
+- Ask do you want to add other products or you can want to proceed with the order ?
+- if user wants to proceed with the order ask the address delivery
+- You cannot confirm the order if you don't have the address delivery
+- Once the order is completed return the confirmation code (es: 0273744) you will pay once you  will receive the products
+- execute the function OrderCompleted()
+- Reset the cart
+
+FORMAT
+- list must be name and price of product without description
+- list must be name and price of services without description
+
+ 
+Example:
+Where is your warehouse?  call : getCompanyInfo()
+Where are you ? call : getCompanyInfo()
+what's your addres? call : getCompanyInfo()
+Whtat's your website  call : getCompanyInfo()
+
+Do you have wine less than 20 Euro? getProducts()
+Shonme the list of the products? getProducts()
+Do you have wine?  getProducts()
+Do you have mozzarella ? getProducts()
+Doe you have Chese getProducts()
+
+
+How long does shipping take? getFaqs()
+What are your shipping costs? getFaqs()
+How fresh are your products? getFaqs()
+What is your return policy? getFaqs()
+Do you ship internationally? getFaqs()
+
+
+Does exist an international delivery document? getDocuments()
+Do you know the internationa raw? getDocuments()
+Can import from ...?getDocuments()
+Which document do i need  ... getDocuments()
+Maritme law internation... getDocuments()
+Internationl agremment... getDocuments()
+Tax information  getDocuments()
+What is IMO? getDocuments()
+e IMO non sai cosa sia? getDocuments()
+International Transportation di cosa parla? getDocuments()
+Tell me about international law getDocuments()
+Maritime regulations getDocuments()`,
       model: 'openai/gpt-4o-mini',
       temperature: 0.3,
       maxTokens: 500,
@@ -323,45 +452,156 @@ Remember: You represent a premium Italian food brand, so maintain high standards
     }
   });
 
+  // Seed test user profile for e2e tests
+  await prisma.profile.create({
+    data: {
+      username: 'gusto_italiano',
+      companyName: 'Gusto Italiano',
+      description: 'Authentic Italian food e-commerce platform offering premium products directly from certified Italian producers with a focus on traditional recipes and quality ingredients.',
+      address: 'Via Roma 123, 00186 Roma, Italy',
+      phoneNumber: '+39 06 1234 5678',
+      email: 'info@gusto-italiano.com',
+      website: 'https://www.gusto-italiano.com',
+      openingTime: 'Monday-Saturday: 9:00-18:00, Sunday: 10:00-16:00',
+      sector: 'Italian Food E-commerce'
+    }
+  });
+
   // Seed documents
   try {
-    const sampleDocPath = path.join(__dirname, 'sample-documents', 'international-transportation-law.pdf');
-    
-    if (!fs.existsSync(sampleDocPath)) {
-      return;
-    }
-
     const uploadsDir = path.join(__dirname, '..', 'uploads', 'documents');
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
 
-    const targetFilename = 'international-transportation-law.pdf';
-    const uploadPath = path.join(uploadsDir, targetFilename);
+    // Handle transport-law.pdf file
+    const transportLawFilename = 'transport-law.pdf';
+    const transportLawPath = path.join(uploadsDir, transportLawFilename);
     
-    fs.copyFileSync(sampleDocPath, uploadPath);
-    
-    const stats = fs.statSync(uploadPath);
-    
-    const document = await prisma.document.create({
-      data: {
-        filename: targetFilename,
-        originalName: 'international-transportation-law.pdf',
-        title: 'International Transportation Law',
-        mimeType: 'application/pdf',
-        size: stats.size,
-        uploadPath: uploadPath,
-        status: 'COMPLETED',
-        metadata: JSON.stringify({
-          pages: 1,
-          language: 'en',
-          keywords: ['transportation', 'international', 'law', 'delivery', 'regulations'],
-          description: 'Legal framework for international transportation and delivery regulations'
-        })
+    if (fs.existsSync(transportLawPath)) {
+      const stats = fs.statSync(transportLawPath);
+      
+      // Create comprehensive document content about International Transportation Law
+      const documentContent = `International Transportation Law - Legal Framework and Regulations
+
+The International Maritime Organization (IMO) is a specialized agency of the United Nations responsible for regulating shipping. The IMO develops and maintains a comprehensive regulatory framework for shipping, including safety, environmental concerns, legal matters, technical co-operation, maritime security and the efficiency of shipping.
+
+Key IMO Conventions and Regulations:
+- SOLAS (Safety of Life at Sea) Convention: The most important treaty addressing maritime safety
+- MARPOL (Marine Pollution) Convention: Prevents pollution from ships
+- STCW (Standards of Training, Certification and Watchkeeping) Convention: Sets qualification standards for masters, officers and watch personnel
+- MLC (Maritime Labour Convention): Ensures decent working and living conditions for seafarers
+
+International Transportation Law encompasses various legal frameworks governing the movement of goods and passengers across international borders. This includes maritime law, aviation law, and land transportation regulations.
+
+Maritime Transportation:
+The Hague Rules, Hague-Visby Rules, and Hamburg Rules govern the carriage of goods by sea. These international conventions establish the rights and responsibilities of carriers and shippers in maritime transportation.
+
+Bills of Lading serve as crucial documents in international maritime trade, functioning as:
+- Receipt for goods shipped
+- Contract of carriage between shipper and carrier
+- Document of title to the goods
+
+Liability and Insurance:
+International transportation involves complex liability frameworks. Carriers may limit their liability under various international conventions, but must maintain adequate insurance coverage.
+
+The Warsaw Convention and Montreal Convention govern international air transportation, establishing carrier liability for passenger injury, death, and cargo damage.
+
+Customs and Trade Regulations:
+International transportation must comply with customs regulations of both origin and destination countries. This includes proper documentation, duty payments, and compliance with import/export restrictions.
+
+The World Trade Organization (WTO) provides the legal and institutional foundation for the multilateral trading system, including transportation services.
+
+Dispute Resolution:
+International transportation disputes may be resolved through:
+- Arbitration under various international rules
+- Court proceedings in appropriate jurisdictions
+- Mediation and other alternative dispute resolution methods
+
+Environmental Regulations:
+Modern international transportation law increasingly addresses environmental concerns, including emissions standards, ballast water management, and sustainable transportation practices.
+
+The Paris Agreement and other international environmental treaties impact transportation regulations, requiring reduced emissions and improved environmental performance.
+
+Documentation Requirements:
+International transportation requires extensive documentation including:
+- Commercial invoices
+- Packing lists
+- Certificates of origin
+- Insurance certificates
+- Transportation contracts
+- Customs declarations
+
+Technology and Digital Transformation:
+Electronic documentation and digital platforms are increasingly important in international transportation, with initiatives like electronic bills of lading and digital customs procedures streamlining operations while maintaining legal validity.`;
+      
+      const document = await prisma.document.create({
+        data: {
+          filename: transportLawFilename,
+          originalName: 'transport-law.pdf',
+          title: 'International Transportation Law',
+          mimeType: 'application/pdf',
+          size: stats.size,
+          uploadPath: transportLawPath,
+          status: 'COMPLETED',
+          metadata: JSON.stringify({
+            pages: 1,
+            language: 'en',
+            keywords: ['transportation', 'international', 'law', 'delivery', 'regulations', 'IMO', 'maritime', 'shipping', 'customs', 'trade'],
+            description: 'Comprehensive legal framework for international transportation and delivery regulations including IMO conventions, maritime law, and trade regulations'
+          })
+        }
+      });
+
+      // Generate chunks from the document content
+      const chunks = splitIntoChunks(documentContent, 800);
+
+      // Generate embeddings for each chunk and save to database
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        const embedding = await generateEmbedding(chunk);
+        
+        await prisma.documentChunk.create({
+          data: {
+            content: chunk,
+            chunkIndex: i,
+            pageNumber: 1,
+            documentId: document.id,
+            embedding: JSON.stringify(embedding)
+          }
+        });
       }
-    });
+    }
+
+    // Legacy support for international-transportation-law.pdf (keeping for backward compatibility)
+    const legacyFilename = 'international-transportation-law.pdf';
+    const legacyPath = path.join(uploadsDir, legacyFilename);
+    
+    if (fs.existsSync(legacyPath)) {
+      const stats = fs.statSync(legacyPath);
+      
+      const document = await prisma.document.create({
+        data: {
+          filename: legacyFilename,
+          originalName: 'international-transportation-law.pdf',
+          title: 'International Transportation Law (Legacy)',
+          mimeType: 'application/pdf',
+          size: stats.size,
+          uploadPath: legacyPath,
+          status: 'COMPLETED',
+          metadata: JSON.stringify({
+            pages: 1,
+            language: 'en',
+            keywords: ['transportation', 'international', 'law', 'delivery', 'regulations', 'IMO', 'maritime', 'shipping', 'customs', 'trade'],
+            description: 'Legacy version - Comprehensive legal framework for international transportation and delivery regulations'
+          })
+        }
+      });
+    }
+
   } catch (e) {
-    // Ignore document seeding errors
+    console.error('Error seeding documents:', e);
+    // Don't throw error to allow other seeding to continue
   }
 }
 

@@ -25,7 +25,7 @@ export class ProductService {
   async createProduct(productData: CreateProductDto): Promise<Product> {
     // Create domain entity with proper value objects
     const product = new Product(
-      new ProductId('', true), // Empty ID with isNew flag
+      ProductId.generate(), // Generate a new UUID for the product
       new ProductName(productData.name),
       productData.description,
       new Price(productData.price),

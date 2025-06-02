@@ -35,7 +35,7 @@ class LangChainChatController {
           temperature: agentConfig.temperature,
           maxTokens: agentConfig.maxTokens,
           topP: agentConfig.topP,
-          prompt: agentConfig.prompt
+          prompt: agentConfig.prompt || 'You are a helpful assistant.'
         });
         logger.info('LangChain service initialized successfully with database prompt');
       } else {
@@ -54,6 +54,19 @@ FUNCTION CALLING GUIDELINES:
    - Use getProducts for product inquiries, searches, or browsing
    - Use getServices for service questions, consultations, or offerings
    - Use getFAQs for policy questions, shipping, returns, or general help
+   - Use getDocuments for legal information, regulations, documentation, or when you need to search for specific technical content
+   - Use getProfile for company information, contact details, or business hours
+
+2. **Search Strategy**:
+   - When customers ask about acronyms, technical terms, or specific topics, ALWAYS search documents first
+   - If no relevant documents are found, then provide general knowledge
+   - For questions about regulations, laws, or official information, prioritize document search
+
+3. **Response Guidelines**:
+   - Always be helpful and informative
+   - If you find relevant documents, reference them in your response
+   - If no specific information is found in our systems, provide helpful general knowledge
+   - Encourage customers to ask follow-up questions
 
 Remember: You're sharing the passion and tradition of Italian cuisine. Make every interaction a delightful journey through Italy's culinary heritage.
 
@@ -98,11 +111,9 @@ Benvenuti alla famiglia Gusto Italiano! (Welcome to the Gusto Italiano family!) 
         const userMessage = lastUserMessage.content.toLowerCase();
         
         // If the user is asking about products or cheese
-        if (userMessage.includes('prodotti') || 
-            userMessage.includes('formaggi') || 
-            userMessage.includes('formaggio') ||
-            userMessage.includes('product') || 
-            userMessage.includes('cheese')) {
+        if (userMessage.includes('products') || 
+            userMessage.includes('cheese') || 
+            userMessage.includes('product')) {
           
           try {
             // Try to get some products from the database
@@ -111,7 +122,7 @@ Benvenuti alla famiglia Gusto Italiano! (Welcome to the Gusto Italiano family!) 
             return res.json({
               message: {
                 role: 'assistant',
-                content: `Ecco i nostri formaggi e prodotti: ${productResults.products?.map(p => `• **${p.name}** - €${p.price} - ${p.description}`).join('\n\n') || 'Al momento non abbiamo prodotti disponibili.'}`
+                content: `Here are our cheeses and products: ${productResults.products?.map(p => `• **${p.name}** - €${p.price} - ${p.description}`).join('\n\n') || 'We currently have no products available.'}`
               }
             });
           } catch (error) {
@@ -119,7 +130,7 @@ Benvenuti alla famiglia Gusto Italiano! (Welcome to the Gusto Italiano family!) 
             return res.json({
               message: {
                 role: 'assistant',
-                content: 'Sì, abbiamo formaggi italiani come il Parmigiano Reggiano e altri prodotti tipici italiani.'
+                content: 'Yes, we have Italian cheeses like Parmigiano Reggiano and other typical Italian products.'
               }
             });
           }
@@ -129,7 +140,7 @@ Benvenuti alla famiglia Gusto Italiano! (Welcome to the Gusto Italiano family!) 
         return res.json({
           message: {
             role: 'assistant',
-            content: 'Benvenuto a Gusto Italiano! Come posso aiutarti oggi?'
+            content: 'Welcome to Gusto Italiano! How can I help you today?'
           }
         });
       }
@@ -145,9 +156,7 @@ Benvenuti alla famiglia Gusto Italiano! (Welcome to the Gusto Italiano family!) 
         if (lastUserMessage.content.toLowerCase().includes('product') || 
             lastUserMessage.content.toLowerCase().includes('pasta') ||
             lastUserMessage.content.toLowerCase().includes('cheese') ||
-            lastUserMessage.content.toLowerCase().includes('oil') ||
-            lastUserMessage.content.toLowerCase().includes('prodotti') ||
-            lastUserMessage.content.toLowerCase().includes('formaggio')) {
+            lastUserMessage.content.toLowerCase().includes('oil')) {
           
           // Try to get some products from the database
           const productResults = await availableFunctions.getProducts({});
@@ -164,7 +173,7 @@ Benvenuti alla famiglia Gusto Italiano! (Welcome to the Gusto Italiano family!) 
         return res.json({
           message: {
             role: 'assistant',
-            content: "Benvenuto a Gusto Italiano! I'm Sofia, your virtual assistant, and I'm here to help you discover our authentic Italian products and services. Feel free to ask me about our pasta, cheese, oils, vinegars, or any of our Italian specialties. Come posso aiutarti oggi? (How can I help you today?)"
+            content: "Welcome to Gusto Italiano! I'm Sofia, your virtual assistant, and I'm here to help you discover our authentic Italian products and services. Feel free to ask me about our pasta, cheese, oils, vinegars, or any of our Italian specialties. How can I help you today?"
           }
         });
       }
@@ -212,26 +221,6 @@ Benvenuti alla famiglia Gusto Italiano! (Welcome to the Gusto Italiano family!) 
       }
 
       return res.status(500).json({ error: errorMessage });
-    }
-  }
-
-  // Method to update LangChain configuration
-  async updateConfig() {
-    try {
-      const agentConfig = await this.agentConfigService.getLatestConfig();
-      
-      if (agentConfig && this.langchainService) {
-        this.langchainService.updateConfig({
-          model: agentConfig.model,
-          temperature: agentConfig.temperature,
-          maxTokens: agentConfig.maxTokens,
-          topP: agentConfig.topP,
-          prompt: agentConfig.prompt
-        });
-        logger.info('LangChain configuration updated');
-      }
-    } catch (error) {
-      logger.error('Failed to update LangChain configuration:', error);
     }
   }
 }

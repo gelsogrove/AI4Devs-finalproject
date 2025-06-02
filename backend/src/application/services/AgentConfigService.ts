@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import logger from '../../utils/logger';
 
 const prisma = new PrismaClient();
 
@@ -24,9 +25,20 @@ export class AgentConfigService {
         model: config.model.includes('/') ? config.model : `openai/${config.model}`
       };
     } catch (error) {
-      console.error('Error getting agent config:', error);
-      // Return null on error - let the caller handle it
-      return null;
+      logger.error('Error getting agent config:', error);
+      // Return default configuration if database fails
+      return {
+        id: 'default',
+        name: 'Default Agent',
+        model: 'gpt-3.5-turbo',
+        temperature: 0.7,
+        maxTokens: 1000,
+        topP: 1.0,
+        prompt: 'You are a helpful assistant.',
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
     }
   }
 } 

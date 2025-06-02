@@ -173,48 +173,25 @@ class FAQService {
    */
   async deleteFAQ(id: string) {
     try {
-      // First check if the FAQ exists
+      // Check if FAQ exists
       const existingFAQ = await prisma.fAQ.findUnique({
         where: { id },
       });
-      
+
       if (!existingFAQ) {
         throw new Error('FAQ not found');
       }
-      
-      // Delete the FAQ
+
+      // Delete the FAQ (chunks will be deleted automatically due to cascade)
       await prisma.fAQ.delete({
         where: { id },
       });
-      
+
+      logger.info(`FAQ deleted successfully: ${id}`);
       return { success: true, message: 'FAQ deleted successfully' };
     } catch (error) {
-      logger.error(`Error deleting FAQ with ID ${id}:`, error);
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('Failed to delete FAQ');
-    }
-  }
-
-  /**
-   * Get all FAQ categories
-   */
-  async getCategories() {
-    try {
-      // For now, return a static list of categories
-      // In the future, this could be dynamic based on FAQ data
-      return [
-        'General',
-        'Shipping',
-        'Payment',
-        'Products',
-        'Returns',
-        'Account'
-      ];
-    } catch (error) {
-      logger.error('Error getting FAQ categories:', error);
-      throw new Error('Failed to get FAQ categories');
+      logger.error('Error deleting FAQ:', error);
+      throw error;
     }
   }
 }

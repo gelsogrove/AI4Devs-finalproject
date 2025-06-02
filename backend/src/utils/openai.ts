@@ -266,11 +266,11 @@ class AIService {
         requestParams.tool_choice = params.toolChoice || 'auto';
       }
       
-      logger.info(`OpenRouter request params: ${JSON.stringify(requestParams)}`);
+      // logger.info(`OpenRouter request params: ${JSON.stringify(requestParams)}`);
       
       const response = await openRouterClient.chat.completions.create(requestParams);
       
-      logger.info('OpenRouter response received successfully');
+      // logger.info('OpenRouter response received successfully');
       return response;
       
     } catch (error: unknown) {

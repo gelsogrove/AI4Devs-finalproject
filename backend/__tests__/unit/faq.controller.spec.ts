@@ -315,42 +315,4 @@ describe('FAQ Controller', () => {
       });
     });
   });
-
-  describe('getCategories', () => {
-    it('should return all categories', async () => {
-      const mockCategories = [
-        'General',
-        'Shipping',
-        'Payment',
-        'Products',
-        'Returns',
-        'Account'
-      ];
-
-      await faqController.getCategories(mockRequest as Request, mockResponse as Response);
-
-      // The controller returns static categories directly, no service call
-      expect(responseObject).toEqual(mockCategories);
-    });
-
-    it('should handle errors', async () => {
-      // Mock an error in the controller by mocking the response to simulate an error
-      const originalGetCategories = faqController.getCategories;
-      
-      // Mock the method to simulate an error response
-      faqController.getCategories = jest.fn().mockImplementation(async (req, res) => {
-        res.status(500).json({ error: 'Failed to get categories' });
-      });
-
-      await faqController.getCategories(mockRequest as Request, mockResponse as Response);
-
-      expect(mockResponse.status).toHaveBeenCalledWith(500);
-      expect(responseObject).toEqual({
-        error: 'Failed to get categories',
-      });
-
-      // Restore original method
-      faqController.getCategories = originalGetCategories;
-    });
-  });
 }); 

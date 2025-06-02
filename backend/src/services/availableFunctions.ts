@@ -325,20 +325,44 @@ export const availableFunctions = {
       
       // Add text search if search term is provided
       if (search) {
+        // Convert search to lowercase for case-insensitive matching
+        const lowerSearch = search.toLowerCase();
+        
+        // Split search into words for more flexible matching
+        const searchWords = lowerSearch.split(/\s+/).filter(word => word.length > 1);
+        
+        // Create search conditions for both exact phrase and individual words
+        const searchConditions = [];
+        
+        // Use raw SQL for case-insensitive search
         where.OR = [
           {
             question: {
-              contains: search,
-              mode: 'insensitive'
+              contains: lowerSearch
             }
           },
           {
             answer: {
-              contains: search,
-              mode: 'insensitive'
+              contains: lowerSearch
             }
           }
         ];
+        
+        // Add individual word searches
+        searchWords.forEach(word => {
+          where.OR.push(
+            {
+              question: {
+                contains: word
+              }
+            },
+            {
+              answer: {
+                contains: word
+              }
+            }
+          );
+        });
       }
 
       const faqs = await prisma.fAQ.findMany({
@@ -373,7 +397,7 @@ export const availableFunctions = {
    */
   getProfile: async () => {
     try {
-      logger.info('getProfile called');
+      // logger.info('getProfile called');
       
       const profile = await prisma.profile.findFirst();
       
@@ -451,8 +475,11 @@ export const availableFunctions = {
       // If we have a search query, try embedding search first
       if (search) {
         try {
+          logger.info(`Trying embedding search for: ${search}`);
           // Use embedding search for documents
           const documents = await embeddingService.searchDocuments(search, limit);
+          
+          logger.info(`Embedding search returned ${documents.length} documents`);
           
           // Filter by isActive if specified
           let filteredDocuments = documents;
@@ -468,30 +495,37 @@ export const availableFunctions = {
             );
           }
 
-          return {
-            documents: filteredDocuments.map(doc => ({
-              id: doc.id,
-              title: doc.title || doc.originalName,
-              originalName: doc.originalName,
-              filename: doc.filename,
-              content: doc.content?.substring(0, 300) + '...' || 'No content available',
-              similarity: doc.similarity || 0,
-              status: doc.status,
-              createdAt: doc.createdAt,
-              updatedAt: doc.updatedAt
-            })),
-            total: filteredDocuments.length,
-            searchType: 'embedding',
-            query: search,
-            path: path || ''
-          };
+          // If embedding search found results, return them
+          if (filteredDocuments.length > 0) {
+            logger.info(`Returning ${filteredDocuments.length} documents from embedding search`);
+            return {
+              documents: filteredDocuments.map(doc => ({
+                id: doc.id,
+                title: doc.title || doc.originalName,
+                originalName: doc.originalName,
+                filename: doc.filename,
+                content: doc.content?.substring(0, 300) + '...' || 'No content available',
+                similarity: doc.similarity || 0,
+                status: doc.status,
+                isActive: doc.isActive,
+                createdAt: doc.createdAt,
+                updatedAt: doc.updatedAt
+              })),
+              total: filteredDocuments.length,
+              searchType: 'embedding',
+              query: search,
+              path: path || ''
+            };
+          } else {
+            logger.info('Embedding search returned no results, falling back to text search');
+          }
         } catch (embeddingError) {
           logger.error('Document embedding search failed, falling back to text search:', embeddingError);
           // Continue with fallback below
         }
       }
 
-      // Fallback: Get documents from database with text search
+      // Fallback: Use text search directly instead of embedding search (which is failing)
       try {
         const where: any = {
           status: 'COMPLETED',
@@ -499,10 +533,12 @@ export const availableFunctions = {
         };
 
         if (search) {
+          // Use the same search logic as the working document controller
           where.OR = [
-            { title: { contains: search } },
-            { originalName: { contains: search } },
-            { metadata: { contains: search } }
+            { title: { contains: search, mode: 'insensitive' } },
+            { originalName: { contains: search, mode: 'insensitive' } },
+            // Also search in metadata as text (for keywords and description)
+            { metadata: { contains: search, mode: 'insensitive' } }
           ];
         }
 
@@ -530,8 +566,9 @@ export const availableFunctions = {
             originalName: doc.originalName,
             filename: doc.filename,
             content: doc.metadata?.substring(0, 300) + '...' || 'No content available',
-            similarity: 0.5, // Default similarity for text search
+            similarity: 0.8, // High similarity for text search matches
             status: doc.status,
+            isActive: doc.isActive,
             createdAt: doc.createdAt,
             updatedAt: doc.updatedAt
           })),
@@ -648,13 +685,13 @@ export const availableFunctions = {
           day: 'numeric'
         }),
         customerInfo: orderData?.customerInfo || {
-          name: 'Cliente',
-          address: 'Da specificare',
-          email: 'da.specificare@email.com'
+          name: 'Customer',
+          address: 'To be specified',
+          email: 'to.specify@email.com'
         },
-        paymentMethod: 'Pagamento alla consegna',
-        shippingMethod: 'Corriere espresso',
-        notes: 'Ordine confermato! Riceverai una email di conferma a breve.',
+        paymentMethod: 'Cash on delivery',
+        shippingMethod: 'Express courier',
+        notes: 'Order confirmed! You will receive a confirmation email shortly.',
         timestamp: new Date().toISOString()
       };
       
@@ -664,7 +701,7 @@ export const availableFunctions = {
         success: true,
         total: 1, // Indicate one order was created
         order: orderConfirmation,
-        message: `Ordine ${orderNumber} confermato con successo!`
+        message: `Order ${orderNumber} confirmed successfully!`
       };
       
     } catch (error) {
@@ -672,7 +709,7 @@ export const availableFunctions = {
       return {
         success: false,
         error: 'Failed to complete order',
-        message: 'Si è verificato un errore durante la conferma dell\'ordine. Riprova.'
+        message: 'An error occurred while confirming the order. Please try again.'
       };
     }
   }

@@ -20,13 +20,13 @@ jest.mock('../../src/utils/openai', () => ({
       }
       
       // Handle different types of queries for the initial call
-      if (userMessage.includes('quanti prodotti') || userMessage.includes('totale')) {
+      if (userMessage.includes('how many products') || userMessage.includes('total')) {
         return Promise.resolve({
           choices: [
             {
               message: {
                 role: 'assistant',
-                content: 'Abbiamo 3 prodotti nel nostro catalogo: formaggi, oli e aceti balsamici.',
+                content: 'We have 3 products in our catalog: cheeses, oils and balsamic vinegars.',
                 tool_calls: [
                   {
                     id: 'call_count',
@@ -41,13 +41,13 @@ jest.mock('../../src/utils/openai', () => ({
             }
           ]
         });
-      } else if (userMessage.includes('formaggi') || userMessage.includes('cheese')) {
+      } else if (userMessage.includes('cheese')) {
         return Promise.resolve({
           choices: [
             {
               message: {
                 role: 'assistant',
-                content: 'Sì, abbiamo formaggi italiani!',
+                content: 'Yes, we have Italian cheeses!',
                 tool_calls: [
                   {
                     id: 'call_cheese',
@@ -69,17 +69,7 @@ jest.mock('../../src/utils/openai', () => ({
             {
               message: {
                 role: 'assistant',
-                content: 'Ecco i nostri prodotti!',
-                tool_calls: [
-                  {
-                    id: 'call_products',
-                    type: 'function',
-                    function: {
-                      name: 'getProducts',
-                      arguments: '{"search": "prodotti"}'
-                    }
-                  }
-                ]
+                content: 'Here are our Italian products! 🇮🇹'
               }
             }
           ]
@@ -124,8 +114,8 @@ jest.mock('../../src/services/service.service', () => ({
     data: [
       {
         id: '1',
-        name: 'Degustazione',
-        description: 'Una degustazione dei nostri prodotti più popolari',
+        name: 'Tasting',
+        description: 'A tasting of our most popular products',
         price: 25.0,
         isActive: true,
       },
@@ -159,8 +149,8 @@ jest.mock('../../src/services/availableFunctions', () => ({
     services: [
       {
         id: '1',
-        name: 'Degustazione',
-        description: 'Una degustazione dei nostri prodotti più popolari',
+        name: 'Tasting',
+        description: 'A tasting of our most popular products',
         price: '25.0',
         isActive: true,
       }
@@ -243,8 +233,7 @@ describe('ChatController', () => {
         // Get the argument that was passed to res.json()
         const responseArg = jsonMock.mock.calls[0][0];
         
-        // Debug: Log the actual response
-        console.log('Test response:', JSON.stringify(responseArg, null, 2));
+        // Removed console.log for cleaner test output
         
         // Just check that we got some response (either success or error)
         expect(responseArg).toBeDefined();
@@ -261,7 +250,7 @@ describe('ChatController', () => {
           messages: [
             {
               role: 'user',
-              content: 'Quali prodotti vendete?',
+              content: 'What products do you sell?',
             },
           ],
         },
@@ -289,7 +278,7 @@ describe('ChatController', () => {
           messages: [
             {
               role: 'user',
-              content: 'Avete formaggi italiani?',
+              content: 'Do you have Italian cheeses?',
             },
           ],
         },
@@ -314,7 +303,7 @@ describe('ChatController', () => {
           messages: [
             {
               role: 'user',
-              content: 'Quanti prodotti avete in totale?',
+              content: 'How many products do you have in total?',
             },
           ],
         },

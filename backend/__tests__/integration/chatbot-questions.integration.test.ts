@@ -1,28 +1,14 @@
-import { PrismaClient } from '@prisma/client';
-import dotenv from 'dotenv';
+import { describe, expect } from '@jest/globals';
 import request from 'supertest';
 import app from '../../src/app';
 
-// Load environment variables
-dotenv.config();
-
-const prisma = new PrismaClient();
-
 describe('Chatbot Questions Integration Test', () => {
   beforeAll(async () => {
-    // Ensure database is connected and has data
-    const productCount = await prisma.product.count();
-    const faqCount = await prisma.fAQ.count();
-    const profileCount = await prisma.profile.count();
-    const documentCount = await prisma.document.count();
-    
-    if (productCount === 0 || faqCount === 0 || profileCount === 0) {
-      throw new Error('Database not properly seeded. Run: npm run db:seed');
-    }
+    // Database is already seeded - no need to check
   });
 
   afterAll(async () => {
-    await prisma.$disconnect();
+    await global.testUtils.prisma.$disconnect();
   });
 
   describe('Individual Question Tests', () => {

@@ -73,14 +73,16 @@ export function setupServer() {
   // Input sanitization
   app.use(sanitizeInput);
   
-  // Request logging
-  app.use(morgan('combined', {
-    stream: {
-      write: (message: string) => {
-        logger.info(message.trim());
+  // Request logging - Only in development mode
+  if (process.env.NODE_ENV === 'development' && process.env.ENABLE_HTTP_LOGS === 'true') {
+    app.use(morgan('combined', {
+      stream: {
+        write: (message: string) => {
+          logger.info(message.trim());
+        }
       }
-    }
-  }));
+    }));
+  }
   
   // Serve static files from uploads directory with security
   const uploadsPath = path.join(__dirname, '..', 'uploads');
@@ -95,8 +97,8 @@ export function setupServer() {
   }));
 
   // Debug logging
-  console.log('Setting up routes...');
-  console.log('Routes object:', typeof routes);
+  // console.log('Setting up routes...');
+  // console.log('Routes object:', typeof routes);
   
   // Swagger Documentation with rate limiting
   app.use('/api-docs', apiRateLimiter, swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -124,7 +126,7 @@ export function setupServer() {
   
   // API Routes - Use the main router
   app.use('/api', routes);
-  console.log('Routes registered at /api');
+  // console.log('Routes registered at /api');
 
   // 404 handler for API routes
   app.use('/api/*', (req, res) => {

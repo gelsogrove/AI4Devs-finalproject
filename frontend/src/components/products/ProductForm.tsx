@@ -125,10 +125,14 @@ export function ProductForm({
     
     if (!form.name.trim()) {
       errors.name = "Product name is required";
+    } else if (form.name.trim().length < 3) {
+      errors.name = "Name must be at least 3 characters";
     }
     
     if (!form.category.trim()) {
       errors.category = "Category is required";
+    } else if (form.category.trim().length < 2) {
+      errors.category = "Category must be at least 2 characters";
     }
     
     if (form.description.length < 10) {

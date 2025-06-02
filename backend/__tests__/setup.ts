@@ -9,19 +9,21 @@ dotenv.config(); // Fallback to regular .env
 const prisma = new PrismaClient();
 
 beforeAll(async () => {
-  // Ensure database is connected
   try {
+    // Test database connection
     await prisma.$connect();
-    console.log('✅ Test database connected');
   } catch (error) {
-    console.error('❌ Test database connection failed:', error);
+    console.error('Failed to connect to test database:', error);
+    process.exit(1);
   }
 });
 
 afterAll(async () => {
-  // Clean up database connection
-  await prisma.$disconnect();
-  console.log('🔌 Test database disconnected');
+  try {
+    await prisma.$disconnect();
+  } catch (error) {
+    console.error('Failed to disconnect from test database:', error);
+  }
 });
 
 // Mock console.error to reduce noise in tests

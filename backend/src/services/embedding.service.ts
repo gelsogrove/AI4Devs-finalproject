@@ -143,10 +143,16 @@ class EmbeddingService {
         .slice(0, limit);
       
       // Check if the top result has suspiciously high similarity (indicating fake embeddings)
-      // or if no chunks have similarity > 0.01 (indicating very poor quality results)
+      // Lowered threshold from 0.01 to 0.005 to be more permissive with real embeddings
+      // Also check if any of the top results contain the search query directly
+      const hasDirectMatch = topChunks.some(chunk => 
+        chunk.faq.question.toLowerCase().includes(query.toLowerCase()) ||
+        chunk.faq.answer.toLowerCase().includes(query.toLowerCase())
+      );
+      
       if (topChunks.length === 0 || topChunks[0].similarity === 0 || 
           topChunks[0].similarity > 0.7 || 
-          topChunks[0].similarity < 0.01) {
+          (topChunks[0].similarity < 0.005 && !hasDirectMatch)) {
         logger.info('Poor quality embedding results detected, falling back to text search');
         return this.textSearchFAQs(query, limit);
       }
@@ -176,7 +182,8 @@ class EmbeddingService {
   private async textSearchFAQs(query: string, limit = 5): Promise<FAQ[]> {
     try {
       // Split query into individual words for more flexible search
-      const queryWords = query.toLowerCase().split(/\s+/).filter(word => word.length > 2);
+      // Reduced minimum length from 3 to 2 to include terms like "DOC"
+      const queryWords = query.toLowerCase().split(/\s+/).filter(word => word.length > 1);
       
       // Create OR conditions for each word in both question and answer
       const searchConditions = queryWords.flatMap(word => [
@@ -193,8 +200,8 @@ class EmbeddingService {
                 // Exact phrase search (higher priority)
                 { question: { contains: query, mode: 'insensitive' as const } },
                 { answer: { contains: query, mode: 'insensitive' as const } },
-                // Individual word search
-                ...searchConditions
+                // Individual word search (only if we have valid words)
+                ...(searchConditions.length > 0 ? searchConditions : [])
               ]
             }
           ]
@@ -526,7 +533,33 @@ class EmbeddingService {
 
       // For now, we'll use the document title and metadata as content
       // In a real implementation, you would extract text from the PDF file
-      const documentContent = `${document.title || document.originalName}\n${document.metadata || ''}`;
+      let documentContent = `${document.title || document.originalName}`;
+      
+      // Add metadata content if available
+      if (document.metadata) {
+        try {
+          const metadata = JSON.parse(document.metadata);
+          
+          // Add description if available
+          if (metadata.description) {
+            documentContent += `\n${metadata.description}`;
+          }
+          
+          // Add keywords if available
+          if (metadata.keywords && Array.isArray(metadata.keywords)) {
+            documentContent += `\nKeywords: ${metadata.keywords.join(', ')}`;
+          }
+          
+          // Add any other relevant metadata fields
+          if (metadata.title && metadata.title !== document.title) {
+            documentContent += `\nAlternative title: ${metadata.title}`;
+          }
+          
+        } catch (error) {
+          logger.warn(`Failed to parse metadata for document ${documentId}:`, error);
+          documentContent += `\n${document.metadata}`;
+        }
+      }
       
       // Split the document content into chunks
       const contentChunks = splitIntoChunks(documentContent);

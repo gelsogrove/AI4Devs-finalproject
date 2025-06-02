@@ -1,4 +1,4 @@
-name: Deploy
+name: Deploy (WIP)
 
 on:
   workflow_dispatch:

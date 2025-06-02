@@ -27,6 +27,7 @@ export class LangChainService {
   private agent!: AgentExecutor;
   private tools: any[];
   private config: LangChainConfig;
+  private initPromise: Promise<void>;
 
   constructor(config: LangChainConfig) {
     this.config = config;
@@ -56,8 +57,8 @@ export class LangChainService {
       createDocumentsTool()
     ];
 
-    // Initialize agent
-    this.initializeAgent();
+    // Initialize agent asynchronously
+    this.initPromise = this.initializeAgent();
   }
 
   private async initializeAgent() {
@@ -110,6 +111,9 @@ export class LangChainService {
 
   async processChat(messages: ChatMessage[]): Promise<string> {
     try {
+      // Wait for agent initialization to complete
+      await this.initPromise;
+
       // Get the last user message
       const lastUserMessage = messages.filter(msg => msg.role === 'user').pop();
       if (!lastUserMessage) {
@@ -144,29 +148,5 @@ export class LangChainService {
       // Fallback response
       return "Mi dispiace, ho avuto un problema tecnico. (I'm sorry, I had a technical issue.) Please try again or contact our support team. Come posso aiutarti? (How can I help you?)";
     }
-  }
-
-  // Method to update configuration
-  updateConfig(config: LangChainConfig) {
-    this.config = config; // Update stored config including prompt
-    
-    this.llm = new ChatOpenAI({
-      modelName: config.model,
-      temperature: config.temperature,
-      maxTokens: config.maxTokens,
-      topP: config.topP,
-      openAIApiKey: process.env.OPENAI_API_KEY,
-      configuration: {
-        baseURL: 'https://openrouter.ai/api/v1',
-        defaultHeaders: {
-          'HTTP-Referer': 'https://gusto-italiano.com',
-          'X-Title': 'Gusto Italiano Assistant'
-        }
-      }
-    });
-
-    // Reinitialize agent with new config (including new prompt)
-    this.initializeAgent();
-    logger.info('LangChain configuration and prompt updated successfully');
   }
 } 

@@ -1,14 +1,10 @@
 describe('Product Edit and Create Functionality', () => {
   beforeEach(() => {
-    // Reset any previous login state
-    cy.clearLocalStorage();
-    
-    // Mock successful login
+    // Mock auth API response
     cy.intercept('POST', '/api/auth/login', {
       statusCode: 200,
       body: {
-        message: 'Login successful',
-        token: 'test-token',
+        token: 'fake-jwt-token',
         user: {
           id: '1',
           email: 'test@example.com',
@@ -39,8 +35,9 @@ describe('Product Edit and Create Functionality', () => {
               name: 'Parmigiano Reggiano DOP',
               description: 'Authentic Parmigiano Reggiano aged 24 months from Emilia-Romagna.',
               price: 19.99,
-              imageUrl: 'https://images.unsplash.com/photo-1599937970284-31e55c9435c4',
               category: 'Cheese & Dairy',
+              tags: ['cheese', 'italian', 'premium'],
+              isActive: true,
               createdAt: '2023-01-01T00:00:00.000Z',
               updatedAt: '2023-01-01T00:00:00.000Z'
             }
@@ -68,8 +65,9 @@ describe('Product Edit and Create Functionality', () => {
           name: 'Parmigiano Reggiano DOP',
           description: 'Authentic Parmigiano Reggiano aged 24 months from Emilia-Romagna.',
           price: 19.99,
-          imageUrl: 'https://images.unsplash.com/photo-1599937970284-31e55c9435c4',
           category: 'Cheese & Dairy',
+          tags: ['cheese', 'italian', 'premium'],
+          isActive: true,
           createdAt: '2023-01-01T00:00:00.000Z',
           updatedAt: '2023-01-01T00:00:00.000Z'
         }
@@ -83,8 +81,9 @@ describe('Product Edit and Create Functionality', () => {
           name: 'Parmigiano Reggiano DOP 24 Months',
           description: 'Authentic Parmigiano Reggiano aged 24 months from Emilia-Romagna. Perfect for grating over pasta.',
           price: 21.99,
-          imageUrl: 'https://images.unsplash.com/photo-1599937970284-31e55c9435c4',
           category: 'Cheese & Dairy',
+          tags: ['cheese', 'italian', 'premium'],
+          isActive: true,
           createdAt: '2023-01-01T00:00:00.000Z',
           updatedAt: '2023-01-03T00:00:00.000Z'
         }
@@ -106,7 +105,6 @@ describe('Product Edit and Create Functionality', () => {
       cy.get('input[name="name"]').should('have.value', 'Parmigiano Reggiano DOP');
       cy.get('textarea[name="description"]').should('have.value', 'Authentic Parmigiano Reggiano aged 24 months from Emilia-Romagna.');
       cy.get('input[name="price"]').should('have.value', '19.99');
-      cy.get('input[name="imageUrl"]').should('have.value', 'https://images.unsplash.com/photo-1599937970284-31e55c9435c4');
       cy.get('select[name="category"]').should('have.value', 'Cheese & Dairy');
       
       // Update form fields
@@ -115,7 +113,7 @@ describe('Product Edit and Create Functionality', () => {
       cy.get('input[name="price"]').clear().type('21.99');
       
       // Submit the form - use the actual button text from the component
-      cy.contains('button', 'Update Product').click({ force: true });
+      cy.contains('button', 'Update').click({ force: true });
       cy.wait('@updateProduct');
       
       // Verify that the request was successful and no error message is shown
@@ -156,8 +154,9 @@ describe('Product Edit and Create Functionality', () => {
           name: 'Artisanal Tagliatelle',
           description: 'Handmade tagliatelle pasta from Naples, made using traditional methods and premium durum wheat.',
           price: 12.99,
-          imageUrl: 'https://images.unsplash.com/photo-1556761175-b413da4baf72',
           category: 'Pasta & Risotto',
+          tags: ['pasta', 'handmade', 'italian'],
+          isActive: true,
           createdAt: '2023-01-03T00:00:00.000Z',
           updatedAt: '2023-01-03T00:00:00.000Z'
         }
@@ -182,8 +181,8 @@ describe('Product Edit and Create Functionality', () => {
       cy.get('input[name="price"]').type('12.99');
       cy.get('select[name="category"]').select('Pasta & Risotto');
       
-      // Submit the form - use the actual button text from the component
-      cy.contains('button', 'Create Product').click({ force: true });
+      // Submit the form - use the actual button text from the component (Update for both create and edit)
+      cy.contains('button', 'Update').click({ force: true });
       cy.wait('@createProduct');
       
       // Verify that the request was successful and no error message is shown
@@ -200,7 +199,7 @@ describe('Product Edit and Create Functionality', () => {
       cy.contains('button', 'Add Product').click({ force: true });
       
       // Submit the form without filling it
-      cy.contains('button', 'Create Product').click({ force: true });
+      cy.contains('button', 'Update').click({ force: true });
       
       // Form should not be submitted and validation errors should be shown
       cy.get('@createProduct.all').should('have.length', 0);

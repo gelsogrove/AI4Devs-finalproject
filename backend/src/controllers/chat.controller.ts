@@ -1,3 +1,4 @@
+import { PrismaClient } from '@prisma/client';
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { AgentConfigService } from '../application/services/AgentConfigService';
@@ -9,6 +10,8 @@ import {
 import { availableFunctions } from '../services/availableFunctions';
 import logger from '../utils/logger';
 import { aiService } from '../utils/openai';
+
+const prisma = new PrismaClient();
 
 interface OrderCompletedResponse {
   success: boolean;
@@ -251,7 +254,7 @@ class ChatController {
       // Step 3: Try AI API first for intelligent function calling
       try {
         // Step 3: Prepare messages with system prompt from database
-        const systemPrompt = `${agentConfig.prompt}
+        const systemPrompt = `${agentConfig.prompt || 'You are a helpful assistant.'}
 
 🎯 FUNCTION CALLING GUIDELINES:
 - For product questions → use getProducts
@@ -362,11 +365,11 @@ Remember: You're Sofia - be passionate about Italian food! 🇮🇹`
               );
               
               const finalMessage = formattedResponse.choices[0].message;
-              logger.info('✅ AI: Formatted response ready');
-              logger.info(`🎯 RESPONSE: "${finalMessage.content?.substring(0, 100)}..."`);
+              // logger.info('✅ AI: Formatted response ready');
+              // logger.info(`🎯 RESPONSE: "${finalMessage.content?.substring(0, 100)}..."`);
               
               const duration = Date.now() - startTime;
-              logger.info(`🏁 === CHAT FLOW COMPLETE (${duration}ms) ===`);
+              // logger.info(`🏁 === CHAT FLOW COMPLETE (${duration}ms) ===`);
               
               // Prepare debug information
               const debugInfo = {
@@ -389,25 +392,11 @@ Remember: You're Sofia - be passionate about Italian food! 🇮🇹`
           }
         }
         
-        // Step 7: No function call - direct response from AI
-        logger.info('💬 AI: Direct response (no function call)');
-        logger.info(`🎯 RESPONSE: "${responseMessage.content?.substring(0, 100)}..."`);
+        // Step 7: No function call - USE FALLBACK INSTEAD OF DIRECT AI RESPONSE
+        logger.info('💬 AI: No function call detected - using cascade fallback logic');
         
-        const duration = Date.now() - startTime;
-        logger.info(`🏁 === CHAT FLOW COMPLETE (${duration}ms) ===`);
-        
-        // Prepare debug information for direct response
-        const debugInfo = {
-          functionCalls: [], // No function calls for direct response
-          processingTime: duration,
-          model: agentConfig.model,
-          temperature: agentConfig.temperature
-        };
-        
-        return res.json({ 
-          message: responseMessage,
-          debug: debugInfo
-        });
+        // Force fallback with cascade logic
+        throw new Error('Forcing cascade fallback for better search results');
         
       } catch (aiError) {
         logger.error('🚨 AI service failed, using intelligent fallback:', aiError);
@@ -432,7 +421,6 @@ Remember: You're Sofia - be passionate about Italian food! 🇮🇹`
               timestamp: new Date().toISOString()
             });
             
-            // Use ONLY database data - NO hardcoded responses
             if (result.products && result.products.length > 0) {
               const productList = result.products.map(p => `• **${p.name}** - €${p.price}`).join('\n');
               fallbackResponse = {
@@ -446,7 +434,7 @@ Remember: You're Sofia - be passionate about Italian food! 🇮🇹`
               };
             }
           } else if (analysis.intent === 'services') {
-            logger.info('🎯 FALLBACK: Executing getServices...');
+            logger.info('🎓 FALLBACK: Executing getServices...');
             const result = await availableFunctions.getServices(analysis.params || {});
             functionCalls.push({
               name: 'getServices',
@@ -455,9 +443,8 @@ Remember: You're Sofia - be passionate about Italian food! 🇮🇹`
               timestamp: new Date().toISOString()
             });
             
-            // Use ONLY database data - NO hardcoded responses
             if (result.services && result.services.length > 0) {
-              const serviceList = result.services.map(s => `• **${s.name}** - €${s.price}`).join('\n');
+              const serviceList = result.services.map(s => `• **${s.name}** - €${s.price}\n${s.description}`).join('\n\n');
               fallbackResponse = {
                 role: 'assistant',
                 content: `${serviceList}`
@@ -465,7 +452,7 @@ Remember: You're Sofia - be passionate about Italian food! 🇮🇹`
             } else {
               fallbackResponse = {
                 role: 'assistant',
-                content: 'No services found.'
+                content: 'No services found for your search.'
               };
             }
           } else if (analysis.intent === 'faq') {
@@ -478,7 +465,6 @@ Remember: You're Sofia - be passionate about Italian food! 🇮🇹`
               timestamp: new Date().toISOString()
             });
             
-            // Use ONLY database data - NO hardcoded responses
             if (result.faqs && result.faqs.length > 0) {
               const faq = result.faqs[0];
               fallbackResponse = {
@@ -488,7 +474,7 @@ Remember: You're Sofia - be passionate about Italian food! 🇮🇹`
             } else {
               fallbackResponse = {
                 role: 'assistant',
-                content: 'No FAQ information found.'
+                content: 'No FAQs found for your question.'
               };
             }
           } else if (analysis.intent === 'company') {
@@ -501,7 +487,6 @@ Remember: You're Sofia - be passionate about Italian food! 🇮🇹`
               timestamp: new Date().toISOString()
             });
             
-            // Use ONLY database data - NO hardcoded responses
             if (result.companyName) {
               fallbackResponse = {
                 role: 'assistant',
@@ -523,41 +508,154 @@ Remember: You're Sofia - be passionate about Italian food! 🇮🇹`
               timestamp: new Date().toISOString()
             });
             
-            // Use ONLY database data - NO hardcoded responses
             if (result.documents && result.documents.length > 0) {
-              const docInfo = result.documents[0];
+              const doc = result.documents[0];
               fallbackResponse = {
                 role: 'assistant',
-                content: `Document: ${docInfo.title || docInfo.originalName}`
+                content: `I found information in our documents: **${doc.title}**\n\n${doc.content}`
               };
             } else {
               fallbackResponse = {
                 role: 'assistant',
-                content: 'No documents found.'
+                content: 'I did not find documents related to your request.'
               };
             }
           } else {
-            // For greeting/thanks/general - try to get some basic data from database
-            logger.info('🔄 FALLBACK: Getting basic company info for general response...');
-            const companyResult = await availableFunctions.getCompanyInfo();
-            functionCalls.push({
-              name: 'getCompanyInfo',
-              arguments: {},
-              result: companyResult,
-              timestamp: new Date().toISOString()
-            });
-            
-            // Use ONLY database data - NO hardcoded responses
-            if (companyResult.companyName) {
+            // Handle greetings and thanks properly
+            if (analysis.intent === 'greeting') {
+              logger.info('👋 FALLBACK: Handling greeting...');
+              const companyResult = await availableFunctions.getCompanyInfo();
+              functionCalls.push({
+                name: 'getCompanyInfo',
+                arguments: {},
+                result: companyResult,
+                timestamp: new Date().toISOString()
+              });
+              
+              if (companyResult.companyName) {
+                fallbackResponse = {
+                  role: 'assistant',
+                  content: `Ciao! Welcome to ${companyResult.companyName}! 🇮🇹\n\nHow can I help you today? I can assist you with:\n• **Products** - Our Italian specialties\n• **Services** - Cooking classes and tastings\n• **Information** - Shipping and orders\n\nWhat would you like to know?`
+                };
+              } else {
+                fallbackResponse = {
+                  role: 'assistant',
+                  content: 'Ciao! How can I help you today? 🇮🇹'
+                };
+              }
+            } else if (analysis.intent === 'thanks') {
+              logger.info('🙏 FALLBACK: Handling thanks...');
               fallbackResponse = {
                 role: 'assistant',
-                content: `Welcome to ${companyResult.companyName}. How can I help you?`
+                content: 'Prego! (You\'re welcome!) Is there anything else I can help you with? 🇮🇹'
               };
             } else {
-              fallbackResponse = {
-                role: 'assistant',
-                content: 'How can I help you?'
-              };
+              // ANDREA'S CASCADE LOGIC: Services → FAQs → Documents → Generic LLM
+              logger.info('🔄 FALLBACK: Starting cascade search for general query...');
+              
+              const searchQuery = analysis.params?.search || '';
+              let foundResult = false;
+              
+              // 1. Try Services first
+              try {
+                logger.info('🔍 Step 1: Searching Services...');
+                const servicesResult = await availableFunctions.getServices({ search: searchQuery });
+                functionCalls.push({
+                  name: 'getServices',
+                  arguments: { search: searchQuery },
+                  result: servicesResult,
+                  timestamp: new Date().toISOString()
+                });
+                
+                if (servicesResult.services && servicesResult.services.length > 0) {
+                  const service = servicesResult.services[0];
+                  fallbackResponse = {
+                    role: 'assistant',
+                    content: `I found this service: **${service.name}** - €${service.price}\n\n${service.description}`
+                  };
+                  foundResult = true;
+                  logger.info('✅ Found result in Services');
+                }
+              } catch (error) {
+                logger.error('❌ Services search failed:', error);
+              }
+              
+              // 2. If not found in services, try FAQs
+              if (!foundResult) {
+                try {
+                  logger.info('🔍 Step 2: Searching FAQs...');
+                  const faqsResult = await availableFunctions.getFAQs({ search: searchQuery });
+                  functionCalls.push({
+                    name: 'getFAQs',
+                    arguments: { search: searchQuery },
+                    result: faqsResult,
+                    timestamp: new Date().toISOString()
+                  });
+                  
+                  if (faqsResult.faqs && faqsResult.faqs.length > 0) {
+                    const faq = faqsResult.faqs[0];
+                    fallbackResponse = {
+                      role: 'assistant',
+                      content: `**${faq.question}**\n\n${faq.answer}`
+                    };
+                    foundResult = true;
+                    logger.info('✅ Found result in FAQs');
+                  }
+                } catch (error) {
+                  logger.error('❌ FAQs search failed:', error);
+                }
+              }
+              
+              // 3. If not found in FAQs, try Documents
+              if (!foundResult) {
+                try {
+                  logger.info('🔍 Step 3: Searching Documents...');
+                  const documentsResult = await availableFunctions.getDocuments({ search: searchQuery });
+                  functionCalls.push({
+                    name: 'getDocuments',
+                    arguments: { search: searchQuery },
+                    result: documentsResult,
+                    timestamp: new Date().toISOString()
+                  });
+                  
+                  if (documentsResult.documents && documentsResult.documents.length > 0) {
+                    const doc = documentsResult.documents[0];
+                    fallbackResponse = {
+                      role: 'assistant',
+                      content: `I found information in our documents: **${doc.title}**\n\n${doc.content}`
+                    };
+                    foundResult = true;
+                    logger.info('✅ Found result in Documents');
+                  }
+                } catch (error) {
+                  logger.error('❌ Documents search failed:', error);
+                }
+              }
+              
+              // 4. If nothing found, use generic LLM response
+              if (!foundResult) {
+                logger.info('🔍 Step 4: Using generic LLM response...');
+                try {
+                  // Use AI service to generate a response
+                  const aiResponse = await aiService.generateChatCompletion(
+                    [{ role: 'user', content: searchQuery }],
+                    'openai/gpt-4o-mini',
+                    { temperature: 0.3, maxTokens: 200 }
+                  );
+                  
+                  fallbackResponse = {
+                    role: 'assistant',
+                    content: aiResponse.choices[0].message.content || 'I\'m not sure how to help with that. Can you be more specific?'
+                  };
+                  logger.info('✅ Generated AI response');
+                } catch (aiError) {
+                  logger.error('❌ AI response failed:', aiError);
+                  fallbackResponse = {
+                    role: 'assistant',
+                    content: 'I\'m not sure how to help with that. Can you be more specific about what you\'re looking for?'
+                  };
+                }
+              }
             }
           }
           
@@ -604,16 +702,16 @@ Remember: You're Sofia - be passionate about Italian food! 🇮🇹`
       return res.json({ 
         message: { 
           role: 'assistant', 
-          content: `Ciao! Sono Sofia da ShopMefy! 🇮🇹
+          content: `Hello! I'm Sofia from ShopMefy! 🇮🇹
 
-Mi dispiace, sto avendo un problema tecnico. Puoi riprovare tra un momento?
+I'm sorry, I'm having a technical issue. Can you try again in a moment?
 
-Nel frattempo, posso aiutarti con:
-• **Prodotti** - Le nostre specialità italiane
-• **Servizi** - Corsi di cucina e degustazioni
-• **Informazioni** - Spedizioni e ordini
+In the meantime, I can help you with:
+• **Products** - Our Italian specialties
+• **Services** - Cooking classes and tastings
+• **Information** - Shipping and orders
 
-Cosa ti piacerebbe sapere?` 
+What would you like to know?` 
         } 
       });
     }
@@ -692,110 +790,33 @@ Cosa ti piacerebbe sapere?`
   } {
     const lowerQuery = query.toLowerCase();
     
-    // Product-related queries
-    if (lowerQuery.includes('prodotti') || lowerQuery.includes('product') || 
-        lowerQuery.includes('formaggio') || lowerQuery.includes('cheese') ||
-        lowerQuery.includes('vino') || lowerQuery.includes('wine') ||
-        lowerQuery.includes('pasta') || lowerQuery.includes('olio') || lowerQuery.includes('oil') ||
-        lowerQuery.includes('aceto') || lowerQuery.includes('vinegar') ||
-        lowerQuery.includes('prezzo') || lowerQuery.includes('price') ||
-        lowerQuery.includes('euro') || lowerQuery.includes('€')) {
-      
-      let params: any = {};
-      
-      // Extract search terms
-      if (lowerQuery.includes('formaggio') || lowerQuery.includes('cheese')) {
-        params.category = 'Cheese';
-      } else if (lowerQuery.includes('vino') || lowerQuery.includes('wine')) {
-        params.category = 'Wine';
-      } else if (lowerQuery.includes('pasta')) {
-        params.category = 'Pasta';
-      } else if (lowerQuery.includes('olio') || lowerQuery.includes('oil')) {
-        params.category = 'Oil';
-      }
-      
-      // Extract price filters
-      const priceMatch = lowerQuery.match(/(\d+)\s*(euro|€)/);
-      if (priceMatch) {
-        params.maxPrice = parseFloat(priceMatch[1]);
-      }
-      
-      return { intent: 'products', confidence: 0.9, params };
-    }
-    
-    // Service-related queries
-    if (lowerQuery.includes('servizi') || lowerQuery.includes('service') ||
-        lowerQuery.includes('degustazione') || lowerQuery.includes('tasting') ||
-        lowerQuery.includes('consulenza') || lowerQuery.includes('consultation')) {
-      return { intent: 'services', confidence: 0.9, params: {} };
-    }
-    
-    // FAQ/Policy queries
-    if (lowerQuery.includes('spedizione') || lowerQuery.includes('shipping') ||
-        lowerQuery.includes('consegna') || lowerQuery.includes('delivery') ||
-        lowerQuery.includes('pagamento') || lowerQuery.includes('payment') ||
-        lowerQuery.includes('reso') || lowerQuery.includes('return') ||
-        lowerQuery.includes('policy') || lowerQuery.includes('quanto tempo') ||
-        lowerQuery.includes('how long') || lowerQuery.includes('metodi') ||
-        lowerQuery.includes('methods')) {
-      
-      let searchTerm = '';
-      if (lowerQuery.includes('spedizione') || lowerQuery.includes('shipping')) {
-        searchTerm = 'shipping';
-      } else if (lowerQuery.includes('pagamento') || lowerQuery.includes('payment')) {
-        searchTerm = 'payment';
-      } else if (lowerQuery.includes('reso') || lowerQuery.includes('return')) {
-        searchTerm = 'return';
-      }
-      
-      return { intent: 'faq', confidence: 0.9, params: { search: searchTerm } };
-    }
-    
-    // Company information queries
-    if (lowerQuery.includes('dove') || lowerQuery.includes('where') ||
-        lowerQuery.includes('indirizzo') || lowerQuery.includes('address') ||
-        lowerQuery.includes('magazzino') || lowerQuery.includes('warehouse') ||
-        lowerQuery.includes('sede') || lowerQuery.includes('location') ||
-        lowerQuery.includes('telefono') || lowerQuery.includes('phone') ||
-        lowerQuery.includes('email') || lowerQuery.includes('contatto') ||
-        lowerQuery.includes('contact') || lowerQuery.includes('orari') ||
-        lowerQuery.includes('hours') || lowerQuery.includes('website')) {
-      return { intent: 'company', confidence: 0.9, params: {} };
-    }
-    
-    // Document/regulation queries
-    if (lowerQuery.includes('documento') || lowerQuery.includes('document') ||
-        lowerQuery.includes('internazionale') || lowerQuery.includes('international') ||
-        lowerQuery.includes('trasporto') || lowerQuery.includes('transport') ||
-        lowerQuery.includes('legge') || lowerQuery.includes('law') ||
-        lowerQuery.includes('normativa') || lowerQuery.includes('regulation') ||
-        lowerQuery.includes('dogana') || lowerQuery.includes('customs') ||
-        lowerQuery.includes('import') || lowerQuery.includes('export')) {
-      
-      let searchTerm = '';
-      if (lowerQuery.includes('internazionale') || lowerQuery.includes('international')) {
-        searchTerm = 'international';
-      } else if (lowerQuery.includes('trasporto') || lowerQuery.includes('transport')) {
-        searchTerm = 'transport';
-      }
-      
-      return { intent: 'documents', confidence: 0.9, params: { search: searchTerm } };
-    }
-    
-    // Greeting queries
-    if (lowerQuery.includes('ciao') || lowerQuery.includes('hello') || 
-        lowerQuery.includes('hi') || lowerQuery.includes('salve') ||
-        lowerQuery.includes('buongiorno') || lowerQuery.includes('buonasera')) {
+    // Check for greetings
+    if (lowerQuery.match(/\b(hello|hi|ciao|buongiorno|good morning|hey)\b/)) {
       return { intent: 'greeting', confidence: 0.9 };
     }
     
-    // Thanks queries
-    if (lowerQuery.includes('grazie') || lowerQuery.includes('thank')) {
+    // Check for thanks
+    if (lowerQuery.match(/\b(thank|thanks|grazie|merci)\b/)) {
       return { intent: 'thanks', confidence: 0.9 };
     }
     
-    // Default to general
-    return { intent: 'general', confidence: 0.3 };
+    // Check for products
+    if (lowerQuery.match(/\b(product|pasta|cheese|wine|oil|vinegar|food|buy|purchase|price)\b/)) {
+      return { intent: 'products', confidence: 0.8, params: { search: query } };
+    }
+    
+    // Check for services
+    if (lowerQuery.match(/\b(service|class|cooking|catering|consultation|lesson|workshop)\b/)) {
+      return { intent: 'services', confidence: 0.8, params: { search: query } };
+    }
+    
+    // Check for company info
+    if (lowerQuery.match(/\b(company|contact|address|phone|email|hours|location|about)\b/)) {
+      return { intent: 'company', confidence: 0.8 };
+    }
+    
+    // For any other query, we'll use the cascade logic: Services → FAQs → Documents → Generic
+    return { intent: 'general', confidence: 0.5, params: { search: query } };
   }
 
   /**

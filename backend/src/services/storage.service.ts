@@ -59,7 +59,7 @@ export class StorageService {
     try {
       const uploadPath = path.resolve(this.config.localUploadDir);
       await mkdir(uploadPath, { recursive: true });
-      logger.info(`Local upload directory ensured: ${uploadPath}`);
+      // logger.info(`Local upload directory ensured: ${uploadPath}`);
     } catch (error) {
       logger.error('Failed to create local upload directory:', error);
       throw new Error('Local storage configuration error');

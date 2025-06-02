@@ -1,15 +1,4 @@
-import { LoginCredentials } from '@/types/auth';
-
-interface LoginResponse {
-  message: string;
-  token: string;
-  user: {
-    id: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-  };
-}
+import { LoginCredentials, LoginResponse } from '@/types/dto';
 
 export const loginUser = async (credentials: LoginCredentials): Promise<LoginResponse> => {
   const response = await fetch('/api/auth/login', {

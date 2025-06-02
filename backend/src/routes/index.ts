@@ -9,6 +9,7 @@ import langchainChatRoutes from './langchain-chat.routes';
 import productRoutes from './product.routes';
 import profileRoutes from './profile.routes';
 import serviceRoutes from './service.routes';
+import testRoutes from './test.routes';
 
 const router = Router();
 
@@ -17,7 +18,8 @@ router.get('/health', (_req, res) => {
   res.json({ 
     status: 'ok', 
     timestamp: new Date().toISOString(),
-    env: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    version: '1.0.0'
   });
 });
 
@@ -51,16 +53,20 @@ router.use('/chat', chatRoutes);
 // LangChain chat routes (new enhanced implementation)
 router.use('/langchain', langchainChatRoutes);
 
+// Test routes (only available in development/test environments)
+router.use('/test', testRoutes);
+
 export default router;
 
 export {
-    authRoutes,
-    documentRoutes, // Re-enabled
-    embeddingRoutes,
-    faqRoutes,
-    langchainChatRoutes,
-    productRoutes,
-    profileRoutes,
-    serviceRoutes
+  authRoutes,
+  documentRoutes, // Re-enabled
+  embeddingRoutes,
+  faqRoutes,
+  langchainChatRoutes,
+  productRoutes,
+  profileRoutes,
+  serviceRoutes,
+  testRoutes
 };
 

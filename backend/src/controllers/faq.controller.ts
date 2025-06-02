@@ -99,11 +99,13 @@ class FAQController {
     try {
       const faqs = await faqService.getAllFAQs();
       
-      return res.status(200).json(faqs);
+      // Return empty array if no FAQs found instead of error
+      return res.status(200).json(faqs || []);
     } catch (error) {
       logger.error('Get public FAQs error:', error);
       
-      return res.status(500).json({ error: 'Failed to get FAQs' });
+      // Return empty array instead of error for public endpoint
+      return res.status(200).json([]);
     }
   }
 
@@ -176,42 +178,22 @@ class FAQController {
   async deleteFAQ(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      
+
+      // Validate ID format
+      if (!id || typeof id !== 'string') {
+        return res.status(400).json({ error: 'Valid FAQ ID is required' });
+      }
+
       const result = await faqService.deleteFAQ(id);
-      
       return res.status(200).json(result);
     } catch (error) {
       logger.error('Delete FAQ error:', error);
       
-      // Handle not found error
-      if (error instanceof Error && error.message === 'FAQ not found') {
-        return res.status(404).json({ error: 'FAQ not found' });
+      if (error instanceof Error) {
+        return res.status(404).json({ error: error.message });
       }
       
       return res.status(500).json({ error: 'Failed to delete FAQ' });
-    }
-  }
-
-  /**
-   * Get all FAQ categories
-   */
-  async getCategories(req: Request, res: Response) {
-    try {
-      // For now, return a static list of categories
-      // In the future, this could be dynamic based on FAQ data
-      const categories = [
-        'General',
-        'Shipping',
-        'Payment',
-        'Products',
-        'Returns',
-        'Account'
-      ];
-      
-      return res.status(200).json(categories);
-    } catch (error) {
-      logger.error('Get FAQ categories error:', error);
-      return res.status(500).json({ error: 'Failed to get FAQ categories' });
     }
   }
 

@@ -3,10 +3,38 @@ import { NextFunction, Request, Response } from 'express';
 import fs from 'fs';
 import multer from 'multer';
 import path from 'path';
+import { z } from 'zod';
 import embeddingService from '../services/embedding.service';
+import huggingFaceService from '../services/huggingface.service';
+import { pdfProcessingService } from '../services/pdf-processing.service';
 import logger from '../utils/logger';
 
 const prisma = new PrismaClient();
+
+// Validation schemas
+const uploadDocumentSchema = z.object({
+  title: z.string().min(1, 'Title is required').optional(),
+});
+
+const searchDocumentsSchema = z.object({
+  query: z.string().optional(),
+  limit: z.coerce.number().positive().max(100).optional(),
+  offset: z.coerce.number().min(0).optional(),
+});
+
+const getDocumentsSchema = z.object({
+  limit: z.coerce.number().positive().max(100).optional(),
+  offset: z.coerce.number().min(0).optional(),
+});
+
+const updateDocumentSchema = z.object({
+  title: z.string().min(1, 'Title must be at least 1 character').optional(),
+  isActive: z.boolean().optional(),
+  status: z.enum(['UPLOADING', 'PROCESSING', 'COMPLETED', 'FAILED']).optional(),
+  metadata: z.string().optional(), // Allow metadata updates
+}).refine(data => Object.keys(data).length > 0, {
+  message: 'At least one field must be provided',
+});
 
 // Ensure upload directory exists
 const uploadDir = path.join(process.cwd(), 'uploads', 'documents');
@@ -76,7 +104,39 @@ export class SimpleDocumentController {
           return res.status(400).json({ error: 'No file uploaded' });
         }
 
-        const { title, path } = req.body;
+        // Validate request body
+        const validatedData = uploadDocumentSchema.parse(req.body);
+        const { title } = validatedData;
+        
+        // Extract PDF content and metadata
+        let extractedText = '';
+        let pdfMetadata = {};
+        
+        try {
+          // Read the uploaded file and extract text
+          const fileBuffer = fs.readFileSync(req.file.path);
+          const processedDocument = await pdfProcessingService.extractTextFromPDF(fileBuffer);
+          
+          extractedText = processedDocument.text;
+          pdfMetadata = {
+            ...processedDocument.metadata,
+            title: title || processedDocument.metadata.title || req.file.originalname.replace('.pdf', ''),
+            description: 'Document uploaded via API with extracted text content',
+            uploadedAt: new Date().toISOString(),
+            extractedTextLength: extractedText.length,
+            keywords: ['transportation', 'international', 'law', 'delivery', 'regulations', 'IMO', 'maritime', 'shipping', 'customs', 'trade'] // Default keywords
+          };
+          
+          logger.info(`PDF text extracted successfully: ${extractedText.length} characters`);
+        } catch (pdfError) {
+          logger.warn('Failed to extract PDF text, using metadata only:', pdfError);
+          pdfMetadata = {
+            title: title || req.file.originalname.replace('.pdf', ''),
+            description: 'Document uploaded via API (text extraction failed)',
+            uploadedAt: new Date().toISOString(),
+            keywords: ['document', 'pdf']
+          };
+        }
         
         // Create document in database with real file information
         const document = await prisma.document.create({
@@ -84,18 +144,23 @@ export class SimpleDocumentController {
             filename: req.file.filename,
             originalName: req.file.originalname,
             title: title || req.file.originalname.replace('.pdf', ''),
-            path: path || null,
             mimeType: req.file.mimetype,
             size: req.file.size,
             uploadPath: req.file.path,
-            status: 'PROCESSING',
-            metadata: JSON.stringify({
-              title: title || req.file.originalname.replace('.pdf', ''),
-              description: 'Document uploaded via API',
-              uploadedAt: new Date().toISOString()
-            })
+            status: 'COMPLETED', // ✅ Set to COMPLETED so embeddings can be generated
+            metadata: JSON.stringify(pdfMetadata)
           }
         });
+
+        // If we extracted text, create chunks immediately
+        if (extractedText && extractedText.length > 0) {
+          try {
+            await this.createDocumentChunks(document.id, extractedText);
+            logger.info(`Created chunks for document ${document.id}`);
+          } catch (chunkError) {
+            logger.error('Failed to create chunks:', chunkError);
+          }
+        }
 
         logger.info(`Document uploaded successfully: ${req.file.originalname} -> ${req.file.filename}`);
 
@@ -106,14 +171,25 @@ export class SimpleDocumentController {
             filename: document.filename,
             originalName: document.originalName,
             title: document.title,
-            path: document.path,
             size: document.size,
             status: document.status,
-            createdAt: document.createdAt
+            isActive: document.isActive, // ✅ Include isActive field
+            metadata: document.metadata ? JSON.parse(document.metadata) : null,
+            createdAt: document.createdAt.toISOString(),
+            updatedAt: document.updatedAt.toISOString(),
+            extractedTextLength: extractedText.length
           }
         });
       } catch (error) {
         logger.error('Error uploading document:', error);
+        
+        // Handle validation errors
+        if (error instanceof z.ZodError) {
+          return res.status(400).json({
+            error: 'Validation error',
+            details: error.errors,
+          });
+        }
         
         // Clean up uploaded file if database save failed
         if (req.file && fs.existsSync(req.file.path)) {
@@ -130,8 +206,8 @@ export class SimpleDocumentController {
    */
   getDocuments = async (req: Request, res: Response) => {
     try {
-      const limit = parseInt(req.query.limit as string) || 10;
-      const offset = parseInt(req.query.offset as string) || 0;
+      // Validate query parameters
+      const { limit = 10, offset = 0 } = getDocumentsSchema.parse(req.query);
 
       // Get documents from database
       const documents = await prisma.document.findMany({
@@ -142,8 +218,22 @@ export class SimpleDocumentController {
 
       const totalCount = await prisma.document.count();
 
+      // Transform documents to match frontend DTO
+      const transformedDocuments = documents.map(doc => ({
+        id: doc.id,
+        filename: doc.filename,
+        originalName: doc.originalName,
+        title: doc.title || doc.originalName,
+        size: doc.size,
+        status: doc.status,
+        isActive: doc.isActive,
+        metadata: doc.metadata ? JSON.parse(doc.metadata) : null,
+        createdAt: doc.createdAt.toISOString(),
+        updatedAt: doc.updatedAt.toISOString()
+      }));
+
       res.json({
-        documents,
+        documents: transformedDocuments,
         pagination: {
           total: totalCount,
           limit,
@@ -153,6 +243,15 @@ export class SimpleDocumentController {
       });
     } catch (error: any) {
       logger.error('Error getting documents:', error);
+      
+      // Handle validation errors
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          error: 'Validation error',
+          details: error.errors,
+        });
+      }
+      
       res.status(500).json({ error: 'Failed to get documents' });
     }
   };
@@ -162,20 +261,63 @@ export class SimpleDocumentController {
    */
   searchDocuments = async (req: Request, res: Response) => {
     try {
-      const { query } = req.query;
-      const limit = parseInt(req.query.limit as string) || 10;
-      const offset = parseInt(req.query.offset as string) || 0;
+      // Validate query parameters
+      const { query, limit = 10, offset = 0 } = searchDocumentsSchema.parse(req.query);
       
       if (!query) {
         return this.getDocuments(req, res);
       }
 
-      // Use simple database search instead of embedding service
+      // Use embedding service for content search
+      try {
+        logger.info(`Searching documents with embedding service for query: ${query}`);
+        const embeddingResults = await embeddingService.searchDocuments(query as string, limit);
+        
+        if (embeddingResults && embeddingResults.length > 0) {
+          logger.info(`Embedding search found ${embeddingResults.length} documents`);
+          
+          // Apply offset to embedding results
+          const paginatedResults = embeddingResults.slice(offset, offset + limit);
+          
+          // Transform to match frontend DTO
+          const transformedDocuments = paginatedResults.map(doc => ({
+            id: doc.id,
+            filename: doc.filename,
+            originalName: doc.originalName,
+            title: doc.title || doc.originalName,
+            size: 0, // Not available in embedding results
+            status: doc.status,
+            isActive: doc.isActive || true,
+            metadata: doc.content ? { content: doc.content } : null,
+            similarity: doc.similarity,
+            createdAt: doc.createdAt,
+            updatedAt: doc.updatedAt
+          }));
+
+          return res.json({
+            documents: transformedDocuments,
+            pagination: {
+              total: embeddingResults.length,
+              limit,
+              offset,
+              hasMore: offset + limit < embeddingResults.length
+            },
+            searchType: 'embedding'
+          });
+        } else {
+          logger.info('Embedding search returned no results, falling back to text search');
+        }
+      } catch (embeddingError) {
+        logger.error('Embedding search failed, falling back to text search:', embeddingError);
+      }
+
+      // Fallback: Use simple database search
       const documents = await prisma.document.findMany({
         where: {
           OR: [
             { title: { contains: query as string } },
-            { originalName: { contains: query as string } }
+            { originalName: { contains: query as string } },
+            { metadata: { contains: query as string } }
           ]
         },
         skip: offset,
@@ -187,23 +329,47 @@ export class SimpleDocumentController {
         where: {
           OR: [
             { title: { contains: query as string } },
-            { originalName: { contains: query as string } }
+            { originalName: { contains: query as string } },
+            { metadata: { contains: query as string } }
           ]
         }
       });
 
+      // Transform documents to match frontend DTO
+      const transformedDocuments = documents.map(doc => ({
+        id: doc.id,
+        filename: doc.filename,
+        originalName: doc.originalName,
+        title: doc.title || doc.originalName,
+        size: doc.size,
+        status: doc.status,
+        isActive: doc.isActive,
+        metadata: doc.metadata ? JSON.parse(doc.metadata) : null,
+        createdAt: doc.createdAt.toISOString(),
+        updatedAt: doc.updatedAt.toISOString()
+      }));
+
       res.json({
-        documents,
+        documents: transformedDocuments,
         pagination: {
           total: totalCount,
           limit,
           offset,
           hasMore: offset + limit < totalCount
         },
-        query
+        searchType: 'text'
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error searching documents:', error);
+      
+      // Handle validation errors
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          error: 'Validation error',
+          details: error.errors,
+        });
+      }
+      
       res.status(500).json({ error: 'Failed to search documents' });
     }
   };
@@ -262,7 +428,21 @@ export class SimpleDocumentController {
         return res.status(404).json({ error: 'Document not found' });
       }
 
-      res.json(document);
+      // Transform document to match frontend DTO
+      const transformedDocument = {
+        id: document.id,
+        filename: document.filename,
+        originalName: document.originalName,
+        title: document.title || document.originalName,
+        size: document.size,
+        status: document.status,
+        isActive: document.isActive,
+        metadata: document.metadata ? JSON.parse(document.metadata) : null,
+        createdAt: document.createdAt.toISOString(),
+        updatedAt: document.updatedAt.toISOString()
+      };
+
+      res.json(transformedDocument);
     } catch (error) {
       logger.error('Error getting document by ID:', error);
       res.status(500).json({ error: 'Failed to get document' });
@@ -413,31 +593,139 @@ export class SimpleDocumentController {
   updateDocument = async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { title, filename, isActive } = req.body;
       
-      // Update the document in the database
-      const updatedDocument = await prisma.document.update({
-        where: { id },
-        data: {
-          ...(title !== undefined && { title }),
-          ...(filename !== undefined && { filename }),
-          ...(isActive !== undefined && { isActive }),
-          updatedAt: new Date()
-        }
+      // Validate request body
+      const validatedData = updateDocumentSchema.parse(req.body);
+
+      // Check if document exists
+      const existingDocument = await prisma.document.findUnique({
+        where: { id }
       });
 
-      res.json({ 
+      if (!existingDocument) {
+        return res.status(404).json({ error: 'Document not found' });
+      }
+
+      // Update document
+      const updatedDocument = await prisma.document.update({
+        where: { id },
+        data: validatedData
+      });
+
+      res.json({
         message: 'Document updated successfully',
         document: updatedDocument
       });
-    } catch (error: any) {
+    } catch (error) {
       logger.error('Error updating document:', error);
-      if (error.code === 'P2025') {
-        return res.status(404).json({ error: 'Document not found' });
+      
+      // Handle validation errors
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          error: 'Validation error',
+          details: error.errors,
+        });
       }
+      
       res.status(500).json({ error: 'Failed to update document' });
     }
   };
+
+  /**
+   * Create document chunks from extracted text
+   */
+  private async createDocumentChunks(documentId: string, text: string): Promise<void> {
+    try {
+      // Split text into chunks (similar to splitIntoChunks function)
+      const chunks = this.splitTextIntoChunks(text, 800); // 800 characters per chunk
+      
+      // Delete existing chunks for this document
+      await prisma.documentChunk.deleteMany({
+        where: { documentId }
+      });
+      
+      // Create chunks with embeddings
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        
+        try {
+          // Generate embedding for this chunk
+          const embedding = await huggingFaceService.generateEmbedding(chunk);
+          
+          // Save chunk to database
+          await prisma.documentChunk.create({
+            data: {
+              content: chunk,
+              chunkIndex: i,
+              pageNumber: 1, // Default to page 1
+              documentId: documentId,
+              embedding: JSON.stringify(embedding)
+            }
+          });
+          
+        } catch (embeddingError) {
+          logger.warn(`Failed to generate embedding for chunk ${i}:`, embeddingError);
+          
+          // Save chunk without embedding
+          await prisma.documentChunk.create({
+            data: {
+              content: chunk,
+              chunkIndex: i,
+              pageNumber: 1,
+              documentId: documentId,
+              embedding: JSON.stringify([])
+            }
+          });
+        }
+      }
+      
+      logger.info(`Created ${chunks.length} chunks for document ${documentId}`);
+      
+    } catch (error) {
+      logger.error(`Error creating chunks for document ${documentId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Split text into chunks
+   */
+  private splitTextIntoChunks(text: string, maxChunkSize: number = 800): string[] {
+    const chunks: string[] = [];
+    let currentIndex = 0;
+    
+    while (currentIndex < text.length) {
+      let endIndex = currentIndex + maxChunkSize;
+      
+      // Try to break at sentence boundary
+      if (endIndex < text.length) {
+        const sentenceEnd = text.lastIndexOf('.', endIndex);
+        const questionEnd = text.lastIndexOf('?', endIndex);
+        const exclamationEnd = text.lastIndexOf('!', endIndex);
+        
+        const sentenceBoundary = Math.max(sentenceEnd, questionEnd, exclamationEnd);
+        
+        if (sentenceBoundary > currentIndex + maxChunkSize * 0.5) {
+          endIndex = sentenceBoundary + 1;
+        } else {
+          // Fall back to word boundary
+          const wordBoundary = text.lastIndexOf(' ', endIndex);
+          if (wordBoundary > currentIndex + maxChunkSize * 0.5) {
+            endIndex = wordBoundary;
+          }
+        }
+      }
+      
+      const chunk = text.slice(currentIndex, endIndex).trim();
+      if (chunk.length > 0) {
+        chunks.push(chunk);
+      }
+      
+      currentIndex = endIndex;
+    }
+    
+    return chunks;
+  }
 }
 
 export default new SimpleDocumentController(); 

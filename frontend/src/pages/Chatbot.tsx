@@ -5,16 +5,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { OrderModal } from '@/components/ui/OrderModal';
 import { OrderToast } from '@/components/ui/OrderToast';
-import { ChatMessage } from '@/types/chat';
-import { Profile } from '@/types/profile';
+import { ChatMessage, Profile } from '@/types/dto';
 import { Bot, Bug, MessageCircle, Send, Sparkles } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { FaWhatsapp } from 'react-icons/fa';
 import ReactMarkdown from 'react-markdown';
 
 // Initial messages to demonstrate the chat
-// NOTA: Array vuoto per permettere agli utenti di iniziare la conversazione
-// Rimosso il messaggio di benvenuto automatico per migliorare l'UX
+// NOTE: Empty array to allow users to start the conversation
+// Removed automatic welcome message to improve UX
 const initialMessages: ChatMessage[] = [];
 
 const Chatbot: React.FC = () => {
@@ -115,169 +114,21 @@ const Chatbot: React.FC = () => {
         console.log('🐛 Debug Info Captured:', newDebugInfo);
       }
       
-      // Check if the response contains an OrderCompleted function call result
-      const responseContent = response.message.content;
-      
-      // Enhanced order detection - check for both function calls and text patterns
-      const hasOrderNumber = responseContent.includes('ORD-') || responseContent.includes('Order Number:');
-      const hasConfirmationText = responseContent.includes('confermato') || responseContent.includes('confirmed') || responseContent.includes('confermato con successo');
-      const hasOrderDetails = (responseContent.includes('Totale:') || responseContent.includes('Total:')) && (responseContent.includes('€') || responseContent.includes('EUR'));
-      const hasDeliveryInfo = responseContent.includes('consegna') || responseContent.includes('spedizione') || responseContent.includes('Delivery') || responseContent.includes('delivery');
-      
-      // Check if this looks like an order confirmation
-      if ((hasOrderNumber && hasConfirmationText) || 
-          (hasConfirmationText && hasOrderDetails && hasDeliveryInfo)) {
+      // Check for order data in the response structure
+      if (response.orderData) {
+        console.log('🎉 Order detected from backend response!', response.orderData);
         
-        console.log('🎉 Order detected!', {
-          hasOrderNumber,
-          hasConfirmationText,
-          hasOrderDetails,
-          hasDeliveryInfo,
-          responseContent: responseContent.substring(0, 200) + '...'
+        // Show order notification
+        setOrderNotification({
+          order: response.orderData,
+          showToast: true,
+          showModal: false
         });
         
-        // Try to extract order number
-        let orderNumber = 'ORD-' + Date.now().toString().slice(-6);
-        const orderNumberMatch = responseContent.match(/(?:Order Number:|ORD-)[\s]*([A-Z0-9-]+)/i);
-        if (orderNumberMatch) {
-          orderNumber = orderNumberMatch[1].startsWith('ORD-') ? orderNumberMatch[1] : 'ORD-' + orderNumberMatch[1];
-        }
-        
-        // Try to extract order details from the response content
-        let orderData = null;
-        
-        // Look for order details in the response
-        try {
-          // Try to parse if there's JSON data in the response
-          const jsonMatch = responseContent.match(/\{[^}]*"orderNumber"[^}]*\}/);
-          if (jsonMatch) {
-            orderData = JSON.parse(jsonMatch[0]);
-          }
-        } catch (e) {
-          // If parsing fails, extract from text
-          console.log('Extracting order data from text response');
-        }
-        
-        // Extract products and totals from text
-        if (!orderData) {
-          const items = [];
-          let total = 0;
-          
-          // Look for product lines like "• **Corporate Gift Baskets** - €129.99" or "• Barolo DOCG - €45.00 (3 bottiglie)"
-          const productMatches = responseContent.match(/•\s*\*?\*?([^-\n]+?)\*?\*?\s*-\s*€?(\d+(?:\.\d{2})?)/g);
-          if (productMatches) {
-            productMatches.forEach(match => {
-              const parts = match.match(/•\s*\*?\*?([^-\n]+?)\*?\*?\s*-\s*€?(\d+(?:\.\d{2})?)/);
-              if (parts) {
-                const productName = parts[1].trim().replace(/\*\*/g, '');
-                const price = parseFloat(parts[2]);
-                
-                // Try to extract quantity from the line
-                let quantity = 1;
-                const quantityMatch = match.match(/\((\d+)\s*(?:bottles?|bottiglie?|pezzi?|pieces?)\)/i);
-                if (quantityMatch) {
-                  quantity = parseInt(quantityMatch[1]);
-                }
-                
-                const subtotal = price;
-                
-                items.push({
-                  product: productName,
-                  quantity: quantity,
-                  price: quantity > 1 ? price / quantity : price,
-                  subtotal: subtotal
-                });
-                total += subtotal;
-              }
-            });
-          }
-          
-          // Look for total in text like "Totale: €135.00" or "Total: €199.49"
-          const totalMatch = responseContent.match(/(?:Totale|Total):\s*€?(\d+(?:\.\d{2})?)/i);
-          if (totalMatch) {
-            total = parseFloat(totalMatch[1]);
-          }
-          
-          // If no items found but total exists, create a generic item
-          if (items.length === 0 && total > 0) {
-            items.push({
-              product: 'Ordine confermato',
-              quantity: 1,
-              price: total,
-              subtotal: total
-            });
-          }
-          
-          // Extract delivery date
-          let deliveryDate = 'Entro 3-5 giorni lavorativi';
-          const deliveryMatch = responseContent.match(/(?:Estimated Delivery|consegna)[^:]*:\s*([^\n]+)/i);
-          if (deliveryMatch) {
-            deliveryDate = deliveryMatch[1].trim();
-          }
-          
-          // Extract customer address
-          let customerAddress = 'Via Pinocco 10, 20100';
-          const addressMatch = responseContent.match(/(?:via|address)[^:]*([^\n]+)/i);
-          if (addressMatch) {
-            customerAddress = addressMatch[1].trim();
-          }
-          
-          orderData = {
-            orderNumber,
-            status: 'CONFIRMED',
-            items: items.length > 0 ? items : [
-              { product: 'Prodotti ordinati', quantity: 1, price: total, subtotal: total }
-            ],
-            total: total,
-            currency: 'EUR',
-            estimatedDelivery: deliveryDate,
-            customerInfo: { 
-              name: 'Andrea Gelsomino', 
-              address: customerAddress, 
-              email: 'cliente@email.com' 
-            },
-            paymentMethod: 'Pagamento alla consegna',
-            shippingMethod: 'Corriere espresso',
-            notes: 'Ordine confermato! Riceverai una email di conferma a breve.',
-            timestamp: new Date().toISOString()
-          };
-        }
-        
-        // Create order object (use extracted data or fallback to mock)
-        const orderDetails = orderData || {
-          orderNumber: orderNumber,
-          status: 'CONFIRMED',
-          items: [
-            { product: 'Barolo DOCG', quantity: 3, price: 45.00, subtotal: 135.00 }
-          ],
-          total: 135.00,
-          currency: 'EUR',
-          estimatedDelivery: 'Entro 3-5 giorni lavorativi',
-          customerInfo: { name: 'Andrea Gelsomino', address: 'Via Pinocco 10, 20100', email: 'cliente@email.com' },
-          paymentMethod: 'Pagamento alla consegna',
-          shippingMethod: 'Corriere espresso',
-          notes: 'Ordine confermato! Riceverai una email di conferma a breve.',
-          timestamp: new Date().toISOString()
-        };
-        
-        // Decide whether to show toast or modal based on content length and number of items
-        const shouldShowModal = responseContent.length > 500 || orderDetails.items.length > 3;
-        
-        // Show notification after 5 seconds delay
+        // Auto-hide toast after 5 seconds
         setTimeout(() => {
-          setOrderNotification({
-            order: orderDetails,
-            showToast: !shouldShowModal,
-            showModal: shouldShowModal
-          });
-          
-          // Auto-close toast after 8 seconds (from when it appears)
-          if (!shouldShowModal) {
-            setTimeout(() => {
-              setOrderNotification(prev => prev ? { ...prev, showToast: false } : null);
-            }, 8000);
-          }
-        }, 5000); // 5 seconds delay before showing notification
+          setOrderNotification(prev => prev ? { ...prev, showToast: false } : null);
+        }, 5000);
       }
 
       const assistantMessage: ChatMessage = {
@@ -644,7 +495,7 @@ const Chatbot: React.FC = () => {
                   "Do you have wine less than 20 Euro?",
                   "How long does shipping take?",
                   "What payment methods do you accept?",
-                  "Does exist an international delivery document?"
+                  "What's stand IMO?"
                 ].map((question, index) => (
                   <button
                     key={index}

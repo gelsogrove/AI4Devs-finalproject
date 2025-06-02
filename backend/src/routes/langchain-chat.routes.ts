@@ -53,19 +53,4 @@ const router = Router();
  */
 router.post('/chat', langchainChatController.processChat.bind(langchainChatController));
 
-/**
- * @swagger
- * /api/langchain/config/update:
- *   post:
- *     summary: Update LangChain configuration
- *     description: Reload LangChain service with latest configuration from database
- *     tags: [LangChain Chat]
- *     responses:
- *       200:
- *         description: Configuration updated successfully
- *       500:
- *         description: Server error
- */
-router.post('/config/update', langchainChatController.updateConfig.bind(langchainChatController));
-
 export default router; 

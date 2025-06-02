@@ -17,9 +17,7 @@ const SplashModal: React.FC<SplashModalProps> = ({ isOpen, onClose }) => {
             Welcome to ShopMefy MVP!
           </DialogTitle>
           <DialogDescription className="text-center text-lg text-gray-600">
-            Your complete Italian food e-commerce platform is ready! 
-            This MVP showcases all the essential features for managing products, 
-            services, FAQs, and AI-powered customer support.
+             
           </DialogDescription>
         </DialogHeader>
         
@@ -54,23 +52,23 @@ const SplashModal: React.FC<SplashModalProps> = ({ isOpen, onClose }) => {
               <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
                 <h4 className="font-semibold text-purple-900 mb-2 flex items-center gap-2">
                   <span className="text-lg">📱</span>
-                  WhatsApp Integration
+                  WhatsApp Integration (Concept)
                 </h4>
                 <p className="text-purple-800 text-sm">
-                  This MVP demonstrates how <strong>ShopMefy</strong> integrates with WhatsApp to create
-                  a seamless omnichannel customer experience.
+                  This MVP demonstrates the <strong>concept</strong> of how ShopMefy could integrate with WhatsApp 
+                  to create a seamless omnichannel customer experience. <em>WhatsApp integration is planned for future development.</em>
                 </p>
               </div>
             </div>
             
-            <div className="bg-green-50 p-5 rounded-xl border border-green-200">
-              <h4 className="font-bold mb-3 text-green-700 flex items-center gap-2">
-                ✅ Production Ready
+            <div className="bg-orange-50 p-5 rounded-xl border border-orange-200">
+              <h4 className="font-bold mb-3 text-orange-700 flex items-center gap-2">
+                🚧 MVP in Development
               </h4>
-              <p className="text-sm text-green-600 leading-relaxed">
-                This MVP demonstrates how <strong>ShopMefy</strong> integrates with WhatsApp to create 
-                a seamless shopping experience. The platform features complete testing, modern architecture, 
-                and is ready for production deployment.
+              <p className="text-sm text-orange-600 leading-relaxed">
+                This is an <strong>MVP (Minimum Viable Product)</strong> showcasing ShopMefy's core features. 
+                The platform includes AI-powered product search, comprehensive admin panel, and modern e-commerce architecture. 
+                <strong>WhatsApp integration is currently conceptual</strong> and planned for future development.
               </p>
             </div>
 

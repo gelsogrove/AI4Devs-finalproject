@@ -11,7 +11,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
-import { AI_MODELS, AgentConfig as IAgentConfig } from '@/types/agentConfig';
+import { AI_MODELS, AgentConfig as IAgentConfig } from '@/types/dto';
 import { Brain, HelpCircle, Save, Settings, Sliders } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 

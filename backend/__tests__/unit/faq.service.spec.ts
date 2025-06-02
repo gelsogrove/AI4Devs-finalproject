@@ -213,37 +213,4 @@ describe('FAQ Service', () => {
       await expect(faqService.deleteFAQ('999')).rejects.toThrow('FAQ not found');
     });
   });
-  
-  describe('getCategories', () => {
-    it('should return all categories', async () => {
-      // Act
-      const result = await faqService.getCategories();
-      
-      // Assert - The service returns a static list of categories
-      expect(result).toEqual([
-        'General',
-        'Shipping',
-        'Payment',
-        'Products',
-        'Returns',
-        'Account'
-      ]);
-    });
-
-    it('should filter out null categories', async () => {
-      // This test is no longer relevant since getCategories returns a static array
-      // Act
-      const result = await faqService.getCategories();
-      
-      // Assert - All categories are valid strings
-      expect(result).toEqual([
-        'General',
-        'Shipping',
-        'Payment',
-        'Products',
-        'Returns',
-        'Account'
-      ]);
-    });
-  });
 }); 

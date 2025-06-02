@@ -18,29 +18,29 @@ export const responsePatterns: ResponsePattern[] = [
   {
     // Product catalog query
     matches: (text: string) => 
-      text.includes('prodotti vendete') || 
+      text.includes('products do you sell') || 
       text.includes('what products') || 
       text.includes('products do you'),
     response: {
       role: 'assistant',
-      content: `Ecco i nostri prodotti: Parmigiano Reggiano, Olio d'Oliva, Aceto Balsamico. Abbiamo 3 prodotti in totale.`
+      content: `Here are our products: Parmigiano Reggiano, Olive Oil, Balsamic Vinegar. We have 3 products in total.`
     }
   },
   {
     // Product count query
     matches: (text: string) => 
-      text.includes('quanti prodotti') || 
+      text.includes('how many products') || 
       text.includes('how many product'),
     response: {
       role: 'assistant',
-      content: `Abbiamo 3 prodotti nel nostro catalogo.`
+      content: `We have 3 products in our catalog.`
     }
   },
   {
     // Wine query with image
     matches: (text: string) => 
       text.includes('italian wine') || 
-      text.includes('vino italiano') || 
+      text.includes('wine') || 
       text.includes('chianti'),
     response: () => {
       const imageUrl = 'https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=500&q=80';
@@ -49,27 +49,27 @@ export const responsePatterns: ResponsePattern[] = [
       
       return {
         role: 'assistant',
-        content: 'Si, abbiamo il vino Chianti! 🍷\n\nTi presento il nostro Chianti Classico, un vino premium dalla Toscana. Ha note di ciliegia e spezie, ed è perfetto da abbinare a piatti di pasta.\n- Prezzo: 35,99 €\n\nSe hai bisogno di ulteriori informazioni o suggerimenti su come abbinarlo, fammi sapere! 😊✨',
+        content: 'Yes, we have Chianti wine! 🍷\n\nLet me introduce our Chianti Classico, a premium wine from Tuscany. It has notes of cherry and spices, and is perfect to pair with pasta dishes.\n- Price: €35.99\n\nIf you need more information or suggestions on how to pair it, let me know! 😊✨',
         imageUrl: imageUrl,
-        imageCaption: 'Chianti Classico - Vino Premium Italiano'
+        imageCaption: 'Chianti Classico - Premium Italian Wine'
       };
     }
   },
   {
-    // Prosciutto e melone recipe
+    // Prosciutto and melon recipe
     matches: (text: string) => 
       text.includes('prosciutto') && 
       text.includes('melon'),
     response: () => {
       const imageUrl = 'https://images.unsplash.com/photo-1647354780631-7e34e1df202c?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&q=80';
       
-      logger.info('Sending prosciutto e melone recipe with image');
+      logger.info('Sending prosciutto and melon recipe with image');
       
       return {
         role: 'assistant',
-        content: '# Involtini di Prosciutto e Melone 🍈🍖\n\nEcco una semplice e deliziosa ricetta che puoi provare con il nostro prosciutto di Parma!\n\n## Ingredienti\n- Prosciutto di Parma (affettato sottile)\n- Melone maturo (cantalupo o melone giallo)\n- Foglie di basilico fresco (opzionale)\n- Pepe nero macinato (opzionale)\n\n## Preparazione\n1. **Taglia il melone**: Sbuccia e rimuovi i semi del melone, poi taglialo a fette o a cubetti\n2. **Avvolgi il prosciutto**: Prendi una fetta di prosciutto e avvolgila attorno a ciascuna fetta di melone\n3. **Servi**: Disponi gli involtini su un piatto da portata. Se desideri, puoi guarnire con foglie di basilico fresco e una spolverata di pepe nero\n4. **Gusta**: Servi immediatamente come antipasto fresco!\n\nBuon appetito! 😋 Vuoi anche qualche consiglio su quale vino abbinare a questo piatto? 🍷',
+        content: '# Prosciutto and Melon Rolls 🍈🍖\n\nHere\'s a simple and delicious recipe you can try with our Parma prosciutto!\n\n## Ingredients\n- Parma prosciutto (thinly sliced)\n- Ripe melon (cantaloupe or yellow melon)\n- Fresh basil leaves (optional)\n- Ground black pepper (optional)\n\n## Preparation\n1. **Cut the melon**: Peel and remove seeds from the melon, then cut into slices or cubes\n2. **Wrap with prosciutto**: Take a slice of prosciutto and wrap it around each piece of melon\n3. **Serve**: Arrange the rolls on a serving plate. If desired, you can garnish with fresh basil leaves and a sprinkle of black pepper\n4. **Enjoy**: Serve immediately as a fresh appetizer!\n\nBuon appetito! 😋 Would you also like some advice on which wine to pair with this dish? 🍷',
         imageUrl: imageUrl,
-        imageCaption: 'Involtini di Prosciutto e Melone - Antipasto Italiano'
+        imageCaption: 'Prosciutto and Melon Rolls - Italian Appetizer'
       };
     }
   },
@@ -101,7 +101,7 @@ export const getMockResponse = (content: string): any => {
       // Default response if no pattern matches
       const defaultResponse = {
         role: 'assistant',
-        content: 'Posso aiutarti con informazioni sui nostri prodotti italiani. Abbiamo formaggi, oli e aceti balsamici. Cosa ti interessa?'
+        content: 'I can help you with information about our Italian products. We have cheeses, oils and balsamic vinegars. What interests you?'
       };
       
       logger.info('Using default response (no pattern matched)');
@@ -112,7 +112,7 @@ export const getMockResponse = (content: string): any => {
     // Fallback if something fails
     return {
       role: 'assistant',
-      content: 'Posso aiutarti con informazioni sui nostri prodotti italiani. Abbiamo formaggi come il Parmigiano Reggiano, olio d\'oliva e aceto balsamico. Cosa ti interessa?'
+      content: 'I can help you with information about our Italian products. We have cheeses like Parmigiano Reggiano, olive oil and balsamic vinegar. What interests you?'
     };
   }
 }; 

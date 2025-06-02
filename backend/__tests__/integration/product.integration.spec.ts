@@ -21,14 +21,23 @@ jest.mock('../../src/middlewares/auth.middleware', () => ({
 
 // Create a factory function for mocking products
 function createMockProduct(id: string, name: string, description: string, price: number, imageUrl: string, category: string) {
+  // Use fixed valid UUIDs for testing
+  const uuidMap: { [key: string]: string } = {
+    'product1': '11111111-1111-1111-1111-111111111111',
+    'product2': '22222222-2222-2222-2222-222222222222',
+    'new-service-id': '33333333-3333-3333-3333-333333333333'
+  };
+  
+  const validId = uuidMap[id] || '00000000-0000-0000-0000-000000000000';
+  
   return new Product(
-    new ProductId(id),
+    new ProductId(validId),
     new ProductName(name),
     description,
     new Price(price),
-    imageUrl,
     category,
     [], // tags
+    true, // isActive
     new Date(),
     new Date()
   );
@@ -56,7 +65,7 @@ describe('Product API Integration Tests', () => {
     
     // Debug middleware
     app.use((req, res, next) => {
-      console.log(`Route not matched: ${req.method} ${req.path}`);
+      // Removed console.log for cleaner test output
       next();
     });
     
@@ -201,6 +210,21 @@ describe('Product API Integration Tests', () => {
       
       expect(response.status).toBe(200);
       expect(Array.isArray(response.body)).toBe(true);
+    });
+  });
+  
+  describe('GET /api/products/non-existent-id', () => {
+    it('should return 404 for non-existent product', async () => {
+      // Mock the service to throw an error for non-existent product
+      jest.spyOn(productService, 'getProductById').mockRejectedValue(
+        new Error('Product not found')
+      );
+
+      const response = await request(app)
+        .get('/api/products/non-existent-id')
+        .set('Authorization', authToken);
+      
+      expect(response.status).toBe(404);
     });
   });
 }); 

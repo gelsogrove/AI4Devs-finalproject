@@ -73,51 +73,51 @@ model Service {
 }
 
 model Profile {
-  id            String   @id @default(uuid())
-  username      String   @unique
-  companyName   String
-  logoUrl       String?
-  description   String
-  phoneNumber   String
-  website       String?
-  email         String
-  openingTime   String
-  address       String
-  sector        String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id          String   @id @default(uuid())
+  username    String   @unique
+  companyName String
+  logoUrl     String?
+  description String
+  phoneNumber String
+  website     String?
+  email       String
+  openingTime String
+  address     String
+  sector      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Document {
   id           String          @id @default(uuid())
   filename     String
   originalName String
-  title        String?         // Document title (from metadata or user input)
-  path         String?         // Document category/path for organization
+  title        String?
   mimeType     String
   size         Int
   uploadPath   String
-  status       String          @default("PROCESSING") // UPLOADING, PROCESSING, COMPLETED, FAILED
-  isActive     Boolean         @default(true)         // Active/Inactive status for UI
+  status       String          @default("PROCESSING")
+  isActive     Boolean         @default(true)
   userId       String?
-  metadata     String?         // JSON metadata (title, author, pages, etc.)
+  metadata     String?
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
+  path         String?
   chunks       DocumentChunk[]
-  
+
   @@map("documents")
 }
 
 model DocumentChunk {
-  id         String    @id @default(uuid())
+  id         String   @id @default(uuid())
   content    String
   pageNumber Int?
   chunkIndex Int
   documentId String
-  embedding  String?   // JSON array of embeddings
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  document   Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  
+  embedding  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
   @@map("document_chunks")
 }
