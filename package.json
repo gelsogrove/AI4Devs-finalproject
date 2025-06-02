@@ -1,0 +1,17 @@
+{
+  "name": "shopmefy-project",
+  "version": "1.0.0",
+  "description": "ShopMefy - AI-powered Italian food e-commerce platform",
+  "scripts": {
+    "install-all": "cd backend && npm install && cd ../frontend && npm install",
+    "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
+    "build": "cd backend && npm run build && cd ../frontend && npm run build",
+    "test": "cd backend && npm test"
+  },
+  "keywords": ["ai", "ecommerce", "italian-food", "whatsapp", "chatbot"],
+  "author": "Andrea",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+} 

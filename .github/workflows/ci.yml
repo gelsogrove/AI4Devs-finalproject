@@ -46,14 +46,14 @@ jobs:
         working-directory: ./backend
         run: |
           echo "Installing backend dependencies..."
-          npm ci --prefer-offline --no-audit
+          npm ci --prefer-offline --no-audit --legacy-peer-deps
           echo "Backend dependencies installed successfully"
 
       - name: Install frontend dependencies
         working-directory: ./frontend
         run: |
           echo "Installing frontend dependencies..."
-          npm ci --prefer-offline --no-audit
+          npm ci --prefer-offline --no-audit --legacy-peer-deps
           echo "Frontend dependencies installed successfully"
 
       - name: Create backend .env file
