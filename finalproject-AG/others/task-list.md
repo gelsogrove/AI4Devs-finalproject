@@ -942,4 +942,35 @@ Fixed critical dependency conflicts between @langchain/community and @huggingfac
 - **Integration tests work perfectly in local development** but have test data consistency issues in CI
 - CI environment now matches local development environment exactly
 - **TODO**: Fix integration test data seeding for CI environment
+- ✅ **BONUS**: Created comprehensive reverse engineering prompt in `finalproject-AG/others/ci-cd-prompt.md`
+
+### Task 0.2: Integration Test CI Debugging (🚧 IN PROGRESS)
+**Description**: 
+Debug and resolve the integration test failures in CI environment. Tests pass locally (70/70) but fail in GitHub Actions CI, indicating environment-specific issues with data consistency, timing, or configuration.
+
+**Key Tasks**:
+- 🚧 Analyze specific integration test failures in CI logs
+- 🚧 Compare local vs CI environment differences
+- 🚧 Debug database seeding and data consistency issues
+- 🚧 Investigate timing issues with async operations
+- 🚧 Check environment variable differences
+- 🚧 Verify Docker Compose database state in CI
+- 🚧 Add debugging output to identify root cause
+- 🚧 Implement fixes for CI-specific issues
+
+**Acceptance Criteria**:
+- 🚧 Integration tests pass consistently in CI (70/70)
+- 🚧 No data consistency issues between test runs
+- 🚧 Proper database state management in CI
+- 🚧 E2E tests can be re-enabled after integration tests are stable
+- 🚧 CI environment matches local development exactly
+
+**Status**: 🚧 **IN PROGRESS** - Investigating CI-specific test failures
+
+**Notes**: 
+- Tests work perfectly in local development environment
+- Issue appears to be CI-specific (GitHub Actions environment)
+- Likely related to database seeding, timing, or environment differences
+- Unit tests (213/213) continue to pass in CI
+- Integration and E2E tests temporarily disabled until resolved
 
