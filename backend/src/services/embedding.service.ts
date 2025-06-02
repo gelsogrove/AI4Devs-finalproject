@@ -119,10 +119,10 @@ class EmbeddingService {
         }
       }) as FAQChunkWithFAQ[];
 
-      // If no chunks found, fall back to text search
+      // If no chunks found, return empty results (don't fall back to text search)
       if (!chunks || chunks.length === 0) {
-        logger.info('No FAQ chunks found, falling back to text search');
-        return this.textSearchFAQs(query, limit);
+        logger.info('No FAQ chunks found in database');
+        return [];
       }
 
       // Calculate cosine similarity between query and each chunk
@@ -140,111 +140,66 @@ class EmbeddingService {
       // Sort by similarity and get top chunks
       const topChunks = chunksWithSimilarity
         .sort((a, b) => b.similarity - a.similarity)
-        .slice(0, limit);
+        .slice(0, limit * 3); // Get more chunks to ensure we find relevant ones
       
-      // Check if the top result has suspiciously high similarity (indicating fake embeddings)
-      // Lowered threshold from 0.01 to 0.005 to be more permissive with real embeddings
-      // Also check if any of the top results contain the search query directly
-      const hasDirectMatch = topChunks.some(chunk => 
-        chunk.faq.question.toLowerCase().includes(query.toLowerCase()) ||
-        chunk.faq.answer.toLowerCase().includes(query.toLowerCase())
-      );
+      // Also check for keyword matches in case embedding similarity is low
+      const keywordMatches = chunksWithSimilarity.filter(chunk => {
+        const queryLower = query.toLowerCase();
+        const questionLower = chunk.faq.question.toLowerCase();
+        const answerLower = chunk.faq.answer.toLowerCase();
+        
+        // Check if query words appear in question or answer
+        const queryWords = queryLower.split(/\s+/).filter(word => word.length > 2);
+        return queryWords.some(word => 
+          questionLower.includes(word) || answerLower.includes(word)
+        );
+      });
       
-      if (topChunks.length === 0 || topChunks[0].similarity === 0 || 
-          topChunks[0].similarity > 0.7 || 
-          (topChunks[0].similarity < 0.005 && !hasDirectMatch)) {
-        logger.info('Poor quality embedding results detected, falling back to text search');
-        return this.textSearchFAQs(query, limit);
-      }
+      // Combine similarity results with keyword matches
+      const combinedChunks = [...topChunks];
+      keywordMatches.forEach(match => {
+        if (!combinedChunks.find(chunk => chunk.id === match.id)) {
+          combinedChunks.push(match);
+        }
+      });
+      
+      // Sort combined results by similarity (but include keyword matches even if low similarity)
+      const finalChunks = combinedChunks
+        .sort((a, b) => {
+          // Prioritize keyword matches
+          const aHasKeyword = keywordMatches.some(km => km.id === a.id);
+          const bHasKeyword = keywordMatches.some(km => km.id === b.id);
+          
+          if (aHasKeyword && !bHasKeyword) return -1;
+          if (!aHasKeyword && bHasKeyword) return 1;
+          
+          // Then sort by similarity
+          return b.similarity - a.similarity;
+        })
+        .slice(0, limit * 2); // Take more results to ensure we get relevant ones
+      
+      // Always return results from embedding search, even if similarity is low
+      // This forces the system to use vector search instead of falling back
+      logger.info(`Found ${finalChunks.length} chunks, top similarity: ${finalChunks[0]?.similarity || 0}, keyword matches: ${keywordMatches.length}`);
 
-      // Get unique FAQs from top chunks and transform to FAQ interface
+      // Get unique FAQs from final chunks and transform to FAQ interface
       const uniqueFaqs = Array.from(
-        new Map(topChunks.map(chunk => [chunk.faq.id, chunk.faq]))
+        new Map(finalChunks.map(chunk => [chunk.faq.id, chunk.faq]))
       ).map(([_, faq]) => ({
         id: faq.id,
         question: faq.question,
         answer: faq.answer,
         createdAt: faq.createdAt,
         updatedAt: faq.updatedAt
-      }));
+      })).slice(0, limit); // Limit to requested number
 
+      logger.info(`Returning ${uniqueFaqs.length} unique FAQs from embedding search`);
       return uniqueFaqs;
     } catch (error) {
       logger.error('Error searching FAQs:', error);
-      // Fallback to text search if embedding search fails
-      return this.textSearchFAQs(query, limit);
-    }
-  }
-
-  /**
-   * Fallback text search for FAQs
-   */
-  private async textSearchFAQs(query: string, limit = 5): Promise<FAQ[]> {
-    try {
-      // Split query into individual words for more flexible search
-      // Reduced minimum length from 3 to 2 to include terms like "DOC"
-      const queryWords = query.toLowerCase().split(/\s+/).filter(word => word.length > 1);
-      
-      // Create OR conditions for each word in both question and answer
-      const searchConditions = queryWords.flatMap(word => [
-        { question: { contains: word, mode: 'insensitive' as const } },
-        { answer: { contains: word, mode: 'insensitive' as const } }
-      ]);
-      
-      const faqs = await prisma.fAQ.findMany({
-        where: {
-          AND: [
-            { isActive: true },
-            {
-              OR: [
-                // Exact phrase search (higher priority)
-                { question: { contains: query, mode: 'insensitive' as const } },
-                { answer: { contains: query, mode: 'insensitive' as const } },
-                // Individual word search (only if we have valid words)
-                ...(searchConditions.length > 0 ? searchConditions : [])
-              ]
-            }
-          ]
-        },
-        take: limit
-      });
-      
-      // Transform to FAQ interface
-      return faqs.map(faq => ({
-        id: faq.id,
-        question: faq.question,
-        answer: faq.answer,
-        createdAt: faq.createdAt,
-        updatedAt: faq.updatedAt
-      }));
-    } catch (error) {
-      logger.error('Error in text search fallback:', error);
+      // Return empty results instead of falling back to text search
       return [];
     }
-  }
-
-  /**
-   * Calculate cosine similarity between two vectors
-   */
-  private cosineSimilarity(vecA: number[], vecB: number[]): number {
-    // Check for empty vectors or different lengths
-    if (!vecA || !vecB || vecA.length !== vecB.length || vecA.length === 0) {
-      return 0;
-    }
-    
-    const dotProduct = vecA.reduce((acc, val, i) => acc + val * vecB[i], 0);
-    const normA = Math.sqrt(vecA.reduce((acc, val) => acc + val * val, 0));
-    const normB = Math.sqrt(vecB.reduce((acc, val) => acc + val * val, 0));
-    
-    // Avoid division by zero
-    if (normA === 0 || normB === 0) {
-      return 0;
-    }
-    
-    const similarity = dotProduct / (normA * normB);
-    
-    // Handle potential NaN or Infinity values
-    return isNaN(similarity) || !isFinite(similarity) ? 0 : similarity;
   }
 
   /**
@@ -732,6 +687,30 @@ class EmbeddingService {
       logger.error('Error in text search for documents:', error);
       return [];
     }
+  }
+
+  /**
+   * Calculate cosine similarity between two vectors
+   */
+  private cosineSimilarity(vecA: number[], vecB: number[]): number {
+    // Check for empty vectors or different lengths
+    if (!vecA || !vecB || vecA.length !== vecB.length || vecA.length === 0) {
+      return 0;
+    }
+    
+    const dotProduct = vecA.reduce((acc, val, i) => acc + val * vecB[i], 0);
+    const normA = Math.sqrt(vecA.reduce((acc, val) => acc + val * val, 0));
+    const normB = Math.sqrt(vecB.reduce((acc, val) => acc + val * val, 0));
+    
+    // Avoid division by zero
+    if (normA === 0 || normB === 0) {
+      return 0;
+    }
+    
+    const similarity = dotProduct / (normA * normB);
+    
+    // Handle potential NaN or Infinity values
+    return isNaN(similarity) || !isFinite(similarity) ? 0 : similarity;
   }
 }
 

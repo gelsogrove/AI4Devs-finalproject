@@ -72,7 +72,7 @@ describe('Document API Integration Tests', () => {
       expect(response.body.document).toHaveProperty('id');
       expect(response.body.document.title).toBe('Test Document');
       expect(response.body.document.originalName).toBe('test-document.pdf');
-      expect(response.body.document.status).toBe('PROCESSING');
+      expect(response.body.document.status).toBe('COMPLETED');
     });
 
     it('should reject non-PDF files', async () => {

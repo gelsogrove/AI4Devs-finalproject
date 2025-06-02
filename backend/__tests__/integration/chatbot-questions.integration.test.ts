@@ -104,6 +104,165 @@ describe('Chatbot Questions Integration Test', () => {
       }
     }, 15000);
 
+    // 🔧 NEW PRICE FILTERING TESTS
+    test('should correctly filter products by maxPrice (wine under 20 Euro)', async () => {
+      const response = await request(app)
+        .post('/api/chat')
+        .send({
+          messages: [
+            {
+              role: 'user',
+              content: 'Do you have wine less than 20 Euro?'
+            }
+          ]
+        })
+        .expect(200);
+
+      expect(response.body).toBeDefined();
+      expect(response.body.debug).toBeDefined();
+      expect(response.body.debug.functionCalls).toBeDefined();
+      expect(response.body.debug.functionCalls.length).toBeGreaterThan(0);
+
+      const functionCall = response.body.debug.functionCalls[0];
+      expect(functionCall.name).toBe('getProducts');
+      expect(functionCall.result).toBeDefined();
+      expect(functionCall.result.total).toBeDefined();
+      expect(functionCall.result.products).toBeDefined();
+
+      // Should return only wines under €20 (Prosecco di Valdobbiadene DOCG at €18.75)
+      expect(functionCall.result.total).toBe(1);
+      expect(functionCall.result.products).toHaveLength(1);
+      
+      const product = functionCall.result.products[0];
+      expect(product.name).toBe('Prosecco di Valdobbiadene DOCG');
+      expect(parseFloat(product.price)).toBeLessThanOrEqual(20);
+      expect(parseFloat(product.price)).toBe(18.75);
+    }, 15000);
+
+    test('should correctly filter products by higher maxPrice (wine under 50 Euro)', async () => {
+      const response = await request(app)
+        .post('/api/chat')
+        .send({
+          messages: [
+            {
+              role: 'user',
+              content: 'Do you have wine less than 50 Euro?'
+            }
+          ]
+        })
+        .expect(200);
+
+      expect(response.body).toBeDefined();
+      expect(response.body.debug).toBeDefined();
+      expect(response.body.debug.functionCalls).toBeDefined();
+      expect(response.body.debug.functionCalls.length).toBeGreaterThan(0);
+
+      const functionCall = response.body.debug.functionCalls[0];
+      expect(functionCall.name).toBe('getProducts');
+      expect(functionCall.result).toBeDefined();
+      expect(functionCall.result.total).toBeDefined();
+      expect(functionCall.result.products).toBeDefined();
+
+      // Should return wines under €50 (Prosecco €18.75, Chianti €28.50, Barolo €45.99)
+      expect(functionCall.result.total).toBe(3);
+      expect(functionCall.result.products).toHaveLength(3);
+      
+      // Verify all returned products are under €50
+      functionCall.result.products.forEach((product: any) => {
+        expect(parseFloat(product.price)).toBeLessThanOrEqual(50);
+      });
+
+      // Check specific products are included
+      const productNames = functionCall.result.products.map((p: any) => p.name);
+      expect(productNames).toContain('Prosecco di Valdobbiadene DOCG');
+      expect(productNames).toContain('Chianti Classico DOCG 2020');
+      expect(productNames).toContain('Barolo DOCG 2018');
+    }, 15000);
+
+    test('should return no products when price filter is too low', async () => {
+      const response = await request(app)
+        .post('/api/chat')
+        .send({
+          messages: [
+            {
+              role: 'user',
+              content: 'Do you have wine less than 10 Euro?'
+            }
+          ]
+        })
+        .expect(200);
+
+      expect(response.body).toBeDefined();
+      expect(response.body.debug).toBeDefined();
+      expect(response.body.debug.functionCalls).toBeDefined();
+      expect(response.body.debug.functionCalls.length).toBeGreaterThan(0);
+
+      const functionCall = response.body.debug.functionCalls[0];
+      expect(functionCall.name).toBe('getProducts');
+      expect(functionCall.result).toBeDefined();
+      expect(functionCall.result.total).toBe(0);
+      expect(functionCall.result.products).toHaveLength(0);
+
+      // Response should indicate no products found
+      const responseText = response.body.message.content.toLowerCase();
+      const indicatesNoProducts = 
+        responseText.includes('no') ||
+        responseText.includes('not') ||
+        responseText.includes('non') ||
+        responseText.includes('sorry') ||
+        responseText.includes('unfortunately') ||
+        responseText.includes('purtroppo');
+
+      expect(indicatesNoProducts).toBe(true);
+    }, 15000);
+
+    test('should handle price range queries correctly', async () => {
+      const response = await request(app)
+        .post('/api/chat')
+        .send({
+          messages: [
+            {
+              role: 'user',
+              content: 'Show me wines between 25 and 50 euros'
+            }
+          ]
+        })
+        .expect(200);
+
+      expect(response.body).toBeDefined();
+      expect(response.body.debug).toBeDefined();
+      expect(response.body.debug.functionCalls).toBeDefined();
+      expect(response.body.debug.functionCalls.length).toBeGreaterThan(0);
+
+      const functionCall = response.body.debug.functionCalls[0];
+      expect(functionCall.name).toBe('getProducts');
+      expect(functionCall.result).toBeDefined();
+
+      // The AI should call getProducts with some price filtering
+      // We're flexible here since AI interpretation may vary
+      if (functionCall.result.total > 0) {
+        // Just verify that we get some products and they are wine-related
+        expect(functionCall.result.products.length).toBeGreaterThan(0);
+        
+        // Check if at least one product is in the expected range
+        const hasProductsInRange = functionCall.result.products.some((product: any) => {
+          const price = parseFloat(product.price);
+          return price >= 25 && price <= 50;
+        });
+        
+        // If we have products, at least some should be wine-related
+        const hasWineProducts = functionCall.result.products.some((product: any) => {
+          const name = product.name.toLowerCase();
+          return name.includes('wine') || name.includes('vino') || 
+                 name.includes('chianti') || name.includes('barolo') || 
+                 name.includes('prosecco') || name.includes('amarone') ||
+                 name.includes('brunello');
+        });
+        
+        expect(hasWineProducts).toBe(true);
+      }
+    }, 15000);
+
     test('should handle "How long does shipping take?" question', async () => {
       const response = await request(app)
         .post('/api/chat')

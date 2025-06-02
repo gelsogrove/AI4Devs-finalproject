@@ -870,200 +870,35 @@ Implement a complete Category management system to replace the current string-ba
 - 🚧 Category filtering implemented in product lists
 - 🚧 Proper validation for category dependencies
 
-## ✅ Completed Tasks
-
-### E2E Test System Enhancement
-- [x] **E2E Test Cleanup System** - Implemented comprehensive cleanup system
-  - Created `/api/test/cleanup` endpoint for database and file cleanup
-  - Created `/api/test/seed` endpoint for minimal test data creation
-  - Created `/api/test/status` endpoint for environment monitoring
-  - Updated Cypress configuration with cleanup tasks
-  - Added custom Cypress commands for test environment management
-  - Fixed documents.cy.ts internal server errors - all 4 tests now passing ✅
-
-### Security & Compliance
-- [x] **Security Analysis** - Comprehensive security audit completed
-  - Identified critical authentication vulnerabilities
-  - Found hardcoded data violations
-  - Documented missing validations
-  - Created security recommendations
-
-- [x] **Hardcoded Data Removal** - Removed all hardcoded data violations
-  - Removed hardcoded FAQ categories from `faq.service.ts`
-  - Removed hardcoded categories from `faq.controller.ts`
-  - Removed `/categories` route from `faq.routes.ts`
-  - All FAQ data now comes from database queries
-
-- [x] **Zod Validation Implementation** - Added comprehensive validation
-  - Added validation schemas to `document.controller.simple.ts`
-  - Implemented validation for uploadDocument, getDocuments, searchDocuments, updateDocument
-  - Fixed schema issues by removing non-existent 'path' field
-
-- [x] **Documentation Path Updates** - Fixed incorrect documentation references
-  - Updated `.cursorrules` with correct paths to `/others/` directory
-  - Added Documentation References section with all correct paths
-  - Fixed task list path references
-
-### Documentation & Architecture
-- [x] **Prompt Restructuring** - Reorganized metaprompt structure
-  - Divided 4 original prompts into 8 specialized prompts
-  - Added specific ROLE and OUTPUT sections for each prompt
-  - Created specialized roles: Product Strategist, Solution Architect, Security Engineer, etc.
-  - Restructured promps.md with simple numbered prompts 1-8 (removed A/B structure)
-
-### Unit Test Fixes
-- [x] **Unit Test Fixes** - Fixed failing unit tests after hardcoded data removal
-  - Removed getCategories tests from `faq.controller.spec.ts`
-  - Removed getCategories tests from `faq.service.spec.ts`
-  - Removed getCategories route from `faq.integration.spec.ts`
-  - Fixed document tests by removing non-existent 'path' field expectations
-  - All 281 tests now passing ✅
-
-- [x] **E2E Test Improvements** - Enhanced E2E test robustness and reliability
-  - Fixed Documents tests by updating button selectors and API response structure
-  - Fixed FAQ tests by improving form submission handling
-  - Fixed Services tests by removing non-existent search functionality
-  - Improved test stability with better DOM element detection
-  - Enhanced error handling for dynamic UI elements
-  - **Major improvement**: From 50% failure rate to 13% failure rate
-  - **33 of 35 tests now passing** ✅
-
-## 🔴 Critical Issues Requiring Immediate Attention
-
-### Authentication System (CRITICAL)
-- [ ] **Fix Authentication Vulnerability** - Replace fake demo-token system
-  - Current system accepts any token starting with "demo-token-"
-  - All users become userId: '1' and email: 'test@example.com'
-  - Replace `auth.middleware.ts` with proper JWT validation
-  - Implement `jwt.middleware.ts` across all protected routes
-
-### Security Hardening
-- [ ] **JWT Secret Security** - Remove hardcoded fallback
-  - Current: `const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'`
-  - Should fail if JWT_SECRET is not set in environment
-  - Add proper environment validation
-
-- [ ] **Security Logging Standardization** - Implement consistent error handling
-  - Standardize error logging patterns across all controllers
-  - Implement security event logging
-  - Add request tracking and audit trails
-
-## 🟡 Medium Priority Tasks
-
-### Validation & Error Handling
-- [ ] **Complete Zod Validation** - Add validation to remaining endpoints
-  - Review all controllers for missing validation schemas
-  - Implement consistent error response formats
-  - Add input sanitization where needed
-
-### Testing & Quality Assurance
-- [ ] **Security Testing** - Implement security test suite
-  - Add authentication tests
-  - Test authorization boundaries
-  - Validate input sanitization
-  - Test rate limiting and DOS protection
-
-### Documentation
-- [ ] **API Documentation** - Update Swagger/OpenAPI specs
-  - Document all security requirements
-  - Add authentication examples
-  - Update endpoint descriptions
-
-## 🟢 Low Priority Tasks
-
-### Performance & Optimization
-- [ ] **Database Optimization** - Review and optimize queries
-  - Add database indexes where needed
-  - Optimize embedding search performance
-  - Review connection pooling
-
-### Monitoring & Observability
-- [ ] **Logging Enhancement** - Improve application logging
-  - Add structured logging
-  - Implement log aggregation
-  - Add performance metrics
-
-## 📋 Notes
-
-- **Authentication is the highest priority** - The current system is completely insecure
-- All hardcoded data has been successfully removed from the codebase
-- Documentation paths have been corrected and standardized
-- Zod validation has been implemented for document operations
-
-## 🎯 **Current MVP Status - What's Actually Implemented**
-
-### ✅ **Fully Functional Features**:
-- **AI Chatbot (Sofia)** - Complete with LangChain, OpenRouter, RAG system
-- **Product Management** - Full CRUD with search and categories
-- **FAQ Management** - Full CRUD with AI embeddings
-- **Service Management** - Full CRUD for additional offerings
-- **Document Management** - PDF upload, processing, and chunking
-- **User Authentication** - JWT-based login system (needs security fixes)
-- **Admin Dashboard** - Complete management interface
-- **Database Architecture** - PostgreSQL with Prisma ORM
-- **API Documentation** - Swagger/OpenAPI specs
-- **Testing Suite** - Unit, integration, and E2E tests
-
-### 🚧 **Conceptual/Future Features**:
-- **WhatsApp Integration** - Currently only shown as concept in splash page
-- **Order Management** - Database models exist but not fully integrated
-- **Chat History Persistence** - Planned but not implemented
-- **2FA Authentication** - Planned security enhancement
-
-### 🔴 **Critical Issues**:
-- **Authentication Security** - Demo-token system is completely insecure
-- **JWT Secret** - Hardcoded fallback needs removal
-
-## 🔍 Next Steps
-
-1. **IMMEDIATE**: Fix authentication system (demo-token vulnerability)
-2. **URGENT**: Implement proper JWT validation
-3. **HIGH**: Complete security logging standardization
-4. **MEDIUM**: Add remaining Zod validations
-5. **LOW**: Performance optimizations and monitoring
-
-### Task 1: DTO Consolidation
-**Description**: 
-Consolidated all TypeScript interfaces and DTOs into a centralized `/types/dto/` folder structure to eliminate duplicates and improve maintainability. This refactoring organized all data transfer objects, API response interfaces, and type definitions in a single location with proper exports.
-
-**Key Tasks**:
-- Create centralized `/types/dto/` folder structure
-- Move all interfaces from scattered files to DTO files
-- Consolidate duplicate interfaces (ChatMessage, SimpleChatMessage, etc.)
-- Update all imports across the frontend to use centralized DTOs
-- Remove old type files to prevent confusion
-- Create index.ts for easy imports
-- Add missing constants (AI_MODELS) to DTO files
-
-**Acceptance Criteria**:
-- ✅ Centralized DTO folder structure created
-- ✅ All interfaces moved to appropriate DTO files
-- ✅ Duplicate interfaces consolidated
-- ✅ All imports updated to use @/types/dto
-- ✅ Old type files removed
-- ✅ Index.ts created for easy imports
-- ✅ AI_MODELS constants added to agentConfig.dto.ts
+**Date**: 2025-06-02  
+**Tested by**: Andrea & AI Assistant
 
 ---
 
-
+### Task 38: Debug Mode Display Fix (✅ COMPLETED)
 **Description**: 
-Fixed TypeScript compilation errors in the backend caused by accessing private properties directly. The PrismaProductRepository was trying to access the private `value` property of ProductId class instead of using the public `getValue()` method.
+Fixed issue where the debug mode in the frontend was not showing function calls even when they were being executed correctly by the backend. The debug panel was showing "No function calls recorded yet" despite functions being called successfully.
+
+**Issue Identified**: 
+The frontend was only capturing debug information from the backend response when debug mode was already active at the time of sending the message. This meant that if a user activated debug mode after sending a message, they wouldn't see the function call information.
 
 **Key Tasks**:
-- Identify private property access violations in PrismaProductRepository
-- Replace direct `id.value` access with `id.getValue()` method calls
-- Fix all logging statements that accessed private properties
-- Ensure TypeScript compilation succeeds without errors
-- Maintain proper encapsulation in domain value objects
+- ✅ Analyze debug mode implementation in `frontend/src/pages/Chatbot.tsx`
+- ✅ Identify the conditional logic issue in debug info capture
+- ✅ Modify debug capture to always store backend debug information
+- ✅ Test that function calls are now visible when debug mode is activated
+- ✅ Verify backend is correctly calling functions (e.g., `getDocuments` for NAFTA question)
 
-**Acceptance Criteria**:
-- ✅ All private property access violations identified
-- ✅ Replaced `id.value` with `id.getValue()` in findById method
-- ✅ Fixed logging statements in error handlers
-- ✅ Updated delete method to use public getter
-- ✅ TypeScript build completes successfully
-- ✅ Domain object encapsulation maintained
+**Technical Changes**:
+- **Modified**: `frontend/src/pages/Chatbot.tsx` - Changed debug capture condition from `if (response.debug && debugMode)` to `if (response.debug)` to always capture debug information
+- **Result**: Debug mode now shows function calls regardless of when it's activated
 
----
+**Testing Results**:
+- ✅ Backend correctly calls `getDocuments` for "International Transportation Law what is NAFTA?" question
+- ✅ Frontend now captures debug information from all backend responses
+- ✅ Debug mode displays function calls when activated after message is sent
+- ✅ Debug panel shows function name, arguments, results, and processing time
+
+**Date**: 2025-06-02  
+**Tested by**: Andrea & AI Assistant
 

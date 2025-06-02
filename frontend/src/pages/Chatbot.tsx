@@ -98,8 +98,8 @@ const Chatbot: React.FC = () => {
         messages: filteredMessages,
       });
       
-      // Capture debug information if available
-      if (response.debug && debugMode) {
+      // Capture debug information if available (always capture, show only when debug mode is on)
+      if (response.debug) {
         const newDebugInfo = {
           userMessage: inputMessage.trim(),
           timestamp: new Date().toISOString(),
@@ -462,7 +462,7 @@ const Chatbot: React.FC = () => {
                   <strong className="text-gray-900">Sofia</strong> is your personal Italian food expert, powered by advanced AI technology.
                 </p>
                 <p>
-                  She can search our product catalog, answer questions about services, and provide detailed information about authentic Italian cuisine.
+                  She can search our product catalog, answer questions about services, and provide detailed information about the trasnportation law.
                 </p>
                 <div className="mt-4 p-3 bg-shopme-50 rounded-lg border border-shopme-100">
                   <p className="text-xs text-shopme-700 font-medium">
@@ -495,7 +495,7 @@ const Chatbot: React.FC = () => {
                   "Do you have wine less than 20 Euro?",
                   "How long does shipping take?",
                   "What payment methods do you accept?",
-                  "What's stand IMO?"
+                  "What's stand IMO in international transport law?"
                 ].map((question, index) => (
                   <button
                     key={index}

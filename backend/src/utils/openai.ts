@@ -21,7 +21,7 @@ const openRouterClient = new OpenAI({
 
 // Create a separate OpenAI client for embeddings
 const openAIClient = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || ''
+  apiKey: process.env.OPENROUTER_API_KEY || ''
 });
 
 // Map of model names to their OpenRouter compatible versions
@@ -109,12 +109,13 @@ class AIService {
   async generateEmbedding(text: string): Promise<number[]> {
     try {
       // Use Hugging Face Inference API for real embeddings
-      // This is free and provides high-quality embeddings
+      // This provides high-quality embeddings
       const response = await fetch(
         "https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2",
         {
           method: "POST",
           headers: {
+            "Authorization": `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
@@ -203,7 +204,7 @@ class AIService {
       logger.info(`Model: ${model}`);
       
       // Check if we have a valid OpenAI API key and prefer it over OpenRouter
-      const openaiKey = process.env.OPENAI_API_KEY;
+      const openaiKey = process.env.OPENROUTER_API_KEY;
       
       // OpenAI keys start with 'sk-' but NOT 'sk-or-' (which is OpenRouter)
       if (openaiKey && openaiKey.startsWith('sk-') && !openaiKey.startsWith('sk-or-')) {

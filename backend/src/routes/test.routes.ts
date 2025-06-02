@@ -11,11 +11,21 @@ const prisma = new PrismaClient();
  * /api/test/cleanup:
  *   post:
  *     summary: Clean database and uploads for E2E tests
- *     description: Removes all test data from database and cleans uploads folder
+ *     description: Removes test data from database. Use preserveDocuments=true to keep user uploads
  *     tags:
  *       - Test
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               preserveDocuments:
+ *                 type: boolean
+ *                 description: If true, preserves user-uploaded documents
+ *                 default: true
  *     responses:
  *       200:
  *         description: Cleanup successful
@@ -29,26 +39,69 @@ router.post('/cleanup', async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Test endpoints not available in production' });
     }
 
-    // 1️⃣ Clean database tables in correct order (respecting foreign keys)
-    await prisma.documentChunk.deleteMany({});
-    await prisma.document.deleteMany({});
-    await prisma.fAQChunk.deleteMany({});
-    await prisma.fAQ.deleteMany({});
-    await prisma.service.deleteMany({});
-    await prisma.product.deleteMany({});
-    await prisma.profile.deleteMany({});
+    const { preserveDocuments = true } = req.body;
 
-    // 2️⃣ Clean uploads folder
-    const uploadsPath = path.join(__dirname, '../../uploads');
-    if (await fs.pathExists(uploadsPath)) {
-      await fs.emptyDir(uploadsPath);
+    // 1️⃣ Clean database tables in correct order (respecting foreign keys)
+    
+    if (!preserveDocuments) {
+      // Only delete documents if explicitly requested
+      await prisma.documentChunk.deleteMany({});
+      await prisma.document.deleteMany({});
+      console.log('🗑️ Documents deleted');
+    } else {
+      console.log('📄 Documents preserved');
+    }
+    
+    // Always clean test-specific data
+    await prisma.fAQChunk.deleteMany({
+      where: {
+        faq: {
+          question: 'Test Question?'
+        }
+      }
+    });
+    
+    await prisma.fAQ.deleteMany({
+      where: {
+        question: 'Test Question?'
+      }
+    });
+    
+    await prisma.service.deleteMany({
+      where: {
+        name: 'Test Service'
+      }
+    });
+    
+    await prisma.product.deleteMany({
+      where: {
+        name: 'Test Product'
+      }
+    });
+    
+    await prisma.profile.deleteMany({
+      where: {
+        username: 'test_user'
+      }
+    });
+
+    // 2️⃣ Clean uploads folder only if not preserving documents
+    if (!preserveDocuments) {
+      const uploadsPath = path.join(__dirname, '../../uploads');
+      if (await fs.pathExists(uploadsPath)) {
+        await fs.emptyDir(uploadsPath);
+        console.log('🗑️ Uploads folder cleaned');
+      }
+    } else {
+      console.log('📁 Uploads folder preserved');
     }
 
     console.log('✅ Test cleanup completed successfully');
     
     res.json({ 
       success: true, 
-      message: 'Database and uploads cleaned successfully',
+      message: `Database cleaned successfully${preserveDocuments ? ' (documents preserved)' : ' (all data removed)'}`,
+      preserveDocuments,
       timestamp: new Date().toISOString()
     });
 
@@ -66,7 +119,7 @@ router.post('/cleanup', async (req: Request, res: Response) => {
  * /api/test/seed:
  *   post:
  *     summary: Seed minimal test data
- *     description: Creates minimal test data for E2E tests
+ *     description: Creates minimal test data for E2E tests WITHOUT destroying existing documents
  *     tags:
  *       - Test
  *     security:
@@ -84,52 +137,81 @@ router.post('/seed', async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Test endpoints not available in production' });
     }
 
-    // Create minimal test data
-    const testProfile = await prisma.profile.create({
-      data: {
-        username: 'test_user',
-        companyName: 'Test Company',
-        email: 'test@example.com',
-        phoneNumber: '+1234567890',
-        address: 'Test Address',
-        openingTime: 'Mon-Fri 9-17',
-        description: 'Test business description',
-        sector: 'Test Sector'
-      }
+    // ⚠️ IMPORTANT: Do NOT delete existing data - only create test data if missing
+    
+    // Check if test profile already exists
+    let testProfile = await prisma.profile.findFirst({
+      where: { username: 'test_user' }
     });
+    
+    if (!testProfile) {
+      testProfile = await prisma.profile.create({
+        data: {
+          username: 'test_user',
+          companyName: 'Test Company',
+          email: 'test@example.com',
+          phoneNumber: '+1234567890',
+          address: 'Test Address',
+          openingTime: 'Mon-Fri 9-17',
+          description: 'Test business description',
+          sector: 'Test Sector'
+        }
+      });
+    }
 
-    const testProduct = await prisma.product.create({
-      data: {
-        name: 'Test Product',
-        description: 'Test product description',
-        price: 19.99,
-        category: 'Test Category',
-        isActive: true
-      }
+    // Check if test product already exists
+    let testProduct = await prisma.product.findFirst({
+      where: { name: 'Test Product' }
     });
+    
+    if (!testProduct) {
+      testProduct = await prisma.product.create({
+        data: {
+          name: 'Test Product',
+          description: 'Test product description',
+          price: 19.99,
+          category: 'Test Category',
+          isActive: true
+        }
+      });
+    }
 
-    const testService = await prisma.service.create({
-      data: {
-        name: 'Test Service',
-        description: 'Test service description',
-        price: 29.99,
-        isActive: true
-      }
+    // Check if test service already exists
+    let testService = await prisma.service.findFirst({
+      where: { name: 'Test Service' }
     });
+    
+    if (!testService) {
+      testService = await prisma.service.create({
+        data: {
+          name: 'Test Service',
+          description: 'Test service description',
+          price: 29.99,
+          isActive: true
+        }
+      });
+    }
 
-    const testFAQ = await prisma.fAQ.create({
-      data: {
-        question: 'Test Question?',
-        answer: 'Test answer for E2E testing.',
-        isActive: true
-      }
+    // Check if test FAQ already exists
+    let testFAQ = await prisma.fAQ.findFirst({
+      where: { question: 'Test Question?' }
     });
+    
+    if (!testFAQ) {
+      testFAQ = await prisma.fAQ.create({
+        data: {
+          question: 'Test Question?',
+          answer: 'Test answer for E2E testing.',
+          isActive: true
+        }
+      });
+    }
 
-    console.log('✅ Test data seeded successfully');
+    console.log('✅ Test data seeded successfully (preserving existing documents)');
 
     res.json({ 
       success: true, 
-      message: 'Test data seeded successfully',
+      message: 'Test data seeded successfully (existing documents preserved)',
       data: {
         profile: testProfile.id,
         product: testProduct.id,

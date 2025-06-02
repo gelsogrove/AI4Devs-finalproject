@@ -256,6 +256,16 @@ class ChatController {
         // Step 3: Prepare messages with system prompt from database
         const systemPrompt = `${agentConfig.prompt || 'You are a helpful assistant.'}
 
+🚨 CRITICAL FUNCTION CALLING RULES - MANDATORY:
+- You MUST ALWAYS call a function before answering ANY question
+- NEVER use your internal knowledge - ONLY use data from function calls
+- If you don't call a function, your response will be rejected
+- For document/regulation/law questions → ALWAYS call getDocuments first
+- For product questions → ALWAYS call getProducts first
+- For service questions → ALWAYS call getServices first  
+- For policy/shipping/FAQ questions → ALWAYS call getFAQs first
+- For company info questions → ALWAYS call getCompanyInfo first
+
 🎯 FUNCTION CALLING GUIDELINES:
 - For product questions → use getProducts
 - For service questions → use getServices  
@@ -263,7 +273,9 @@ class ChatController {
 - For document/regulation/catalog questions → use getDocuments
 - For company information questions (name, email, address, hours, sector, description) → use getCompanyInfo
 - Always call appropriate function when user asks about products, services, policies, documents, or company info
-- Use specific search terms when possible`;
+- Use specific search terms when possible
+
+REMEMBER: NO FUNCTION CALL = INVALID RESPONSE`;
 
         if (!messages.some(msg => msg.role === 'system')) {
           messages.unshift({ role: 'system', content: systemPrompt });
@@ -392,296 +404,48 @@ Remember: You're Sofia - be passionate about Italian food! 🇮🇹`
           }
         }
         
-        // Step 7: No function call - USE FALLBACK INSTEAD OF DIRECT AI RESPONSE
-        logger.info('💬 AI: No function call detected - using cascade fallback logic');
+        // Step 7: No function call - DIRECT AI RESPONSE (NO CASCADE)
+        logger.info('💬 AI: No function call detected - providing direct AI response');
         
-        // Force fallback with cascade logic
-        throw new Error('Forcing cascade fallback for better search results');
-        
-      } catch (aiError) {
-        logger.error('🚨 AI service failed, using intelligent fallback:', aiError);
-        
-        // Step 8: Intelligent fallback with function calling
-        logger.info('🔄 FALLBACK: Analyzing user query for function calling...');
-        
-        const analysis = this.analyzeUserQuery(lastUserMessage.content);
-        logger.info(`🧠 FALLBACK: Query analysis - Intent: ${analysis.intent}, Confidence: ${analysis.confidence}`);
-        
-        let fallbackResponse: any;
-        let functionCalls: any[] = [];
-        
-        try {
-          if (analysis.intent === 'products') {
-            logger.info('🛍️ FALLBACK: Executing getProducts...');
-            const result = await availableFunctions.getProducts(analysis.params || {});
-            functionCalls.push({
-              name: 'getProducts',
-              arguments: analysis.params || {},
-              result,
-              timestamp: new Date().toISOString()
-            });
-            
-            if (result.products && result.products.length > 0) {
-              const productList = result.products.map(p => `• **${p.name}** - €${p.price}`).join('\n');
-              fallbackResponse = {
-                role: 'assistant',
-                content: `${productList}`
-              };
-            } else {
-              fallbackResponse = {
-                role: 'assistant',
-                content: 'No products found for your search.'
-              };
-            }
-          } else if (analysis.intent === 'services') {
-            logger.info('🎓 FALLBACK: Executing getServices...');
-            const result = await availableFunctions.getServices(analysis.params || {});
-            functionCalls.push({
-              name: 'getServices',
-              arguments: analysis.params || {},
-              result,
-              timestamp: new Date().toISOString()
-            });
-            
-            if (result.services && result.services.length > 0) {
-              const serviceList = result.services.map(s => `• **${s.name}** - €${s.price}\n${s.description}`).join('\n\n');
-              fallbackResponse = {
-                role: 'assistant',
-                content: `${serviceList}`
-              };
-            } else {
-              fallbackResponse = {
-                role: 'assistant',
-                content: 'No services found for your search.'
-              };
-            }
-          } else if (analysis.intent === 'faq') {
-            logger.info('❓ FALLBACK: Executing getFAQs...');
-            const result = await availableFunctions.getFAQs(analysis.params || {});
-            functionCalls.push({
-              name: 'getFAQs',
-              arguments: analysis.params || {},
-              result,
-              timestamp: new Date().toISOString()
-            });
-            
-            if (result.faqs && result.faqs.length > 0) {
-              const faq = result.faqs[0];
-              fallbackResponse = {
-                role: 'assistant',
-                content: `**${faq.question}**\n\n${faq.answer}`
-              };
-            } else {
-              fallbackResponse = {
-                role: 'assistant',
-                content: 'No FAQs found for your question.'
-              };
-            }
-          } else if (analysis.intent === 'company') {
-            logger.info('🏢 FALLBACK: Executing getCompanyInfo...');
-            const result = await availableFunctions.getCompanyInfo();
-            functionCalls.push({
-              name: 'getCompanyInfo',
-              arguments: {},
-              result,
-              timestamp: new Date().toISOString()
-            });
-            
-            if (result.companyName) {
-              fallbackResponse = {
-                role: 'assistant',
-                content: `**${result.companyName}**\n\n${result.address}\n${result.email}\n${result.openingTime}\n\n${result.description}`
-              };
-            } else {
-              fallbackResponse = {
-                role: 'assistant',
-                content: 'Company information not available.'
-              };
-            }
-          } else if (analysis.intent === 'documents') {
-            logger.info('📄 FALLBACK: Executing getDocuments...');
-            const result = await availableFunctions.getDocuments(analysis.params || {});
-            functionCalls.push({
-              name: 'getDocuments',
-              arguments: analysis.params || {},
-              result,
-              timestamp: new Date().toISOString()
-            });
-            
-            if (result.documents && result.documents.length > 0) {
-              const doc = result.documents[0];
-              fallbackResponse = {
-                role: 'assistant',
-                content: `I found information in our documents: **${doc.title}**\n\n${doc.content}`
-              };
-            } else {
-              fallbackResponse = {
-                role: 'assistant',
-                content: 'I did not find documents related to your request.'
-              };
-            }
-          } else {
-            // Handle greetings and thanks properly
-            if (analysis.intent === 'greeting') {
-              logger.info('👋 FALLBACK: Handling greeting...');
-              const companyResult = await availableFunctions.getCompanyInfo();
-              functionCalls.push({
-                name: 'getCompanyInfo',
-                arguments: {},
-                result: companyResult,
-                timestamp: new Date().toISOString()
-              });
-              
-              if (companyResult.companyName) {
-                fallbackResponse = {
-                  role: 'assistant',
-                  content: `Ciao! Welcome to ${companyResult.companyName}! 🇮🇹\n\nHow can I help you today? I can assist you with:\n• **Products** - Our Italian specialties\n• **Services** - Cooking classes and tastings\n• **Information** - Shipping and orders\n\nWhat would you like to know?`
-                };
-              } else {
-                fallbackResponse = {
-                  role: 'assistant',
-                  content: 'Ciao! How can I help you today? 🇮🇹'
-                };
-              }
-            } else if (analysis.intent === 'thanks') {
-              logger.info('🙏 FALLBACK: Handling thanks...');
-              fallbackResponse = {
-                role: 'assistant',
-                content: 'Prego! (You\'re welcome!) Is there anything else I can help you with? 🇮🇹'
-              };
-            } else {
-              // ANDREA'S CASCADE LOGIC: Services → FAQs → Documents → Generic LLM
-              logger.info('🔄 FALLBACK: Starting cascade search for general query...');
-              
-              const searchQuery = analysis.params?.search || '';
-              let foundResult = false;
-              
-              // 1. Try Services first
-              try {
-                logger.info('🔍 Step 1: Searching Services...');
-                const servicesResult = await availableFunctions.getServices({ search: searchQuery });
-                functionCalls.push({
-                  name: 'getServices',
-                  arguments: { search: searchQuery },
-                  result: servicesResult,
-                  timestamp: new Date().toISOString()
-                });
-                
-                if (servicesResult.services && servicesResult.services.length > 0) {
-                  const service = servicesResult.services[0];
-                  fallbackResponse = {
-                    role: 'assistant',
-                    content: `I found this service: **${service.name}** - €${service.price}\n\n${service.description}`
-                  };
-                  foundResult = true;
-                  logger.info('✅ Found result in Services');
-                }
-              } catch (error) {
-                logger.error('❌ Services search failed:', error);
-              }
-              
-              // 2. If not found in services, try FAQs
-              if (!foundResult) {
-                try {
-                  logger.info('🔍 Step 2: Searching FAQs...');
-                  const faqsResult = await availableFunctions.getFAQs({ search: searchQuery });
-                  functionCalls.push({
-                    name: 'getFAQs',
-                    arguments: { search: searchQuery },
-                    result: faqsResult,
-                    timestamp: new Date().toISOString()
-                  });
-                  
-                  if (faqsResult.faqs && faqsResult.faqs.length > 0) {
-                    const faq = faqsResult.faqs[0];
-                    fallbackResponse = {
-                      role: 'assistant',
-                      content: `**${faq.question}**\n\n${faq.answer}`
-                    };
-                    foundResult = true;
-                    logger.info('✅ Found result in FAQs');
-                  }
-                } catch (error) {
-                  logger.error('❌ FAQs search failed:', error);
-                }
-              }
-              
-              // 3. If not found in FAQs, try Documents
-              if (!foundResult) {
-                try {
-                  logger.info('🔍 Step 3: Searching Documents...');
-                  const documentsResult = await availableFunctions.getDocuments({ search: searchQuery });
-                  functionCalls.push({
-                    name: 'getDocuments',
-                    arguments: { search: searchQuery },
-                    result: documentsResult,
-                    timestamp: new Date().toISOString()
-                  });
-                  
-                  if (documentsResult.documents && documentsResult.documents.length > 0) {
-                    const doc = documentsResult.documents[0];
-                    fallbackResponse = {
-                      role: 'assistant',
-                      content: `I found information in our documents: **${doc.title}**\n\n${doc.content}`
-                    };
-                    foundResult = true;
-                    logger.info('✅ Found result in Documents');
-                  }
-                } catch (error) {
-                  logger.error('❌ Documents search failed:', error);
-                }
-              }
-              
-              // 4. If nothing found, use generic LLM response
-              if (!foundResult) {
-                logger.info('🔍 Step 4: Using generic LLM response...');
-                try {
-                  // Use AI service to generate a response
-                  const aiResponse = await aiService.generateChatCompletion(
-                    [{ role: 'user', content: searchQuery }],
-                    'openai/gpt-4o-mini',
-                    { temperature: 0.3, maxTokens: 200 }
-                  );
-                  
-                  fallbackResponse = {
-                    role: 'assistant',
-                    content: aiResponse.choices[0].message.content || 'I\'m not sure how to help with that. Can you be more specific?'
-                  };
-                  logger.info('✅ Generated AI response');
-                } catch (aiError) {
-                  logger.error('❌ AI response failed:', aiError);
-                  fallbackResponse = {
-                    role: 'assistant',
-                    content: 'I\'m not sure how to help with that. Can you be more specific about what you\'re looking for?'
-                  };
-                }
-              }
-            }
-          }
-          
-        } catch (functionError) {
-          logger.error('🚨 Function execution failed in fallback:', functionError);
-          fallbackResponse = {
-            role: 'assistant',
-            content: 'Service temporarily unavailable. Please try again.'
-          };
-        }
+        // Direct AI response without any automatic function calling
+        const finalMessage = responseMessage;
         
         const duration = Date.now() - startTime;
-        logger.info(`🏁 === FALLBACK COMPLETE (${duration}ms) ===`);
+        logger.info(`🏁 === CHAT FLOW COMPLETE (${duration}ms) ===`);
         
+        // Prepare debug information
         const debugInfo = {
-          functionCalls,
+          functionCalls: [],
           processingTime: duration,
           model: agentConfig.model,
           temperature: agentConfig.temperature,
-          fallbackUsed: true,
-          aiError: aiError instanceof Error ? aiError.message : 'Unknown AI error'
+          note: 'Direct AI response - no function calls'
         };
         
         return res.json({ 
-          message: fallbackResponse,
+          message: finalMessage,
           debug: debugInfo
+        });
+        
+      } catch (aiError) {
+        logger.error('🚨 AI service failed:', aiError);
+        
+        // Simple error response without any automatic fallback
+        const errorResponse = {
+          role: 'assistant',
+          content: 'I apologize, but I\'m having trouble processing your request right now. Please try again.'
+        };
+        
+        const duration = Date.now() - startTime;
+        
+        return res.json({ 
+          message: errorResponse,
+          debug: {
+            functionCalls: [],
+            processingTime: duration,
+            error: 'AI service failed',
+            note: 'Error response - no automatic fallback'
+          }
         });
       }
 

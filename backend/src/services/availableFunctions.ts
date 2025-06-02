@@ -17,9 +17,9 @@ export const availableFunctions = {
    */
   getProducts: async (filters: ProductFilters) => {
     try {
-      const { category, search, countOnly, isActive } = filters;
+      const { category, search, countOnly, isActive, minPrice, maxPrice } = filters;
       
-      logger.info(`getProducts called with filters:`, { category, search, countOnly, isActive });
+      logger.info(`getProducts called with filters:`, { category, search, countOnly, isActive, minPrice, maxPrice });
       
       // Base query conditions
       const where: any = {
@@ -127,6 +127,27 @@ export const availableFunctions = {
         products = uniqueProducts;
       }
 
+      // 🔧 Apply price filters AFTER getting products
+      if (minPrice !== undefined || maxPrice !== undefined) {
+        products = products.filter(product => {
+          const price = Number(product.price);
+          
+          // Check minPrice
+          if (minPrice !== undefined && price < minPrice) {
+            return false;
+          }
+          
+          // Check maxPrice
+          if (maxPrice !== undefined && price > maxPrice) {
+            return false;
+          }
+          
+          return true;
+        });
+        
+        logger.info(`After price filtering (min: ${minPrice}, max: ${maxPrice}): ${products.length} products`);
+      }
+
       // If countOnly is true, just return counts and categories
       if (countOnly) {
         const total = products.length;
@@ -155,6 +176,7 @@ export const availableFunctions = {
         logger.info(`First product found:`, { 
           name: products[0].name,
           category: products[0].category,
+          price: products[0].price,
           tags: JSON.parse(products[0].tagsJson || '[]')
         });
       }
@@ -293,77 +315,39 @@ export const availableFunctions = {
     try {
       const { search, isActive } = filters;
 
+      // Always use embedding search if search term is provided
       if (search) {
         try {
-          // Use embedding search if search term is provided
+          logger.info(`Using embedding search for FAQs with query: ${search}`);
+          // Use embedding search - we have embeddings in the database
           const faqs = await embeddingService.searchFAQs(search);
 
-          // Check if embedding search found relevant results
-          if (faqs && faqs.length > 0) {
-            logger.info(`Embedding search found ${faqs.length} FAQs for query: ${search}`);
-            return {
-              total: faqs.length,
-              faqs: faqs.map(faq => ({
-                id: faq.id,
-                question: faq.question,
-                answer: faq.answer
-              }))
-            };
-          } else {
-            logger.info('Embedding search returned no results, falling back to text search');
-          }
+          logger.info(`Embedding search found ${faqs.length} FAQs for query: ${search}`);
+          
+          return {
+            total: faqs.length,
+            faqs: faqs.map(faq => ({
+              id: faq.id,
+              question: faq.question,
+              answer: faq.answer
+            }))
+          };
         } catch (embeddingError) {
-          // Log error and fall back to regular search
-          logger.error('Embedding search failed, falling back to text search:', embeddingError);
+          logger.error('Embedding search failed completely:', embeddingError);
+          // Return empty results instead of falling back to text search
+          // This forces the system to use the cascade logic properly
+          return {
+            total: 0,
+            faqs: [],
+            error: 'FAQ search temporarily unavailable'
+          };
         }
       }
 
-      // Fall back to text search if embedding search failed or returned no results
+      // If no search term, return all active FAQs
       const where: any = {
-        isActive: isActive !== undefined ? isActive : true  // Default to true, but allow override
+        isActive: isActive !== undefined ? isActive : true
       };
-      
-      // Add text search if search term is provided
-      if (search) {
-        // Convert search to lowercase for case-insensitive matching
-        const lowerSearch = search.toLowerCase();
-        
-        // Split search into words for more flexible matching
-        const searchWords = lowerSearch.split(/\s+/).filter(word => word.length > 1);
-        
-        // Create search conditions for both exact phrase and individual words
-        const searchConditions = [];
-        
-        // Use raw SQL for case-insensitive search
-        where.OR = [
-          {
-            question: {
-              contains: lowerSearch
-            }
-          },
-          {
-            answer: {
-              contains: lowerSearch
-            }
-          }
-        ];
-        
-        // Add individual word searches
-        searchWords.forEach(word => {
-          where.OR.push(
-            {
-              question: {
-                contains: word
-              }
-            },
-            {
-              answer: {
-                contains: word
-              }
-            }
-          );
-        });
-      }
 
       const faqs = await prisma.fAQ.findMany({
         where,

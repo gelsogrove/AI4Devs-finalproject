@@ -25,6 +25,14 @@ jest.mock('@prisma/client', () => {
   };
 });
 
+// Mock embeddingService
+jest.mock('../../src/services/embedding.service', () => ({
+  searchFAQs: jest.fn(),
+  generateEmbeddingsForFAQ: jest.fn(),
+}));
+
+import embeddingService from '../../src/services/embedding.service';
+
 describe('FAQ Service', () => {
   let prisma: PrismaClient;
   
@@ -107,15 +115,15 @@ describe('FAQ Service', () => {
         search: 'test',
       };
       
-      (prisma.fAQ.findMany as jest.Mock).mockResolvedValue([mockFAQ]);
-      (prisma.fAQ.count as jest.Mock).mockResolvedValue(1);
+      const mockSearchResults = [mockFAQ];
+      (embeddingService.searchFAQs as jest.Mock).mockResolvedValue(mockSearchResults);
+
+      const result = await faqService.getFAQs(filters);
       
-      await faqService.getFAQs(filters);
-      
-      // This test is failing because the implementation has changed
-      // The service now uses embeddingService for search
-      // We're just checking that findMany was called
-      expect(prisma.fAQ.findMany).toHaveBeenCalled();
+      // Now the service uses embeddingService for search
+      expect(embeddingService.searchFAQs).toHaveBeenCalledWith('test');
+      expect(result.data).toEqual(mockSearchResults);
+      expect(result.pagination.total).toBe(1);
     });
   });
   

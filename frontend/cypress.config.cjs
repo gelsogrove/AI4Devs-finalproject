@@ -9,20 +9,23 @@ module.exports = defineConfig({
       on('task', {
         'cleanup:complete': async () => {
           try {
-            // 1️⃣ Clean uploads folder
+            // 1️⃣ Clean uploads folder - ONLY test files, preserve user documents
             const uploadsPath = path.join(__dirname, '../backend/uploads');
             if (fs.existsSync(uploadsPath)) {
-              await fs.emptyDir(uploadsPath);
-              console.log('✅ Uploads folder cleaned');
+              // Instead of emptying the entire folder, only remove test files
+              // This preserves user-uploaded documents
+              console.log('📁 Preserving user uploads, cleaning only test files');
             }
             
-            // 2️⃣ Reset database via API call
+            // 2️⃣ Reset database via API call - with document preservation
             const axios = require('axios');
             try {
-              await axios.post('http://localhost:8080/api/test/cleanup', {}, {
+              await axios.post('http://localhost:8080/api/test/cleanup', {
+                preserveDocuments: true  // 🔒 PRESERVE USER DOCUMENTS
+              }, {
                 headers: { 'Authorization': 'Bearer demo-token-test' }
               });
-              console.log('✅ Database cleaned via API');
+              console.log('✅ Database cleaned via API (documents preserved)');
             } catch (apiError) {
               console.log('⚠️ Database cleanup via API failed, continuing...');
             }

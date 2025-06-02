@@ -145,8 +145,8 @@ Benvenuti alla famiglia Gusto Italiano! (Welcome to the Gusto Italiano family!) 
         });
       }
 
-      // Check if OPENAI_API_KEY is valid and not the placeholder value
-      const apiKey = process.env.OPENAI_API_KEY;
+      // Check if  APIKEY is valid and not the placeholder value
+      const apiKey = process.env.OPENROUTER_API_KEY;
       const isApiKeyMissing = !apiKey || apiKey === "YOUR_API_KEY_HERE";
       
       if (isApiKeyMissing) {

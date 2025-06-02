@@ -38,7 +38,7 @@ export class LangChainService {
       temperature: config.temperature,
       maxTokens: config.maxTokens,
       topP: config.topP,
-      openAIApiKey: process.env.OPENAI_API_KEY,
+      openAIApiKey: process.env.OPENROUTER_API_KEY,
       configuration: {
         baseURL: 'https://openrouter.ai/api/v1',
         defaultHeaders: {

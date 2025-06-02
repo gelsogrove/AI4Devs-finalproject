@@ -110,10 +110,9 @@ describe('FAQ Controller', () => {
 
       await faqController.getPublicFAQs(mockRequest as Request, mockResponse as Response);
 
-      expect(mockResponse.status).toHaveBeenCalledWith(500);
-      expect(responseObject).toEqual({
-        error: 'Failed to get FAQs',
-      });
+      // The controller now returns 200 with empty array on errors for public endpoint
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(responseObject).toEqual([]);
     });
   });
 

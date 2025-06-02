@@ -432,8 +432,7 @@ npm run test:chatbot -- --testNamePattern="product queries"
 npm run test:chatbot -- --testNamePattern="document search"
 npm run test:chatbot -- --testNamePattern="FAQ responses"
 
-# Test con AI reale (richiede API keys)
-OPENAI_API_KEY=sk-... npm run test:chatbot
+ 
 ```
 
 ### Test Utilities e Setup
@@ -652,8 +651,7 @@ curl -X POST http://localhost:3000/api/products \
 # Test AI locale
 npm run test:chatbot -- --testNamePattern="AI service"
 
-# Test con API reale
-OPENAI_API_KEY=sk-... npm run test:chatbot
+ 
 
 # Debug AI responses
 NODE_ENV=development npm run dev  # Log AI dettagliati
