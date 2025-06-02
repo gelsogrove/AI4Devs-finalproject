@@ -93,13 +93,54 @@ jobs:
           echo "Running unit tests..."
           npm run test:unit
           
+      - name: Debug database state before integration tests
+        working-directory: ./backend
+        run: |
+          echo "=== DATABASE DEBUG INFO ==="
+          echo "Database URL: $DATABASE_URL"
+          echo "Node Environment: $NODE_ENV"
+          echo "Checking database connection..."
+          timeout 10s bash -c 'until docker compose exec -T db pg_isready -U shopmefy; do sleep 1; done' || echo "Database not ready"
+          
+          echo "=== DATABASE CONTENT CHECK ==="
+          docker compose exec -T db psql -U shopmefy -d shopmefy -c "SELECT COUNT(*) as product_count FROM \"Product\";" || echo "Failed to query products"
+          docker compose exec -T db psql -U shopmefy -d shopmefy -c "SELECT COUNT(*) as user_count FROM \"User\";" || echo "Failed to query users"
+          
+          echo "=== PRISMA CLIENT CHECK ==="
+          npx prisma db push --accept-data-loss --force-reset || echo "Prisma push failed"
+          npx prisma db seed || echo "Prisma seed failed"
+          
+          echo "=== POST-SEED DATABASE CHECK ==="
+          docker compose exec -T db psql -U shopmefy -d shopmefy -c "SELECT COUNT(*) as product_count FROM \"Product\";" || echo "Failed to query products after seed"
+
+      - name: Test single integration test first
+        working-directory: ./backend
+        run: |
+          echo "=== TESTING SINGLE INTEGRATION TEST ==="
+          echo "Running auth integration test only..."
+          npm run test:integration -- __tests__/integration/auth.integration.spec.ts --verbose || {
+            echo "Single test failed, checking error details..."
+            exit 1
+          }
+
       - name: Run backend integration tests (with debug)
         working-directory: ./backend
         run: |
           echo "Running integration tests with debug output..."
-          echo "Database URL: $DATABASE_URL"
-          echo "Node Environment: $NODE_ENV"
-          npm run test:integration -- --verbose --detectOpenHandles --forceExit
+          echo "Current working directory: $(pwd)"
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+          
+          # Run tests with maximum verbosity and error details
+          npm run test:integration -- --verbose --detectOpenHandles --forceExit --runInBand --no-cache || {
+            echo "=== INTEGRATION TESTS FAILED ==="
+            echo "Exit code: $?"
+            echo "Checking for any remaining processes..."
+            ps aux | grep node || true
+            echo "Checking database connection after failure..."
+            docker compose exec -T db pg_isready -U shopmefy || true
+            exit 1
+          }
 
       - name: Start backend for E2E tests
         working-directory: ./backend
