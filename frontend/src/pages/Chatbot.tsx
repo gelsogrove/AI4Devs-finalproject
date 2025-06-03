@@ -167,9 +167,9 @@ const Chatbot: React.FC = () => {
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Header Section */}
-      <div className="bg-gradient-to-r from-shopme-50 to-green-50 rounded-xl p-6 border border-shopme-100 animate-slide-up">
+      <div className="bg-gradient-to-r from-shopmefy-50 to-green-50 rounded-xl p-6 border border-shopmefy-100 animate-slide-up">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-shopme-500 to-shopme-600 rounded-lg flex items-center justify-center shadow-lg">
+          <div className="w-10 h-10 bg-gradient-to-br from-shopmefy-500 to-shopmefy-600 rounded-lg flex items-center justify-center shadow-lg">
             <MessageCircle className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -189,7 +189,7 @@ const Chatbot: React.FC = () => {
                 <div className="flex items-center justify-between">
                   {/* Left side - Bot icon and company name */}
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-shopme-500 to-shopme-600 flex items-center justify-center text-white font-medium shadow-md">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-shopmefy-500 to-shopmefy-600 flex items-center justify-center text-white font-medium shadow-md">
                       <Bot className="w-5 h-5" />
                     </div>
                     <div>
@@ -231,7 +231,7 @@ const Chatbot: React.FC = () => {
                     >
                       <Bug className="w-4 h-4" />
                     </button>
-                    <Sparkles className="w-5 h-5 text-shopme-500" />
+                    <Sparkles className="w-5 h-5 text-shopmefy-500" />
                   </div>
                 </div>
               </div>
@@ -401,11 +401,11 @@ const Chatbot: React.FC = () => {
                   <div className="flex justify-start animate-slide-up">
                     <div className="chat-bubble-bot shadow-sm">
                       <div className="flex space-x-2 items-center">
-                        <Bot className="w-4 h-4 text-shopme-600" />
+                        <Bot className="w-4 h-4 text-shopmefy-600" />
                         <div className="flex space-x-1">
-                          <div className="w-2 h-2 rounded-full bg-shopme-500 animate-bounce" />
-                          <div className="w-2 h-2 rounded-full bg-shopme-500 animate-bounce [animation-delay:0.2s]" />
-                          <div className="w-2 h-2 rounded-full bg-shopme-500 animate-bounce [animation-delay:0.4s]" />
+                          <div className="w-2 h-2 rounded-full bg-shopmefy-500 animate-bounce" />
+                          <div className="w-2 h-2 rounded-full bg-shopmefy-500 animate-bounce [animation-delay:0.2s]" />
+                          <div className="w-2 h-2 rounded-full bg-shopmefy-500 animate-bounce [animation-delay:0.4s]" />
                         </div>
                         <span className="text-sm text-gray-500">Sofia is typing...</span>
                       </div>
@@ -423,12 +423,12 @@ const Chatbot: React.FC = () => {
                     onChange={(e) => setInputMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder="Ask me about our Italian products..."
-                    className="flex-1 border-gray-200 focus:border-shopme-500 focus:ring-shopme-500 transition-colors"
+                    className="flex-1 border-gray-200 focus:border-shopmefy-500 focus:ring-shopmefy-500 transition-colors"
                     disabled={isLoading}
                   />
                   <Button 
                     onClick={sendMessage} 
-                    className="bg-gradient-to-r from-shopme-500 to-shopme-600 hover:from-shopme-600 hover:to-shopme-700 text-white shadow-md hover:shadow-lg transition-all duration-200 px-4"
+                    className="bg-gradient-to-r from-shopmefy-500 to-shopmefy-600 hover:from-shopmefy-600 hover:to-shopmefy-700 text-white shadow-md hover:shadow-lg transition-all duration-200 px-4"
                     disabled={!inputMessage.trim() || isLoading}
                   >
                     <Send size={18} />
@@ -445,8 +445,8 @@ const Chatbot: React.FC = () => {
           <Card className="border-0 shadow-md hover:shadow-xl transition-all duration-300">
             <CardHeader className="pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-shopme-100 to-shopme-200 rounded-lg flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-shopme-600" />
+                <div className="w-8 h-8 bg-gradient-to-br from-shopmefy-100 to-shopmefy-200 rounded-lg flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-shopmefy-600" />
                 </div>
                 <div>
                   <CardTitle className="text-lg font-semibold text-gray-900">About Sofia</CardTitle>
@@ -464,8 +464,8 @@ const Chatbot: React.FC = () => {
                 <p>
                   She can search our product catalog, answer questions about services, and provide detailed information about the trasnportation law.
                 </p>
-                <div className="mt-4 p-3 bg-shopme-50 rounded-lg border border-shopme-100">
-                  <p className="text-xs text-shopme-700 font-medium">
+                <div className="mt-4 p-3 bg-shopmefy-50 rounded-lg border border-shopmefy-100">
+                  <p className="text-xs text-shopmefy-700 font-medium">
                     ✨ Features: Real-time product search, FAQ assistance, and personalized recommendations
                   </p>
                 </div>

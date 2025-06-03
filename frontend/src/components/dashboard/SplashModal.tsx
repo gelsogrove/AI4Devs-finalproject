@@ -13,7 +13,7 @@ const SplashModal: React.FC<SplashModalProps> = ({ isOpen, onClose }) => {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-7xl max-h-[95vh] overflow-hidden">
         <DialogHeader className="pb-4">
-          <DialogTitle className="text-shopme-600 text-3xl font-bold text-center">
+          <DialogTitle className="text-shopmefy-600 text-3xl font-bold text-center">
             Welcome to ShopMefy MVP!
           </DialogTitle>
           <DialogDescription className="text-center text-lg text-gray-600">
@@ -24,7 +24,7 @@ const SplashModal: React.FC<SplashModalProps> = ({ isOpen, onClose }) => {
         <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
           {/* Left Column - Main Content (70%) */}
           <div className="lg:col-span-7 space-y-6">
-            <div className="bg-gradient-to-r from-green-50 to-shopme-50 p-6 rounded-xl border border-green-200">
+            <div className="bg-gradient-to-r from-green-50 to-shopmefy-50 p-6 rounded-xl border border-green-200">
               <h3 className="text-xl font-bold text-gray-900 mb-3 flex items-center gap-2">
                 <span className="text-2xl">🇮🇹</span>
                 About ShopMefy
@@ -76,7 +76,7 @@ const SplashModal: React.FC<SplashModalProps> = ({ isOpen, onClose }) => {
             <div className="pt-4 border-t border-gray-200 flex justify-center">
               <Button 
                 onClick={onClose} 
-                className="bg-gradient-to-r from-green-500 to-shopme-600 hover:from-green-600 hover:to-shopme-700 text-white font-semibold py-3 px-8 text-lg rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                className="bg-gradient-to-r from-green-500 to-shopmefy-600 hover:from-green-600 hover:to-shopmefy-700 text-white font-semibold py-3 px-8 text-lg rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
               >
                 🚀 Get Started - Explore the Platform
               </Button>

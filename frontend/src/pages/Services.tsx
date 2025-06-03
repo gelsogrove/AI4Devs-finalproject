@@ -215,7 +215,7 @@ export default function Services() {
         <div className="bg-white border-0 shadow-md hover:shadow-xl transition-all duration-300 rounded-xl overflow-hidden">
           {loading ? (
             <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-shopme-600"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-shopmefy-600"></div>
             </div>
           ) : services.length === 0 ? (
             <div className="p-12 text-center">

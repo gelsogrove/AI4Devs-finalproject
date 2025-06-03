@@ -418,7 +418,7 @@ export default function Documents() {
           </div>
         </div>
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-shopme-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-shopmefy-600"></div>
         </div>
       </div>
     );
@@ -484,7 +484,7 @@ export default function Documents() {
                 placeholder="Search documents by title or content..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-20 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-shopme-500 focus:border-shopme-500 transition-colors"
+                className="w-full pl-12 pr-20 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-shopmefy-500 focus:border-shopmefy-500 transition-colors"
               />
               <Search className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
             </div>
@@ -504,7 +504,7 @@ export default function Documents() {
         <div className="bg-white border-0 shadow-md hover:shadow-xl transition-all duration-300 rounded-xl overflow-hidden">
           {loading ? (
             <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-shopme-600"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-shopmefy-600"></div>
             </div>
           ) : error ? (
             <div className="p-12 text-center">
@@ -522,7 +522,7 @@ export default function Documents() {
                   setError(null);
                   loadDocuments(1);
                 }}
-                className="bg-shopme-500 hover:bg-shopme-600 text-white"
+                className="bg-shopmefy-500 hover:bg-shopmefy-600 text-white"
               >
                 Try Again
               </Button>
@@ -536,7 +536,7 @@ export default function Documents() {
               </p>
               <Button
                 onClick={() => setShowUploadModal(true)}
-                className="bg-shopme-500 hover:bg-shopme-600 text-white"
+                className="bg-shopmefy-500 hover:bg-shopmefy-600 text-white"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Upload Document

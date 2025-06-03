@@ -210,7 +210,7 @@ export default function Products() {
         <div className="bg-white border-0 shadow-md hover:shadow-xl transition-all duration-300 rounded-xl overflow-hidden">
           {loading ? (
             <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-shopme-600"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-shopmefy-600"></div>
             </div>
           ) : error ? (
             <div className="p-12 text-center">
@@ -233,7 +233,7 @@ export default function Products() {
                     setError("Failed to load products. Please try again later.");
                   });
                 }}
-                className="bg-shopme-500 hover:bg-shopme-600 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                className="bg-shopmefy-500 hover:bg-shopmefy-600 text-white px-6 py-3 rounded-lg font-medium transition-colors"
               >
                 Try Again
               </button>
@@ -247,7 +247,7 @@ export default function Products() {
               </p>
               <button
                 onClick={handleCreateProduct}
-                className="bg-shopme-500 hover:bg-shopme-600 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 mx-auto transition-colors"
+                className="bg-shopmefy-500 hover:bg-shopmefy-600 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 mx-auto transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 Add Product

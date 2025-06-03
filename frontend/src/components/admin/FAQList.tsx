@@ -187,7 +187,7 @@ export function FAQList() {
                   placeholder="Search FAQs..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-20 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-shopme-500 focus:border-shopme-500 transition-colors"
+                  className="w-full pl-12 pr-20 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-shopmefy-500 focus:border-shopmefy-500 transition-colors"
                 />
                 <Search className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
               </div>
@@ -208,14 +208,14 @@ export function FAQList() {
         <div className="bg-white border-0 shadow-md hover:shadow-xl transition-all duration-300 rounded-xl overflow-hidden">
           {loading ? (
             <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-shopme-600"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-shopmefy-600"></div>
             </div>
           ) : faqs.length === 0 ? (
             <div className="p-12 text-center">
               <HelpCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No FAQs found</h3>
               <p className="text-gray-500 mb-6">Get started by creating your first FAQ</p>
-              <Button onClick={handleCreateFaq} className="bg-shopme-500 hover:bg-shopme-600">
+              <Button onClick={handleCreateFaq} className="bg-shopmefy-500 hover:bg-shopmefy-600">
                 <Plus className="w-4 h-4 mr-2" />
                 Add FAQ
               </Button>

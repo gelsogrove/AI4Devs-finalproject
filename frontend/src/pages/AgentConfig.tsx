@@ -307,9 +307,9 @@ const AgentConfigPage: React.FC = () => {
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Header Section */}
-      <div className="bg-gradient-to-r from-shopme-50 to-green-50 rounded-xl p-6 border border-shopme-100 animate-slide-up">
+      <div className="bg-gradient-to-r from-shopmefy-50 to-green-50 rounded-xl p-6 border border-shopmefy-100 animate-slide-up">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-shopme-500 to-shopme-600 rounded-lg flex items-center justify-center shadow-lg">
+          <div className="w-10 h-10 bg-gradient-to-br from-shopmefy-500 to-shopmefy-600 rounded-lg flex items-center justify-center shadow-lg">
             <Settings className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -346,7 +346,7 @@ const AgentConfigPage: React.FC = () => {
                   name="prompt"
                   value={config.prompt || ''}
                   onChange={handlePromptChange}
-                  className="min-h-[600px] font-mono text-sm w-full border-gray-200 focus:border-shopme-500 focus:ring-shopme-500 transition-colors"
+                  className="min-h-[600px] font-mono text-sm w-full border-gray-200 focus:border-shopmefy-500 focus:ring-shopmefy-500 transition-colors"
                   placeholder="Enter system prompt..."
                   required
                 />
@@ -379,7 +379,7 @@ const AgentConfigPage: React.FC = () => {
                     value={config.model} 
                     onValueChange={handleModelChange}
                   >
-                    <SelectTrigger className="border-gray-200 focus:border-shopme-500 focus:ring-shopme-500">
+                    <SelectTrigger className="border-gray-200 focus:border-shopmefy-500 focus:ring-shopmefy-500">
                       <SelectValue placeholder="Select a model" />
                     </SelectTrigger>
                     <SelectContent>
@@ -396,7 +396,7 @@ const AgentConfigPage: React.FC = () => {
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <Label htmlFor="temperature" className="text-sm font-medium text-gray-700">
-                      Temperature: <span className="font-bold text-shopme-600">{config.temperature.toFixed(1)}</span>
+                      Temperature: <span className="font-bold text-shopmefy-600">{config.temperature.toFixed(1)}</span>
                     </Label>
                     <Popover>
                       <PopoverTrigger asChild>
@@ -438,7 +438,7 @@ const AgentConfigPage: React.FC = () => {
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <Label htmlFor="top-p" className="text-sm font-medium text-gray-700">
-                      Top P: <span className="font-bold text-shopme-600">{config.topP.toFixed(1)}</span>
+                      Top P: <span className="font-bold text-shopmefy-600">{config.topP.toFixed(1)}</span>
                     </Label>
                     <Popover>
                       <PopoverTrigger asChild>
@@ -502,7 +502,7 @@ const AgentConfigPage: React.FC = () => {
                     max={4000}
                     value={config.maxTokens}
                     onChange={handleMaxTokensChange}
-                    className="border-gray-200 focus:border-shopme-500 focus:ring-shopme-500"
+                    className="border-gray-200 focus:border-shopmefy-500 focus:ring-shopmefy-500"
                   />
                   <p className="text-xs text-gray-500 leading-relaxed">
                     Maximum number of tokens to generate in a response.
@@ -512,7 +512,7 @@ const AgentConfigPage: React.FC = () => {
                 {/* Save Button */}
                 <Button 
                   type="submit"
-                  className="w-full bg-gradient-to-r from-shopme-500 to-shopme-600 hover:from-shopme-600 hover:to-shopme-700 text-white font-medium py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 mt-6"
+                  className="w-full bg-gradient-to-r from-shopmefy-500 to-shopmefy-600 hover:from-shopmefy-600 hover:to-shopmefy-700 text-white font-medium py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 mt-6"
                   disabled={isSaving || isLoading}
                 >
                   <Save className="w-4 h-4 mr-2" />

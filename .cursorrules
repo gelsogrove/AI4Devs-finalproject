@@ -30,7 +30,7 @@
 - DO NOT write any **catch blocks** with generic messages; **always provide the full error stack**
 - **NEVER create fake functions** – everything must reflect the real database and logic
 - **NEVER change the layout or graphics** without my **explicit permission**
-- **Update** the `task-list.md` inside `/Users/gelso/workspace/AI/AI4Devs-finalproject/finalproject-AG/others/` whenever a new task is completed
+- **Update ONLY existing tasks** in the task list when completing work - **DO NOT add new tasks**
 
 ## 🚫 Critical Restrictions
 
@@ -49,25 +49,26 @@ The user's input is processed through a two-stage LLM workflow:
 
 ### Project Structure
 - Don't create `package.json` in root - use `backend` or `frontend` folders for installing packages
-- **DON'T CREATE any files IN ROOT** - use `temp` or use `/finalproject-AG` if needed
+- **DON'T CREATE any files IN ROOT** - use `temp` or use `/prompts` if needed
 
 ## 📋 Task Management
 
-- Always update `/Users/gelso/workspace/AI/AI4Devs-finalproject/finalproject-AG/others/task-list.md` when completing tasks present on the list
+- Always update **ONLY the existing tasks** in `prompts/04_task-list.md` when completing tasks that are already present on the list
+- **DO NOT add new tasks** to the task list - only mark existing ones as completed or update their status
 - Keep track of progress and document changes properly
-- get always the all context from @backend @frontend and @final
-- get the context from the test unit, integration, integration for having a better understand 
+- Get always the full context from @backend @frontend and @final
+- Get the context from the test unit, integration, integration for having a better understanding 
 - Keep swagger configuration always updated
 
 ## 📚 Documentation References
 
 All project documentation is located under:
-- **Task List**: `/Users/gelso/workspace/AI/AI4Devs-finalproject/finalproject-AG/others/task-list.md`
-- **PRD Document**: `/Users/gelso/workspace/AI/AI4Devs-finalproject/finalproject-AG/others/PRD.md`
-- **LangChain Documentation**: `/Users/gelso/workspace/AI/AI4Devs-finalproject/finalproject-AG/others/langchain.md`
-- **MetaPrompt**: `/Users/gelso/workspace/AI/AI4Devs-finalproject/finalproject-AG/others/metaprompt.md`
-- **OWASP Security**: `/Users/gelso/workspace/AI/AI4Devs-finalproject/finalproject-AG/others/owasp.md`
-- **Agent Prompt**: `/Users/gelso/workspace/AI/AI4Devs-finalproject/finalproject-AG/others/prompt_agent.md`
+- **Task List**: `prompts/04_task-list.md`
+- **PRD Document**: `prompts/docs/PRD.md`
+- **LangChain Documentation**: `prompts/docs/langchain.md`
+- **MetaPrompt**: `prompts/docs/metaprompt.md`
+- **OWASP Security**: `prompts/docs/owasp.md`
+- **Agent Prompt**: `prompts/docs/prompt_agent.md`
 - IF YOU WANT TO SEE WHAT WE HAVE IN THE DB USE FOR EXAMPLES:
-cd /Users/gelso/workspace/AI/AI4Devs-finalproject && docker exec -it shopme-db psql -U shopme -d shopme -c "SELECT COUNT(*) FROM document_chunks;"
-- do not invent npm run commnad !! 
+docker exec -it shopmefy-db psql -U shopmefy -d shopmefy -c "SELECT COUNT(*) FROM document_chunks;"
+- **DO NOT invent npm run commands!** 

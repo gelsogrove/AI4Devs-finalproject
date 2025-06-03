@@ -141,7 +141,7 @@ const ProfilePage: React.FC = () => {
                   <input
                     type="text"
                     {...register('companyName')}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-shopme-500 focus:border-shopme-500 transition-colors"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-shopmefy-500 focus:border-shopmefy-500 transition-colors"
                   />
                   {errors.companyName && (
                     <p className="text-sm text-red-600 flex items-center gap-1">
@@ -160,7 +160,7 @@ const ProfilePage: React.FC = () => {
                   <input
                     type="url"
                     {...register('logoUrl')}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-shopme-500 focus:border-shopme-500 transition-colors"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-shopmefy-500 focus:border-shopmefy-500 transition-colors"
                     placeholder="https://example.com/logo.png"
                   />
                   {errors.logoUrl && (
@@ -180,7 +180,7 @@ const ProfilePage: React.FC = () => {
                   <textarea
                     {...register('description')}
                     rows={4}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-shopme-500 focus:border-shopme-500 transition-colors resize-none"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-shopmefy-500 focus:border-shopmefy-500 transition-colors resize-none"
                     placeholder="Describe your company..."
                   />
                   {errors.description && (
@@ -200,7 +200,7 @@ const ProfilePage: React.FC = () => {
                   <input
                     type="tel"
                     {...register('phoneNumber')}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-shopme-500 focus:border-shopme-500 transition-colors"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-shopmefy-500 focus:border-shopmefy-500 transition-colors"
                     placeholder="+1 (555) 123-4567"
                   />
                   {errors.phoneNumber && (
@@ -223,7 +223,7 @@ const ProfilePage: React.FC = () => {
                   <input
                     type="url"
                     {...register('website')}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-shopme-500 focus:border-shopme-500 transition-colors"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-shopmefy-500 focus:border-shopmefy-500 transition-colors"
                     placeholder="https://example.com"
                   />
                   {errors.website && (
@@ -243,7 +243,7 @@ const ProfilePage: React.FC = () => {
                   <input
                     type="email"
                     {...register('email')}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-shopme-500 focus:border-shopme-500 transition-colors"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-shopmefy-500 focus:border-shopmefy-500 transition-colors"
                     placeholder="contact@company.com"
                   />
                   {errors.email && (
@@ -263,7 +263,7 @@ const ProfilePage: React.FC = () => {
                   <input
                     type="text"
                     {...register('openingTime')}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-shopme-500 focus:border-shopme-500 transition-colors"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-shopmefy-500 focus:border-shopmefy-500 transition-colors"
                     placeholder="Mon-Fri 9:00-18:00"
                   />
                   {errors.openingTime && (
@@ -283,7 +283,7 @@ const ProfilePage: React.FC = () => {
                   <textarea
                     {...register('address')}
                     rows={3}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-shopme-500 focus:border-shopme-500 transition-colors resize-none"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-shopmefy-500 focus:border-shopmefy-500 transition-colors resize-none"
                     placeholder="123 Main St, City, State, ZIP"
                   />
                   {errors.address && (
@@ -303,7 +303,7 @@ const ProfilePage: React.FC = () => {
                   <input
                     type="text"
                     {...register('sector')}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-shopme-500 focus:border-shopme-500 transition-colors"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-shopmefy-500 focus:border-shopmefy-500 transition-colors"
                     placeholder="e.g., Technology, Retail, Healthcare"
                   />
                   {errors.sector && (

@@ -207,203 +207,137 @@ All these parameters are configurable directly through the application interface
 
 ```mermaid
 erDiagram
-    Workspace {
-        string id PK
-        string name
-        string slug
-        string whatsappPhoneNumber
-        string language
-        boolean isActive
-        string currency
-        string description
-        json welcomeMessages
-        json afterRegistrationMessages
-        DateTime createdAt
-        DateTime updatedAt
-    }
-    
     User {
         string id PK
         string email
-        string passwordHash
+        string password
         string firstName
         string lastName
-        UserRole role
-        UserStatus status
-        DateTime createdAt
-        DateTime updatedAt
-    }
-    
-    UserWorkspace {
-        string id PK
-        string userId FK
-        string workspaceId FK
-        UserRole role
-        DateTime createdAt
-        DateTime updatedAt
-    }
-    
-    Categories {
-        string id PK
-        string name
-        string description
-        string workspaceId FK
-        string slug
         boolean isActive
+        DateTime lastLogin
         DateTime createdAt
         DateTime updatedAt
     }
     
-    Products {
+    Profile {
         string id PK
-        string name
+        string username
+        string companyName
+        string logoUrl
         string description
-        float price
-        int stock
-        string sku
-        string workspaceId FK
-        string categoryId FK
-        string supplierId FK
-        string slug
-        ProductStatus status
-        string image
-        DateTime createdAt
-        DateTime updatedAt
-    }
-    
-    Customers {
-        string id PK
-        string name
+        string phoneNumber
+        string website
         string email
-        string phone
+        string openingTime
         string address
-        string language
-        string currency
-        boolean isActive
-        boolean activeChatbot
-        string workspaceId FK
+        string sector
         DateTime createdAt
         DateTime updatedAt
     }
     
-    Orders {
-        string id PK
-        string status
-        float total
-        string customerId FK
-        string workspaceId FK
-        DateTime createdAt
-        DateTime updatedAt
-    }
-    
-    Prompts {
+    Product {
         string id PK
         string name
+        string description
+        decimal price
+        string category
+        boolean isActive
+        DateTime createdAt
+        DateTime updatedAt
+        string tagsJson
+    }
+    
+    FAQ {
+        string id PK
+        string question
+        string answer
+        boolean isActive
+        DateTime createdAt
+        DateTime updatedAt
+    }
+    
+    FAQChunk {
+        string id PK
         string content
-        string workspaceId FK
-        boolean isRouter
-        string department
+        string faqId FK
+        DateTime createdAt
+        DateTime updatedAt
+        string embedding
+    }
+    
+    Service {
+        string id PK
+        string name
+        string description
+        decimal price
+        boolean isActive
+        DateTime createdAt
+        DateTime updatedAt
+        string embedding
+    }
+    
+    Document {
+        string id PK
+        string filename
+        string originalName
+        string title
+        string mimeType
+        int size
+        string uploadPath
+        string status
+        boolean isActive
+        string userId
+        string metadata
+        DateTime createdAt
+        DateTime updatedAt
+        string path
+    }
+    
+    DocumentChunk {
+        string id PK
+        string content
+        int pageNumber
+        int chunkIndex
+        string documentId FK
+        string embedding
+        DateTime createdAt
+        DateTime updatedAt
+    }
+    
+    AgentConfig {
+        string id PK
         float temperature
-        float top_p
-        int top_k
+        int maxTokens
+        float topP
         string model
-        int max_tokens
-        boolean isActive
-        DateTime createdAt
-        DateTime updatedAt
-    }
-    
-    Offers {
-        string id PK
-        string name
-        string description
-        float discountPercent
-        datetime startDate
-        datetime endDate
-        string workspaceId FK
-        string categoryId FK
-        DateTime createdAt
-        DateTime updatedAt
-    }
-    
-    ChatSession {
-        string id PK
-        string status
-        json context
-        string workspaceId FK
-        string customerId FK
-        DateTime createdAt
-        DateTime updatedAt
-    }
-    
-    Message {
-        string id PK
-        MessageDirection direction
-        string content
-        MessageType type
-        boolean aiGenerated
-        string chatSessionId FK
-        string promptId FK
-        DateTime createdAt
-        DateTime updatedAt
-    }
-    
-    OrderItems {
-        string id PK
-        int quantity
-        float price
-        string orderId FK
-        string productId FK
-        DateTime createdAt
-        DateTime updatedAt
-    }
-    
-    Suppliers {
-        string id PK
-        string name
-        string email
-        string phone
-        string address
-        string workspaceId FK
-        DateTime createdAt
+        string prompt
         DateTime updatedAt
     }
 
-    Workspace ||--o{ UserWorkspace : "has"
-    Workspace ||--o{ Products : "has"
-    Workspace ||--o{ Categories : "has"
-    Workspace ||--o{ Customers : "has"
-    Workspace ||--o{ Orders : "has"
-    Workspace ||--o{ Prompts : "has"
-    Workspace ||--o{ Offers : "has"
-    Workspace ||--o{ ChatSession : "has"
-    Workspace ||--o{ Suppliers : "has"
-    
-    User ||--o{ UserWorkspace : "belongs to"
-    Categories ||--o{ Products : "contains"
-    Categories ||--o{ Offers : "has"
-    Customers ||--o{ Orders : "places"
-    Customers ||--o{ ChatSession : "has"
-    Products ||--o{ OrderItems : "included in"
-    Orders ||--o{ OrderItems : "contains"
-    ChatSession ||--o{ Message : "contains"
-    Prompts ||--o{ Message : "generates"
-    Suppliers ||--o{ Products : "provides"
+    FAQ ||--o{ FAQChunk : "has chunks"
+    Document ||--o{ DocumentChunk : "has chunks"
 ```
 
 ### **3.2. Description of main entities:**
 
-- **User**: Admin users who manage workspaces
-- **Workspace**: Business tenant with unique settings and configurations
-- **Categories**: Product organization structure for logical grouping
-- **Products**: Items available for sale with prices and inventory
-- **Suppliers**: Product suppliers with contact information and addresses
-- **Offers**: Time-limited discounts and promotions for products
-- **Customers**: End users who interact through WhatsApp messaging
-- **Orders**: Purchase records with payment status and customer information
-- **Agent Configuration**: AI agent settings with model parameters and behavior controls
-- **ChatSession**: Conversation contexts between customers and the system
-- **Message receive**: Webhook endpoint that receives incoming WhatsApp messages from WhatsApp Business API
+- **User**: Administrative users who manage the ShopMefy system with authentication credentials
+- **Profile**: Business profile information including company details, contact information, and branding
+- **Product**: Items available for sale with name, description, price, and category classification
+- **FAQ**: Frequently asked questions with answers for customer support knowledge base
+- **FAQChunk**: Text segments from FAQs processed for AI semantic search with embeddings
+- **Service**: Additional business offerings like wine tastings or cooking classes with pricing
+- **Document**: Uploaded business documents (PDFs) with metadata and processing status
+- **DocumentChunk**: Text segments extracted from documents for AI processing with embeddings
+- **AgentConfig**: AI assistant configuration including model parameters and behavior settings
+
+### **3.3. Key Features:**
+
+- **Single-Tenant Architecture**: Simplified design focused on individual business management
+- **AI-Powered Search**: Vector embeddings enable semantic search across FAQs, services, and documents
+- **Document Processing**: Automatic PDF text extraction and chunking for AI consumption
+- **Flexible Product Catalog**: String-based categories with JSON tags for product classification
+- **Configurable AI Assistant**: Customizable model parameters and prompts for business-specific behavior
+- **Content Management**: Complete CRUD operations for all business content types
 
 ---
 

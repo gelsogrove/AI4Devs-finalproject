@@ -30,29 +30,29 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-shopme-50 via-green-50 to-blue-50 px-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-shopmefy-50 via-green-50 to-blue-50 px-4 relative overflow-hidden">
       {/* Background decorations */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-shopme-200 to-green-200 rounded-full opacity-20 animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-blue-200 to-shopme-200 rounded-full opacity-20 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-shopmefy-200 to-green-200 rounded-full opacity-20 animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-blue-200 to-shopmefy-200 rounded-full opacity-20 animate-pulse" style={{ animationDelay: '1s' }}></div>
       </div>
       
       <div className="w-full max-w-md relative z-10 animate-fade-in">
         {/* Logo and Brand */}
         <div className="text-center mb-8 animate-slide-up">
           <div className="flex items-center justify-center mb-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-shopme-500 to-shopme-600 rounded-2xl flex items-center justify-center shadow-lg">
+            <div className="w-16 h-16 bg-gradient-to-br from-shopmefy-500 to-shopmefy-600 rounded-2xl flex items-center justify-center shadow-lg">
               <span className="text-white font-bold text-2xl">S</span>
             </div>
           </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-shopme-600 to-green-600 bg-clip-text text-transparent mb-2">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-shopmefy-600 to-green-600 bg-clip-text text-transparent mb-2">
             ShopMe
           </h1>
           <p className="text-gray-600 text-lg">Turn WhatsApp into your complete sales channel</p>
           <div className="flex items-center justify-center gap-2 mt-2">
-            <Sparkles className="w-4 h-4 text-shopme-500" />
-            <span className="text-sm text-shopme-600 font-medium">AI-Powered E-commerce</span>
-            <Sparkles className="w-4 h-4 text-shopme-500" />
+            <Sparkles className="w-4 h-4 text-shopmefy-500" />
+            <span className="text-sm text-shopmefy-600 font-medium">AI-Powered E-commerce</span>
+            <Sparkles className="w-4 h-4 text-shopmefy-500" />
           </div>
         </div>
         
@@ -83,7 +83,7 @@ const Login = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   data-cy="email-input"
-                  className="h-12 border-gray-200 focus:border-shopme-500 focus:ring-shopme-500 transition-colors"
+                  className="h-12 border-gray-200 focus:border-shopmefy-500 focus:ring-shopmefy-500 transition-colors"
                   required
                 />
               </div>
@@ -100,7 +100,7 @@ const Login = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   data-cy="password-input"
-                  className="h-12 border-gray-200 focus:border-shopme-500 focus:ring-shopme-500 transition-colors"
+                  className="h-12 border-gray-200 focus:border-shopmefy-500 focus:ring-shopmefy-500 transition-colors"
                   required
                 />
               </div>
@@ -109,12 +109,12 @@ const Login = () => {
             <CardFooter className="pt-6">
               <Button 
                 type="submit" 
-                className="w-full h-12 bg-gradient-to-r from-shopme-500 to-shopme-600 hover:from-shopme-600 hover:to-shopme-700 text-white font-medium shadow-md hover:shadow-lg transition-all duration-200"
+                className="w-full h-12 bg-gradient-to-r from-shopmefy-500 to-shopmefy-600 hover:from-shopmefy-600 hover:to-shopmefy-700 text-white font-medium shadow-md hover:shadow-lg transition-all duration-200"
                 disabled={isSubmitting}
                 data-cy="login-button"
               >
                 <LogIn className="w-4 h-4 mr-2" />
-                {isSubmitting ? 'Signing in...' : 'Sign in to ShopMe'}
+                {isSubmitting ? 'Signing in...' : 'Sign in to ShopMefy'}
               </Button>
             </CardFooter>
           </form>
@@ -122,13 +122,13 @@ const Login = () => {
         
         {/* Demo credentials info */}
         <div className="text-center mt-6 animate-slide-up" style={{ animationDelay: '0.2s' }}>
-          <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-shopme-100 shadow-sm">
+          <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-shopmefy-100 shadow-sm">
             <p className="text-sm text-gray-600 font-medium mb-2">🚀 Demo Credentials</p>
             <div className="space-y-1 text-xs text-gray-500">
               <p><strong>Email:</strong> test@example.com</p>
               <p><strong>Password:</strong> password123</p>
             </div>
-            <p className="text-xs text-shopme-600 mt-2">Ready to explore your Italian food store!</p>
+            <p className="text-xs text-shopmefy-600 mt-2">Ready to explore your Italian food store!</p>
           </div>
         </div>
       </div>

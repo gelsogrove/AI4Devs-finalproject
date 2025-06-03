@@ -69,10 +69,10 @@ const MainLayout: React.FC = () => {
     } else {
       // Default colors for other pages
       return {
-        bg: 'from-shopme-50 to-green-50',
-        text: 'text-shopme-700',
-        border: 'border-shopme-200',
-        iconBg: 'bg-shopme-100'
+        bg: 'from-shopmefy-50 to-green-50',
+        text: 'text-shopmefy-700',
+        border: 'border-shopmefy-200',
+        iconBg: 'bg-shopmefy-100'
       };
     }
   };
@@ -121,16 +121,16 @@ const MainLayout: React.FC = () => {
             <Button 
               variant="ghost" 
               size="icon" 
-              className="md:hidden mr-3 hover:bg-shopme-50" 
+              className="md:hidden mr-3 hover:bg-shopmefy-50" 
               onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
             >
               <Menu size={20} />
             </Button>
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-shopme-500 to-shopme-600 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-gradient-to-br from-shopmefy-500 to-shopmefy-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">S</span>
               </div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-shopme-600 to-green-600 bg-clip-text text-transparent">
+              <h1 className="text-xl font-bold bg-gradient-to-r from-shopmefy-600 to-green-600 bg-clip-text text-transparent">
                 ShopMefy
               </h1>
             </div>
@@ -140,7 +140,7 @@ const MainLayout: React.FC = () => {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 px-3 py-2 rounded-lg">
-                  <div className="w-8 h-8 bg-gradient-to-br from-shopme-500 to-shopme-600 rounded-full flex items-center justify-center">
+                  <div className="w-8 h-8 bg-gradient-to-br from-shopmefy-500 to-shopmefy-600 rounded-full flex items-center justify-center">
                     <User size={16} className="text-white" />
                   </div>
                   <span className="hidden md:inline-block font-medium">
@@ -154,8 +154,8 @@ const MainLayout: React.FC = () => {
                   <User size={16} className="mr-3 text-orange-600" />
                   <span className="font-medium">Profile</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/agent-config')} className="cursor-pointer py-3 hover:bg-shopme-50">
-                  <Settings size={16} className="mr-3 text-shopme-600" />
+                <DropdownMenuItem onClick={() => navigate('/agent-config')} className="cursor-pointer py-3 hover:bg-shopmefy-50">
+                  <Settings size={16} className="mr-3 text-shopmefy-600" />
                   <span className="font-medium">Agent Settings</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -188,7 +188,7 @@ const MainLayout: React.FC = () => {
         >
           <div className="p-6 flex flex-col h-full">
             <div className="flex justify-between items-center md:hidden mb-6">
-              <h2 className="font-semibold text-lg text-shopme-600">Menu</h2>
+              <h2 className="font-semibold text-lg text-shopmefy-600">Menu</h2>
               <Button 
                 variant="ghost" 
                 size="icon" 

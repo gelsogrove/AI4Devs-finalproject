@@ -1,4 +1,4 @@
-# ShopMe - WhatsApp E-commerce Platform PRD
+# ShopMefy - WhatsApp E-commerce Platform PRD
 
 ## Table of Contents
 - [Introduction](#introduction)
@@ -14,12 +14,15 @@
   - [Push Notification System](#push-notification-system)
   - [Products Catalog Management](#products-catalog-management)
   - [Agent Configuration Tools](#agent-configuration-tools)
+  - [Multi-Channel Management System](#multi-channel-management-system)
+  - [Enhanced Data Security & Privacy](#enhanced-data-security-privacy)
 - [Technical Architecture](#technical-architecture)
   - [Architecture Diagram](#architecture-diagram)
   - [C4 Model](#c4-model)
   - [Frontend Architecture](#frontend-architecture)
   - [Backend Architecture](#backend-architecture)
   - [Database and Prisma ORM](#database-and-prisma-orm)
+  - [Database Seeding Strategy](#database-seeding-strategy)
   - [Data Model](#data-model)
   - [Folder Structure](#folder-structure)
   - [AI and Function Call Documentation](#ai-and-function-call-documentation)
@@ -37,7 +40,7 @@
 ## INTRODUCTION
 
 ### Short Description
-ShopMe is a multilingual SaaS platform (Italian, English, Spanish) that turns WhatsApp into a complete sales channel. Customers can create smart chatbots, manage products, receive orders, and send invoices to their clients without any technical skills. Our AI technology automates customer-care responses, manages push notifications, and offers a 24/7 conversational shopping experience, all directly in the world's most popular messaging app.
+ShopMefy is a multilingual SaaS platform (Italian, English, Spanish) that turns WhatsApp into a complete sales channel. Customers can create smart chatbots, manage products, receive orders, and send invoices to their clients without any technical skills. Our AI technology automates customer-care responses, manages push notifications, and offers a 24/7 conversational shopping experience, all directly in the world's most popular messaging app.
 
 All sensitive operations are handled securely through temporary links with security tokens. These links direct customers to our secure website for registration forms, payments, invoices, and accessing personal data. This keeps all sensitive information outside of chat conversations, ensuring data protection while maintaining a smooth customer experience.
 
@@ -139,14 +142,14 @@ flowchart TD
 
 **Cliente**: "Hola, me gustaría comprar algunos productos."
 
-**ShopMe**: "¡Hola! Estaré encantado de ayudarle con su compra. Para ofrecerle la mejor experiencia y poder procesar sus pedidos, necesitamos que se registre primero. 
+**ShopMefy**: "¡Hola! Estaré encantado de ayudarle con su compra. Para ofrecerle la mejor experiencia y poder procesar sus pedidos, necesitamos que se registre primero. 
 
-He creado un enlace de registro seguro para usted: [https://shopme.com/registro/token_u7d9f3a1b5]
+He creado un enlace de registro seguro para usted: [https://shopmefy.com/registro/token_u7d9f3a1b5]
 
 Este enlace es personal y caduca en 24 horas por motivos de seguridad."
 
 
-**ShopMe**: "¡Gracias por registrarse! Su cuenta ha sido creada correctamente. 
+**ShopMefy**: "¡Gracias por registrarse! Su cuenta ha sido creada correctamente. 
 
 Nos complace informarle que valoramos su privacidad y seguridad. Todos sus datos se guardan exclusivamente en nuestra base de datos segura y no se comparten con modelos de IA externos.
 
@@ -156,9 +159,9 @@ Nos complace informarle que valoramos su privacidad y seguridad. Todos sus datos
 
 **Cliente**: "Hola, estoy buscando productos típicos sicilianos para regalar."
 
-**ShopMe**: "¡Ben regresado Andrea! Estaré encantado de ayudarle a encontrar productos típicos sicilianos para un regalo. Para sugerirle las mejores opciones, ¿podría saber:
+**ShopMefy**: "¡Ben regresado Andrea! Estaré encantado de ayudarle a encontrar productos típicos sicilianos para un regalo. Para sugerirle las mejores opciones, ¿podría saber:
 
-**ShopMe**: "Según sus preferencias, aquí tiene dos packs de regalo que podrían interesarle:
+**ShopMefy**: "Según sus preferencias, aquí tiene dos packs de regalo que podrían interesarle:
 
 1. **Box Sicilia Clásica** (45€)
    - 1 botella de passito de Pantelleria (375ml)
@@ -179,7 +182,7 @@ Nos complace informarle que valoramos su privacidad y seguridad. Todos sus datos
 
 
 
-**ShopMe**: "La crema de pistacho es un producto versátil y delicioso. Puede utilizarse de varias formas:
+**ShopMefy**: "La crema de pistacho es un producto versátil y delicioso. Puede utilizarse de varias formas:
 - Untada en rebanadas de pan o croissants para un desayuno goloso
 - Como relleno para tartas, galletas o pasteles
 - Añadida al helado de vainilla para darle un toque de sabor
@@ -192,13 +195,13 @@ Está elaborada con pistachos de Bronte DOP (40%), azúcar moreno y aceite de gi
 
 **Cliente**: "Me llevo la Degustación Siciliana. ¿Puede entregarse antes del próximo viernes?"
 
-**ShopMe**: "¡Excelente elección! Sí, podemos garantizar la entrega antes del próximo viernes. El artículo está disponible en almacén y califica para envío exprés gratuito.
+**ShopMefy**: "¡Excelente elección! Sí, podemos garantizar la entrega antes del próximo viernes. El artículo está disponible en almacén y califica para envío exprés gratuito.
 
 ¿Quiere proceder con el pedido? Puedo crear el pedido y enviarle un enlace de pago seguro."
 
 **Cliente**: "Sí, gracias."
 
-**ShopMe**: "He creado su pedido para la Degustación Siciliana (55€). Aquí tiene el enlace de pago seguro: [Enlace de Pago]
+**ShopMefy**: "He creado su pedido para la Degustación Siciliana (55€). Aquí tiene el enlace de pago seguro: [Enlace de Pago]
 
 Una vez completado el pago, recibirá:
 1. Un email de confirmación del pedido con la información de seguimiento
@@ -209,7 +212,7 @@ La fecha estimada de entrega es el viernes 12 de mayo. ¿Puedo ayudarle con algo
 
 **Cliente**: "Eso es todo, ¡gracias!"
 
-**ShopMe**: "¡Gracias por su compra! Apreciamos su confianza. Su pedido está siendo procesado y recibirá en breve la información de seguimiento. Si tiene preguntas sobre su pedido o productos, no dude en contactarnos aquí. ¡Le deseo un buen día!"
+**ShopMefy**: "¡Gracias por su compra! Apreciamos su confianza. Su pedido está siendo procesado y recibirá en breve la información de seguimiento. Si tiene preguntas sobre su pedido o productos, no dude en contactarnos aquí. ¡Le deseo un buen día!"
 
 ## MAIN FEATURES
 
@@ -244,6 +247,24 @@ La fecha estimada de entrega es el viernes 12 de mayo. ¿Puedo ayudarle con algo
 - Fallback response management
 - Custom function configuration
 
+### Multi-Channel Management System
+- **Unified Communication Hub**: Centralized management of multiple messaging platforms
+- **Channel Integration**: Support for WhatsApp, Telegram, Instagram Direct, Facebook Messenger
+- **Cross-Platform Synchronization**: Unified customer profiles across all channels
+- **Channel-Specific Customization**: Tailored responses and features per platform
+- **Unified Inbox**: Single interface for managing conversations from all channels
+- **Channel Analytics**: Performance metrics and insights per communication channel
+- **Smart Routing**: Automatic message routing based on customer preferences and channel availability
+
+### Enhanced Data Security & Privacy
+- **End-to-End Encryption**: All customer data encrypted at rest and in transit
+- **GDPR Compliance Suite**: Complete toolkit for European data protection regulations
+- **Data Audit Trails**: Comprehensive logging of all data access and modifications
+- **Right to be Forgotten**: Automated data deletion upon customer request
+- **Data Retention Policies**: Configurable data lifecycle management
+- **Privacy Dashboard**: Customer self-service portal for data management
+- **Security Monitoring**: Real-time threat detection and incident response
+- **Compliance Reporting**: Automated generation of regulatory compliance reports
 
 ## UI SCREENSHOTS
 
@@ -321,25 +342,25 @@ flowchart TB
 
 ```mermaid
 C4Context
-    title System Context Diagram for ShopMe Platform
+    title System Context Diagram for ShopMefy Platform
 
     Person(customer, "Customer", "A person who wants to purchase products via WhatsApp")
-    Person(businessOwner, "Business Owner", "Owner of the business using ShopMe")
+    Person(businessOwner, "Business Owner", "Owner of the business using ShopMefy")
     Person(businessStaff, "Staff Member", "Staff handling customer inquiries")
     
-    System(shopMe, "ShopMe Platform", "Enables businesses to sell products and provide customer service via WhatsApp")
+    System(shopMefy, "ShopMefy Platform", "Enables businesses to sell products and provide customer service via WhatsApp")
     
     System_Ext(whatsApp, "WhatsApp", "Messaging platform used for customer communication")
     System_Ext(paymentGateway, "Payment Gateway", "Processes customer payments")
     System_Ext(aiServices, "AI Services", "Provides natural language processing and generation")
     
     Rel(customer, whatsApp, "Sends messages, browses products, makes purchases")
-    Rel(whatsApp, shopMe, "Forwards customer messages")
-    Rel(shopMe, whatsApp, "Sends responses, product info, payment links")
-    Rel(shopMe, paymentGateway, "Processes payments")
-    Rel(shopMe, aiServices, "Uses for message processing")
-    Rel(businessOwner, shopMe, "Configures business, manages products")
-    Rel(businessStaff, shopMe, "Monitors conversations, handles escalations")
+    Rel(whatsApp, shopMefy, "Forwards customer messages")
+    Rel(shopMefy, whatsApp, "Sends responses, product info, payment links")
+    Rel(shopMefy, paymentGateway, "Processes payments")
+    Rel(shopMefy, aiServices, "Uses for message processing")
+    Rel(businessOwner, shopMefy, "Configures business, manages products")
+    Rel(businessStaff, shopMefy, "Monitors conversations, handles escalations")
     
     UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
 ```
@@ -348,12 +369,12 @@ C4Context
 
 ```mermaid
 C4Container
-    title Container Diagram for ShopMe Platform
+    title Container Diagram for ShopMefy Platform
     
     Person(customer, "Customer", "Uses WhatsApp to browse and purchase products")
     Person(businessUser, "Business User", "Manages products, orders, and customer interactions")
     
-    System_Boundary(shopMe, "ShopMe Platform") {
+    System_Boundary(shopMefy, "ShopMefy Platform") {
         Container(webApp, "Web Application", "React, Next.js", "Provides admin dashboard and management interface")
         Container(apiGateway, "API Gateway", "Express.js", "Handles API requests and orchestrates responses")
         Container(authService, "Auth Service", "Node.js, JWT", "Handles authentication and authorization")
@@ -398,7 +419,7 @@ C4Container
 
 ### Frontend Architecture
 
-The ShopMe frontend is built with a modern React architecture:
+The ShopMefy frontend is built with a modern React architecture:
 
 - **Core Technologies**:
   - React 18+ with functional components and hooks
@@ -460,182 +481,165 @@ The backend follows a Domain-Driven Design (DDD) architecture:
 - **Migrations**: Prisma Migration for version control
 - **Backup Strategy**: Automated daily backups with point-in-time recovery
 
+### Database Seeding Strategy
+
+The ShopMefy platform includes a comprehensive database seeding system that populates the application with realistic Italian food business data for development, testing, and demonstration purposes. This ensures consistent environments and immediate platform usability.
+
+**Key Components:**
+- **Product Catalog**: Complete Italian food specialties with authentic descriptions and pricing
+- **Category Structure**: Organized Italian food categories (Formaggi, Salumi, Pasta, Vini, Olio, Conserve, Dolci, Bevande)
+- **Business Services**: Sample offerings like wine tastings, cooking classes, and catering services
+- **Knowledge Base**: Pre-populated FAQs and business documents for AI assistant training
+- **Business Profile**: Complete company information showcasing platform capabilities
+
+**Business Value:**
+- Immediate demonstration capabilities for sales and marketing
+- Consistent development and testing environments
+- Realistic AI assistant responses from day one
+- Authentic Italian business showcase for target market validation
+- Reduced setup time for new deployments
+
+The seeding system uses Prisma's built-in capabilities and supports environment-specific data sets, ensuring production deployments start with professional, market-ready content that demonstrates the platform's full potential.
+
 ### Data Model
 
-**Current Implementation**: The database schema reflects a single-tenant architecture focused on AI-powered content management and customer interaction.
+## 3. Data model
+
+### **3.1. Data model diagram:**
 
 ```mermaid
 erDiagram
     User {
-        id UUID PK
-        email String
-        password String
-        firstName String
-        lastName String
-        isActive Boolean
-        lastLogin DateTime
-        createdAt DateTime
-        updatedAt DateTime
-    }
-    
-    Product {
-        id UUID PK
-        name String
-        description String
-        price Decimal
-        category String
-        isActive Boolean
-        tagsJson String
-        createdAt DateTime
-        updatedAt DateTime
-    }
-    
-    Service {
-        id UUID PK
-        name String
-        description String
-        price Decimal
-        isActive Boolean
-        embedding String
-        createdAt DateTime
-        updatedAt DateTime
-    }
-    
-    FAQ {
-        id UUID PK
-        question String
-        answer String
-        isActive Boolean
-        createdAt DateTime
-        updatedAt DateTime
-    }
-    
-    FAQChunk {
-        id UUID PK
-        content String
-        faqId UUID FK
-        embedding String
-        createdAt DateTime
-        updatedAt DateTime
-    }
-    
-    Document {
-        id UUID PK
-        filename String
-        originalName String
-        title String
-        path String
-        mimeType String
-        size Int
-        uploadPath String
-        status String
-        isActive Boolean
-        userId String
-        metadata String
-        createdAt DateTime
-        updatedAt DateTime
-    }
-    
-    DocumentChunk {
-        id UUID PK
-        content String
-        pageNumber Int
-        chunkIndex Int
-        documentId UUID FK
-        embedding String
-        createdAt DateTime
-        updatedAt DateTime
+        string id PK
+        string email
+        string password
+        string firstName
+        string lastName
+        boolean isActive
+        DateTime lastLogin
+        DateTime createdAt
+        DateTime updatedAt
     }
     
     Profile {
-        id UUID PK
-        username String
-        companyName String
-        logoUrl String
-        description String
-        phoneNumber String
-        website String
-        email String
-        openingTime String
-        address String
-        sector String
-        createdAt DateTime
-        updatedAt DateTime
+        string id PK
+        string username
+        string companyName
+        string logoUrl
+        string description
+        string phoneNumber
+        string website
+        string email
+        string openingTime
+        string address
+        string sector
+        DateTime createdAt
+        DateTime updatedAt
+    }
+    
+    Product {
+        string id PK
+        string name
+        string description
+        decimal price
+        string category
+        boolean isActive
+        DateTime createdAt
+        DateTime updatedAt
+        string tagsJson
+    }
+    
+    FAQ {
+        string id PK
+        string question
+        string answer
+        boolean isActive
+        DateTime createdAt
+        DateTime updatedAt
+    }
+    
+    FAQChunk {
+        string id PK
+        string content
+        string faqId FK
+        DateTime createdAt
+        DateTime updatedAt
+        string embedding
+    }
+    
+    Service {
+        string id PK
+        string name
+        string description
+        decimal price
+        boolean isActive
+        DateTime createdAt
+        DateTime updatedAt
+        string embedding
+    }
+    
+    Document {
+        string id PK
+        string filename
+        string originalName
+        string title
+        string mimeType
+        int size
+        string uploadPath
+        string status
+        boolean isActive
+        string userId
+        string metadata
+        DateTime createdAt
+        DateTime updatedAt
+        string path
+    }
+    
+    DocumentChunk {
+        string id PK
+        string content
+        int pageNumber
+        int chunkIndex
+        string documentId FK
+        string embedding
+        DateTime createdAt
+        DateTime updatedAt
     }
     
     AgentConfig {
-        id UUID PK
-        temperature Float
-        maxTokens Int
-        topP Float
-        model String
-        prompt String
-        updatedAt DateTime
+        string id PK
+        float temperature
+        int maxTokens
+        float topP
+        string model
+        string prompt
+        DateTime updatedAt
     }
-    
+
     FAQ ||--o{ FAQChunk : "has chunks"
     Document ||--o{ DocumentChunk : "has chunks"
 ```
 
-### Entity Descriptions
+### **3.2. Description of main entities:**
 
-#### Core Entities
+- **User**: Administrative users who manage the ShopMefy system with authentication credentials
+- **Profile**: Business profile information including company details, contact information, and branding
+- **Product**: Items available for sale with name, description, price, and category classification
+- **FAQ**: Frequently asked questions with answers for customer support knowledge base
+- **FAQChunk**: Text segments from FAQs processed for AI semantic search with embeddings
+- **Service**: Additional business offerings like wine tastings or cooking classes with pricing
+- **Document**: Uploaded business documents (PDFs) with metadata and processing status
+- **DocumentChunk**: Text segments extracted from documents for AI processing with embeddings
+- **AgentConfig**: AI assistant configuration including model parameters and behavior settings
 
-**User**
-- Authentication and user management
-- Support for first/last name and activity status
-- Tracks last login for analytics
+### **3.3. Key Features:**
 
-**Product**
-- Product catalog with pricing and categorization
-- JSON-based tags for flexible metadata
-- Active/inactive status for inventory management
-
-**Service**
-- Service offerings with AI embeddings for semantic search
-- Pricing structure similar to products
-- Embedding field for AI-powered recommendations
-
-#### AI-Powered Content Management
-
-**FAQ System**
-- **FAQ**: Main question-answer pairs
-- **FAQChunk**: Chunked content with embeddings for semantic search
-- Enables intelligent FAQ retrieval based on user queries
-
-**Document Processing**
-- **Document**: File metadata and processing status
-- **DocumentChunk**: Chunked content with embeddings
-- Supports PDF processing with automatic text extraction
-- Page-level chunking for precise content retrieval
-
-#### Configuration & Profile
-
-**Profile**
-- Company/business profile information
-- Contact details and branding (logo, description)
-- Business hours and sector classification
-
-**AgentConfig**
-- AI model configuration (temperature, tokens, model selection)
-- Custom prompts for AI behavior
-- Centralized AI parameter management
-
-### Key Features Implemented
-
-1. **Semantic Search**: Embedding fields in Service, FAQChunk, and DocumentChunk enable AI-powered content discovery
-2. **Content Chunking**: Large content (FAQs, Documents) is automatically chunked for better AI processing
-3. **Flexible Metadata**: JSON fields for tags and metadata provide extensibility
-4. **Status Management**: Active/inactive flags and processing status for content lifecycle
-5. **Single-Tenant Architecture**: Simplified model focused on core functionality
-
-### Future Considerations
-
-The current schema provides a solid foundation for:
-- Multi-tenant expansion (adding workspace/tenant isolation)
-- Order management system integration
-- Customer conversation tracking
-- Advanced analytics and reporting
+- **Single-Tenant Architecture**: Simplified design focused on individual business management
+- **AI-Powered Search**: Vector embeddings enable semantic search across FAQs, services, and documents
+- **Document Processing**: Automatic PDF text extraction and chunking for AI consumption
+- **Flexible Product Catalog**: String-based categories with JSON tags for product classification
+- **Configurable AI Assistant**: Customizable model parameters and prompts for business-specific behavior
+- **Content Management**: Complete CRUD operations for all business content types
 
 ## SUBSCRIPTION PLANS
 
@@ -766,7 +770,7 @@ The current schema provides a solid foundation for:
 
 ### Market Overview
 
-The WhatsApp commerce software market is rapidly growing, with several players offering varying degrees of functionality. This analysis compares ShopMe with key competitors to highlight our unique value proposition and competitive advantages.
+The WhatsApp commerce software market is rapidly growing, with several players offering varying degrees of functionality. This analysis compares ShopMefy with key competitors to highlight our unique value proposition and competitive advantages.
 
 ### Key Competitors
 
@@ -781,7 +785,7 @@ The WhatsApp commerce software market is rapidly growing, with several players o
 | **Tellephant** | Messaging solution | Marketing agencies, B2C | Template messaging, API integration |
 | **360dialog** | WhatsApp Business API | Enterprise, ISVs | API provider, developer-focused solutions |
 
-### ShopMe's Unique Advantages
+### ShopMefy's Unique Advantages
 
 #### 1. Industry-Leading Message Engagement
 - **98% message open rate vs 20% for email marketing**
@@ -817,7 +821,7 @@ The WhatsApp commerce software market is rapidly growing, with several players o
 
 ### Comparative Metrics
 
-| Metric | ShopMe | Industry Average | Improvement |
+| Metric | ShopMefy | Industry Average | Improvement |
 |--------|--------|------------------|-------------|
 | Conversion rate | +42% | Baseline | Higher than any competitor |
 | Response time | -67% | Baseline | Faster customer service |
@@ -827,7 +831,7 @@ The WhatsApp commerce software market is rapidly growing, with several players o
 
 ### Comparative Feature Matrix
 
-The following matrix highlights how ShopMe positions itself against key competitors in terms of core functionality:
+The following matrix highlights how ShopMefy positions itself against key competitors in terms of core functionality:
 
 | Feature | WATI | Zoko | Charles | Yalo | SleekFlow | Oct8ne | Tellephant | 360dialog |
 |---------|:----:|:----:|:-------:|:----:|:---------:|:------:|:----------:|:---------:|
@@ -844,18 +848,18 @@ The following matrix highlights how ShopMe positions itself against key competit
 
 *Legend: ⭐ = Basic, ⭐⭐ = Adequate, ⭐⭐⭐ = Good, ⭐⭐⭐⭐ = Very Good, ⭐⭐⭐⭐⭐ = Excellent*
 
-This matrix clearly demonstrates how ShopMe offers a complete and superior solution in most key categories, with particular advantages in full e-commerce, push notifications, secure payments, and cross-industry adaptability.
+This matrix clearly demonstrates how ShopMefy offers a complete and superior solution in most key categories, with particular advantages in full e-commerce, push notifications, secure payments, and cross-industry adaptability.
 
 ### Market Positioning
 
-ShopMe is uniquely positioned at the intersection of customer communication and e-commerce functionality, offering a comprehensive solution that eliminates the need for multiple separate tools. Our platform delivers measurable business outcomes with transparent pricing, making enterprise-level WhatsApp commerce accessible to businesses of all sizes.
+ShopMefy is uniquely positioned at the intersection of customer communication and e-commerce functionality, offering a comprehensive solution that eliminates the need for multiple separate tools. Our platform delivers measurable business outcomes with transparent pricing, making enterprise-level WhatsApp commerce accessible to businesses of all sizes.
 
 ### Segment-Specific ROI
 
-Here's an estimate of the expected ROI for different market segments, based on industry benchmark data and ShopMe's differential advantages:
+Here's an estimate of the expected ROI for different market segments, based on industry benchmark data and ShopMefy's differential advantages:
 
 #### Retail (Clothing/Accessories)
-| Metric | Before ShopMe | With ShopMe | Impact |
+| Metric | Before ShopMefy | With ShopMefy | Impact |
 |---------|----------------|------------|---------|
 | Conversion rate | 2.5% | 3.6% | +44% |
 | Average order value | €75 | €96 | +28% |
@@ -864,7 +868,7 @@ Here's an estimate of the expected ROI for different market segments, based on i
 | **Estimated first year ROI** | - | - | **+215%** |
 
 #### Restaurants
-| Metric | Before ShopMe | With ShopMe | Impact |
+| Metric | Before ShopMefy | With ShopMefy | Impact |
 |---------|----------------|------------|---------|
 | Weekly reservations | 120 | 168 | +40% |
 | Average check value | €35 | €42 | +20% |
@@ -873,7 +877,7 @@ Here's an estimate of the expected ROI for different market segments, based on i
 | **Estimated first year ROI** | - | - | **+185%** |
 
 #### Hotel/Hospitality
-| Metric | Before ShopMe | With ShopMe | Impact |
+| Metric | Before ShopMefy | With ShopMefy | Impact |
 |---------|----------------|------------|---------|
 | Direct bookings vs OTA | 25% | 42% | +68% |
 | Additional services upselling | €28/guest | €47/guest | +68% |
@@ -882,7 +886,7 @@ Here's an estimate of the expected ROI for different market segments, based on i
 | **Estimated first year ROI** | - | - | **+240%** |
 
 #### Events
-| Metric | Before ShopMe | With ShopMe | Impact |
+| Metric | Before ShopMefy | With ShopMefy | Impact |
 |---------|----------------|------------|---------|
 | Ticket conversion rate | 3.2% | 5.1% | +59% |
 | Participant no-show rate | 22% | 8% | -64% |
@@ -894,7 +898,7 @@ The ROI methodology incorporates implementation costs, subscription fees, and tr
 
 ### Industry-Specific Solutions
 
-ShopMe is designed to easily adapt to different industry verticals without requiring significant reconfiguration or custom development. Here's how the platform perfectly adapts to three key sectors:
+ShopMefy is designed to easily adapt to different industry verticals without requiring significant reconfiguration or custom development. Here's how the platform perfectly adapts to three key sectors:
 
 #### Hospitality (Hotels)
 - **Reservation management:** Confirmation, modifications, and cancellations directly via WhatsApp
@@ -921,7 +925,7 @@ Each industry implementation maintains the same basic architecture but uses temp
 
 ### Go-to-Market Strategy
 
-ShopMe's launch strategy is designed to maximize adoption and commercial success in target segments:
+ShopMefy's launch strategy is designed to maximize adoption and commercial success in target segments:
 
 #### Phase 1: Early Adopters (Months 1-3)
 - **Initial target**: 50-75 selected businesses in retail, restaurant, and hospitality sectors

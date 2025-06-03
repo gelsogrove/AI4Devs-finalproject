@@ -62,14 +62,14 @@ const Dashboard: React.FC = () => {
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Header Section */}
-      <div className="bg-gradient-to-r from-shopme-50 to-green-50 rounded-xl p-6 border border-shopme-100 animate-slide-up">
+      <div className="bg-gradient-to-r from-shopmefy-50 to-green-50 rounded-xl p-6 border border-shopmefy-100 animate-slide-up">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 bg-shopme-600 rounded-lg flex items-center justify-center shadow-lg">
+          <div className="w-10 h-10 bg-shopmefy-600 rounded-lg flex items-center justify-center shadow-lg">
             <Package className="w-5 h-5 text-white" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-gray-600">Welcome to ShopMe, your Italian food e-commerce solution.</p>
+            <p className="text-gray-600">Welcome to ShopMefy, your Italian food e-commerce solution.</p>
           </div>
         </div>
       </div>
@@ -271,14 +271,14 @@ const Dashboard: React.FC = () => {
           <Link to="/agent-config" className="group">
             <Card className="h-full border-0 shadow-md hover:shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-2">
               <CardHeader className="text-center pb-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-shopme-500 to-shopme-600 rounded-xl mx-auto mb-4 flex items-center justify-center group-hover:from-shopme-600 group-hover:to-shopme-700 transition-all duration-300 shadow-lg group-hover:shadow-xl">
+                <div className="w-16 h-16 bg-gradient-to-br from-shopmefy-500 to-shopmefy-600 rounded-xl mx-auto mb-4 flex items-center justify-center group-hover:from-shopmefy-600 group-hover:to-shopmefy-700 transition-all duration-300 shadow-lg group-hover:shadow-xl">
                   <Settings className="w-8 h-8 text-white" />
                 </div>
                 <CardTitle className="text-lg font-semibold">Agent Settings</CardTitle>
                 <CardDescription className="text-sm">Configure AI chatbot behavior and responses</CardDescription>
               </CardHeader>
               <CardFooter className="pt-0">
-                <Button variant="ghost" className="w-full justify-center text-shopme-600 hover:text-shopme-700 hover:bg-shopme-50 transition-all duration-200">
+                <Button variant="ghost" className="w-full justify-center text-shopmefy-600 hover:text-shopmefy-700 hover:bg-shopmefy-50 transition-all duration-200">
                   Configure Agent <ArrowRight size={16} className="ml-2 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </CardFooter>
