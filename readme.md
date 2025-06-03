@@ -61,12 +61,7 @@ The platform includes an admin panel where business owners can manage:
 - Customer data
 - Performance metrics
 
-
-![Channel](./prompts/docs/img/channel.png)
-![Products](./prompts/docs/img/products.png)
-![Agent configuration](./prompts/docs/img/agentConfiguration.png)
-![Chat History](./prompts/docs/img/chatHistory.png)
-
+ 
 I used Lovable
 
 
