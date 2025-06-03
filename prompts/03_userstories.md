@@ -1,8 +1,60 @@
 # ShopMefy - User Stories
 
+## 📋 Project Structure Overview
+
+This document organizes the ShopMefy project using a three-level hierarchy:
+
+```
+📦 EPIC (Major Feature Area)
+├── 📄 User Story (Specific User Need)
+│   └── ✅ Task (Implementation Item)
+└── 📄 User Story (Specific User Need)
+    └── ✅ Task (Implementation Item)
+```
+
+### 🎯 **Epic Definition**
+An **Epic** is a large body of work that can be broken down into multiple User Stories. Epics represent major feature areas or functional domains of the ShopMefy platform.
+
+### 📄 **User Story Definition**
+A **User Story** is a specific user need or requirement that delivers value to a particular user role. Each User Story is small enough to be completed within a sprint.
+
+### ✅ **Task Definition**
+A **Task** is a specific implementation item that contributes to completing a User Story. Tasks are tracked in the Task List document.
+
+---
+
+## 📊 Epic Summary
+
+| Epic | User Stories | Story Points | Priority | Status |
+|------|-------------|--------------|----------|---------|
+| 🏗️ Infrastructure & Setup | 4 stories | 21 points | High | In Progress |
+| 🔐 Authentication & Security | 3 stories | 16 points | High | In Progress |
+| 📊 Product Management | 2 stories | 16 points | High | In Progress |
+| 🤖 AI Assistant & Chatbot | 3 stories | 26 points | High | Planned |
+| 📚 Content Management | 3 stories | 18 points | Medium | Planned |
+| 🏢 Business Management | 2 stories | 8 points | Medium | Planned |
+| 🧪 Testing & Quality | 3 stories | 24 points | Medium | Planned |
+| 📖 Documentation & API | 1 story | 3 points | Medium | Planned |
+| 🚀 Deployment & DevOps | 1 story | 8 points | High | Planned |
+| 🔮 Future Enhancements | 3 stories | 34 points | Low | Future |
+| 🎨 UI Components & Design | 2 stories | 13 points | High | Planned |
+| 🤖 Agent Configuration | 2 stories | 16 points | High | Planned |
+| 📊 Complete CRUD Operations | 4 stories | 29 points | Medium | Planned |
+| 🏗️ Infrastructure & Deployment | 4 stories | 42 points | High | Planned |
+| 🔧 Additional CRUD Operations | 2 stories | 10 points | Low | Future |
+| 📁 Project Structure & Documentation | 2 stories | 5 points | Medium | Completed |
+| 🛡️ Advanced Security & Anti-Spam | 2 stories | 13 points | High | Planned |
+| 🔧 Technical Infrastructure Enhancements | 2 stories | 16 points | Medium | Future |
+| 🌐 Multi-Channel & Advanced Security | 2 stories | 26 points | High | Future |
+
+**Total**: 19 Epics, 50 User Stories, 342 Story Points
+
+---
+
 ## 📋 User Story Template
 
 **Story ID**: US-XXX  
+**Epic**: [Epic Name]  
 **Title**: [User Story Title]  
 **As a**: [User Role]  
 **I want**: [Goal/Desire]  
@@ -29,9 +81,18 @@
 
 ---
 
-## 🏗️ INFRASTRUCTURE & SETUP
+# 📦 EPICS & USER STORIES
+
+## 🏗️ EPIC: INFRASTRUCTURE & SETUP
+
+**Epic Goal**: Establish the foundational infrastructure and development environment for the ShopMefy platform.
+
+**Epic Value**: Provides the technical foundation required for all other development work, ensuring scalable, secure, and maintainable infrastructure.
+
+**Epic Stories**: 4 User Stories | **Epic Points**: 21 | **Epic Priority**: High
 
 ### US-001: Infrastructure Setup
+**Epic**: 🏗️ Infrastructure & Setup  
 **As a** DevOps Engineer  
 **I want** to set up AWS infrastructure with Terraform  
 **So that** the application has a scalable and secure production environment  
@@ -60,9 +121,8 @@
 - [ ] Documentation updated with deployment instructions
 - [ ] Cost optimization verified
 
----
-
 ### US-002: Backend Project Setup
+**Epic**: 🏗️ Infrastructure & Setup  
 **As a** Backend Developer  
 **I want** to set up the Node.js backend with TypeScript and DDD architecture  
 **So that** we have a solid foundation for building the API  
@@ -91,9 +151,8 @@
 - [ ] Code quality tools configured
 - [ ] Project structure documented
 
----
-
 ### US-003: Frontend Project Setup
+**Epic**: 🏗️ Infrastructure & Setup  
 **As a** Frontend Developer  
 **I want** to set up the React frontend with TypeScript and TailwindCSS  
 **So that** we have a modern and responsive admin interface  
@@ -121,9 +180,8 @@
 - [ ] Routing functional
 - [ ] Build process optimized
 
----
-
 ### US-004: Database Seeding System
+**Epic**: 🏗️ Infrastructure & Setup  
 **As a** Developer  
 **I want** to populate the database with realistic Italian food business data  
 **So that** the application has meaningful content for development and demonstration  
@@ -152,11 +210,16 @@
 - [ ] Realistic business scenarios available
 - [ ] Seeding script documented
 
----
+## 🔐 EPIC: AUTHENTICATION & SECURITY
 
-## 🔐 AUTHENTICATION & SECURITY
+**Epic Goal**: Ensure the security and authentication mechanisms are robust and compliant with industry standards.
+
+**Epic Value**: Provides a secure platform for user data and business operations.
+
+**Epic Stories**: 3 User Stories | **Epic Points**: 16 | **Epic Priority**: High
 
 ### US-005: JWT Authentication System
+**Epic**: 🔐 Authentication & Security  
 **As a** Business Owner  
 **I want** to securely log into the admin panel  
 **So that** only authorized users can manage my business data  
@@ -185,9 +248,8 @@
 - [ ] Error handling comprehensive
 - [ ] Token lifecycle managed properly
 
----
-
 ### US-006: Login Interface
+**Epic**: 🔐 Authentication & Security  
 **As a** Business Owner  
 **I want** a user-friendly login page  
 **So that** I can easily access my admin panel  
@@ -215,9 +277,8 @@
 - [ ] Error handling user-friendly
 - [ ] Integration with backend complete
 
----
-
 ### US-007: Security Framework Implementation
+**Epic**: 🔐 Authentication & Security  
 **As a** System Administrator  
 **I want** comprehensive security measures implemented  
 **So that** the application is protected from common vulnerabilities  
@@ -246,11 +307,16 @@
 - [ ] Security documentation updated
 - [ ] Monitoring and alerting configured
 
----
+## 📊 EPIC: PRODUCT MANAGEMENT
 
-## 📊 PRODUCT MANAGEMENT
+**Epic Goal**: Ensure the product catalog is well-managed and meets business needs.
+
+**Epic Value**: Provides accurate and up-to-date product information and management capabilities.
+
+**Epic Stories**: 2 User Stories | **Epic Points**: 16 | **Epic Priority**: High
 
 ### US-008: Product Catalog Management
+**Epic**: 📊 Product Management  
 **As a** Business Owner  
 **I want** to manage my product catalog  
 **So that** customers can see accurate product information and prices  
@@ -280,9 +346,8 @@
 - [ ] User interface intuitive
 - [ ] Performance optimized for large catalogs
 
----
-
 ### US-009: Category Management System
+**Epic**: 📊 Product Management  
 **As a** Business Owner  
 **I want** to organize my products into categories  
 **So that** customers can easily find what they're looking for  
@@ -311,11 +376,16 @@
 - [ ] UI supports category management
 - [ ] Backward compatibility maintained
 
----
+## 🤖 EPIC: AI ASSISTANT & CHATBOT
 
-## 🤖 AI ASSISTANT & CHATBOT
+**Epic Goal**: Enhance the platform with intelligent AI capabilities.
+
+**Epic Value**: Provides accurate and contextual information to users.
+
+**Epic Stories**: 3 User Stories | **Epic Points**: 26 | **Epic Priority**: High
 
 ### US-010: LangChain Integration
+**Epic**: 🤖 AI Assistant & Chatbot  
 **As a** Customer  
 **I want** to interact with an intelligent AI assistant  
 **So that** I can get accurate information about products and services  
@@ -344,9 +414,8 @@
 - [ ] Performance meets requirements
 - [ ] Error handling robust
 
----
-
 ### US-011: Chatbot API Endpoint
+**Epic**: 🤖 AI Assistant & Chatbot  
 **As a** Customer  
 **I want** to send messages and receive intelligent responses  
 **So that** I can get help with my shopping and questions  
@@ -375,9 +444,8 @@
 - [ ] Error responses user-friendly
 - [ ] Performance optimized
 
----
-
 ### US-012: Chat Interface
+**Epic**: 🤖 AI Assistant & Chatbot  
 **As a** Business Owner  
 **I want** to test the chatbot functionality  
 **So that** I can see how customers will interact with my AI assistant  
@@ -406,11 +474,16 @@
 - [ ] Real-time messaging working
 - [ ] Error handling comprehensive
 
----
+## 📚 EPIC: CONTENT MANAGEMENT
 
-## 📚 CONTENT MANAGEMENT
+**Epic Goal**: Ensure the platform provides valuable and accurate content to users.
+
+**Epic Value**: Provides a comprehensive set of content management features.
+
+**Epic Stories**: 3 User Stories | **Epic Points**: 18 | **Epic Priority**: Medium
 
 ### US-013: FAQ Management System
+**Epic**: 📚 Content Management  
 **As a** Business Owner  
 **I want** to manage frequently asked questions  
 **So that** the AI assistant can provide accurate answers to common customer inquiries  
@@ -439,9 +512,8 @@
 - [ ] User interface intuitive
 - [ ] Search performance optimized
 
----
-
 ### US-014: Services Management
+**Epic**: 📚 Content Management  
 **As a** Business Owner  
 **I want** to manage my service offerings  
 **So that** customers can learn about and book additional services like wine tastings  
@@ -470,9 +542,8 @@
 - [ ] User interface professional
 - [ ] Business logic validated
 
----
-
 ### US-015: Document Management System
+**Epic**: 📚 Content Management  
 **As a** Business Owner  
 **I want** to upload and manage business documents  
 **So that** the AI assistant can provide information about policies, regulations, and procedures  
@@ -501,32 +572,37 @@
 - [ ] File management secure
 - [ ] User interface intuitive
 
----
+## 🏢 EPIC: BUSINESS MANAGEMENT
 
-## 🏢 BUSINESS MANAGEMENT
+**Epic Goal**: Ensure the platform is well-managed and meets business needs.
+
+**Epic Value**: Provides a comprehensive set of business management features.
+
+**Epic Stories**: 2 User Stories | **Epic Points**: 8 | **Epic Priority**: Medium
 
 ### US-016: Business Profile Management
+**Epic**: 🏢 Business Management  
 **As a** Business Owner  
 **I want** to manage my business profile information  
-**So that** customers see accurate business details and the AI assistant has correct information  
+**So that** the AI assistant represents my business accurately  
 
-**Description**: Implement business profile management with company information, contact details, hours, and integration with the AI assistant.
+**Description**: Implement business profile management with company information, contact details, and AI assistant configuration.
 
 **Story Points**: 3  
 **Priority**: Medium  
 **Difficulty**: Easy  
-**Sprint**: 2  
-**Dependencies**: US-002, US-003  
+**Sprint**: 3  
+**Dependencies**: US-002  
 **Labels**: Backend, Frontend, CRUD  
 
 **Acceptance Criteria**:
-- [ ] Profile CRUD operations implemented
-- [ ] Company information fields (name, address, phone, email)
-- [ ] Business hours management
-- [ ] Profile validation and error handling
+- [ ] Business profile CRUD operations
+- [ ] Company information management (name, description, contact)
+- [ ] Business hours configuration
+- [ ] Social media links management
+- [ ] AI assistant personality configuration
 - [ ] Frontend profile management interface
-- [ ] Integration with AI assistant for company info
-- [ ] Dynamic company name display in UI
+- [ ] Validation for all business data
 
 **Definition of Done**:
 - [ ] Profile management fully functional
@@ -534,30 +610,29 @@
 - [ ] UI reflects profile changes
 - [ ] AI integration working
 
----
-
 ### US-017: Dashboard Overview
+**Epic**: 🏢 Business Management  
 **As a** Business Owner  
 **I want** to see an overview of my business metrics  
 **So that** I can understand how my AI assistant is performing  
 
-**Description**: Create dashboard with key metrics, statistics, and navigation for the ShopMefy administrative interface.
+**Description**: Create dashboard with key business metrics, recent activity, and system status for business owners.
 
 **Story Points**: 5  
 **Priority**: Low  
 **Difficulty**: Medium  
 **Sprint**: 6  
-**Dependencies**: US-003, US-016  
+**Dependencies**: US-003, US-008  
 **Labels**: Frontend, Analytics  
 
 **Acceptance Criteria**:
-- [ ] Dashboard layout with statistics cards
-- [ ] Key metrics display (products, services, FAQs count)
-- [ ] Navigation components
-- [ ] Responsive design for all devices
-- [ ] Loading states and error handling
+- [ ] Dashboard layout with key metrics
+- [ ] Product count and category statistics
+- [ ] Recent activity feed
+- [ ] System status indicators
 - [ ] Quick action buttons
-- [ ] Professional visual design
+- [ ] Responsive design for all devices
+- [ ] Real-time data updates
 
 **Definition of Done**:
 - [ ] Dashboard provides valuable insights
@@ -565,193 +640,211 @@
 - [ ] User experience excellent
 - [ ] Data accuracy verified
 
----
+## 🧪 EPIC: TESTING & QUALITY
 
-## 🧪 TESTING & QUALITY
+**Epic Goal**: Ensure the platform is tested and meets quality standards.
+
+**Epic Value**: Provides a comprehensive set of testing and quality assurance features.
+
+**Epic Stories**: 3 User Stories | **Epic Points**: 24 | **Epic Priority**: Medium
 
 ### US-018: Unit Testing Framework
+**Epic**: 🧪 Testing & Quality  
 **As a** Developer  
-**I want** comprehensive unit tests  
+**I want** comprehensive unit tests for all components  
 **So that** code quality is maintained and regressions are prevented  
 
-**Description**: Implement comprehensive unit testing for all backend components including controllers, services, and domain entities.
+**Description**: Implement unit testing framework with Jest for backend and React Testing Library for frontend components.
 
 **Story Points**: 8  
 **Priority**: Medium  
 **Difficulty**: Medium  
 **Sprint**: 5  
-**Dependencies**: US-002, US-008  
-**Labels**: Backend, Testing  
+**Dependencies**: US-002, US-003  
+**Labels**: Testing, Backend, Frontend  
 
 **Acceptance Criteria**:
-- [ ] Unit test framework configured (Jest)
-- [ ] Tests for all controllers and services
-- [ ] Business logic validation tests
-- [ ] Error handling test coverage
-- [ ] Mocking system for external dependencies
-- [ ] Code coverage reporting
-- [ ] CI/CD integration
+- [ ] Jest configured for backend testing
+- [ ] React Testing Library for frontend
+- [ ] Unit tests for all service classes
+- [ ] Component tests for UI elements
+- [ ] Mock implementations for external dependencies
+- [ ] Code coverage reporting (minimum 80%)
+- [ ] Automated test execution in CI/CD
 
 **Definition of Done**:
-- [ ] 80%+ code coverage achieved
-- [ ] All tests passing
+- [ ] Test coverage meets requirements
+- [ ] All tests passing consistently
 - [ ] CI/CD pipeline includes tests
 - [ ] Test documentation complete
 
----
-
 ### US-019: Integration Testing
+**Epic**: 🧪 Testing & Quality  
 **As a** Developer  
-**I want** integration tests for API endpoints  
-**So that** the system works correctly end-to-end  
+**I want** integration tests for API endpoints and database operations  
+**So that** system components work correctly together  
 
-**Description**: Implement integration testing for API endpoints, database interactions, and service integrations with test isolation.
+**Description**: Implement integration testing for API endpoints, database operations, and external service integrations.
 
 **Story Points**: 8  
 **Priority**: Medium  
 **Difficulty**: Hard  
 **Sprint**: 5  
 **Dependencies**: US-018  
-**Labels**: Backend, Testing  
+**Labels**: Testing, Backend, API  
 
 **Acceptance Criteria**:
-- [ ] Integration test suite implemented
-- [ ] End-to-end API flow testing
-- [ ] Database integration validation
-- [ ] Service integration testing
-- [ ] Automatic test isolation and cleanup
-- [ ] Test environment configuration
-- [ ] Performance validation
+- [ ] API endpoint integration tests
+- [ ] Database operation testing
+- [ ] Authentication flow testing
+- [ ] External service mock testing
+- [ ] Test database setup and teardown
+- [ ] Automated test data management
+- [ ] Performance testing included
 
 **Definition of Done**:
-- [ ] All critical paths tested
-- [ ] Test isolation working
+- [ ] All integration scenarios covered
+- [ ] Test environment stable
 - [ ] Performance benchmarks met
 - [ ] CI/CD integration complete
 
----
-
 ### US-020: End-to-End Testing
-**As a** Quality Assurance Engineer  
-**I want** automated E2E tests for critical user workflows  
-**So that** the application works correctly from the user's perspective  
+**Epic**: 🧪 Testing & Quality  
+**As a** QA Engineer  
+**I want** end-to-end tests for critical user workflows  
+**So that** the entire application works correctly from user perspective  
 
-**Description**: Implement end-to-end testing using Cypress for critical user workflows including authentication, CRUD operations, and chatbot interactions.
+**Description**: Implement E2E testing with Cypress for critical user workflows including authentication, product management, and chatbot interaction.
 
 **Story Points**: 8  
 **Priority**: Low  
 **Difficulty**: Hard  
 **Sprint**: 6  
-**Dependencies**: US-003, US-006, US-008  
-**Labels**: Frontend, Testing  
+**Dependencies**: US-019  
+**Labels**: Testing, E2E, Frontend  
 
 **Acceptance Criteria**:
-- [ ] E2E testing framework configured (Cypress)
+- [ ] Cypress E2E testing framework configured
 - [ ] Authentication workflow tests
-- [ ] CRUD operation tests for all entities
+- [ ] Product management workflow tests
 - [ ] Chatbot interaction tests
-- [ ] Cross-browser compatibility tests
-- [ ] Test data management
-- [ ] CI/CD integration
+- [ ] Cross-browser compatibility testing
+- [ ] Mobile responsiveness validation
+- [ ] Automated test execution and reporting
 
 **Definition of Done**:
-- [ ] Critical workflows covered
-- [ ] Tests run reliably in CI/CD
+- [ ] All critical paths covered
+- [ ] Tests running in CI/CD
 - [ ] Cross-browser compatibility verified
 - [ ] Test maintenance documented
 
----
+## 📖 EPIC: DOCUMENTATION & API
 
-## 📖 DOCUMENTATION & API
+**Epic Goal**: Ensure the platform is well-documented and accessible.
+
+**Epic Value**: Provides comprehensive documentation and API access.
+
+**Epic Stories**: 1 User Story | **Epic Points**: 3 | **Epic Priority**: Medium
 
 ### US-021: API Documentation
+**Epic**: 📖 Documentation & API  
 **As a** Developer  
 **I want** comprehensive API documentation  
-**So that** I can understand and integrate with all endpoints  
+**So that** the API is easy to understand and integrate  
 
-**Description**: Implement Swagger/OpenAPI documentation for all ShopMefy endpoints with interactive testing capabilities.
+**Description**: Generate and maintain comprehensive API documentation using Swagger/OpenAPI with examples and testing capabilities.
 
 **Story Points**: 3  
 **Priority**: Medium  
 **Difficulty**: Easy  
 **Sprint**: 4  
-**Dependencies**: US-002, US-008  
-**Labels**: Backend, Documentation  
+**Dependencies**: US-002  
+**Labels**: Documentation, API  
 
 **Acceptance Criteria**:
-- [ ] Swagger UI configured and accessible
-- [ ] All API endpoints documented
+- [ ] Swagger/OpenAPI documentation generated
+- [ ] All endpoints documented with examples
 - [ ] Request/response schemas defined
-- [ ] Interactive testing interface working
 - [ ] Authentication documentation included
-- [ ] Error response examples provided
-- [ ] Endpoints organized by categories
+- [ ] Interactive API testing interface
+- [ ] Documentation automatically updated
+- [ ] Error response documentation
 
 **Definition of Done**:
 - [ ] Documentation complete and accurate
-- [ ] Interactive testing functional
-- [ ] Examples helpful and clear
+- [ ] Interactive testing working
+- [ ] Auto-generation configured
 - [ ] Maintenance process established
 
----
+## 🚀 EPIC: DEPLOYMENT & DEVOPS
 
-## 🚀 DEPLOYMENT & DEVOPS
+**Epic Goal**: Ensure the platform is deployed and maintained efficiently.
+
+**Epic Value**: Provides a comprehensive set of deployment and DevOps features.
+
+**Epic Stories**: 1 User Story | **Epic Points**: 8 | **Epic Priority**: High
 
 ### US-022: CI/CD Pipeline
+**Epic**: 🚀 Deployment & DevOps  
 **As a** DevOps Engineer  
 **I want** automated deployment pipeline  
 **So that** code changes are deployed safely and efficiently  
 
-**Description**: Implement GitHub Actions workflow for building, testing, and deploying the ShopMefy application to AWS infrastructure.
+**Description**: Implement GitHub Actions CI/CD pipeline with automated testing, building, and deployment to AWS infrastructure.
 
 **Story Points**: 8  
 **Priority**: High  
 **Difficulty**: Hard  
-**Sprint**: 6  
+**Sprint**: 5  
 **Dependencies**: US-001, US-018  
 **Labels**: DevOps, CI/CD  
 
 **Acceptance Criteria**:
 - [ ] GitHub Actions workflow configured
-- [ ] Automated building for backend and frontend
-- [ ] Test execution in pipeline
-- [ ] S3 deployment with proper file handling
-- [ ] EC2 deployment automation
-- [ ] Health checks and monitoring
+- [ ] Automated testing on pull requests
+- [ ] Build and deployment automation
+- [ ] Environment-specific deployments
 - [ ] Rollback capabilities
+- [ ] Notification system for deployment status
+- [ ] Security scanning integration
 
 **Definition of Done**:
-- [ ] Deployment pipeline fully automated
-- [ ] Zero-downtime deployments
-- [ ] Monitoring and alerting working
+- [ ] Pipeline working reliably
+- [ ] Deployment time optimized
+- [ ] Rollback procedures tested
 - [ ] Documentation complete
 
----
+## 🔮 EPIC: FUTURE ENHANCEMENTS
 
-## 🔮 FUTURE ENHANCEMENTS
+**Epic Goal**: Plan and implement future enhancements to the platform.
+
+**Epic Value**: Provides a roadmap for future development and improvements.
+
+**Epic Stories**: 3 User Stories | **Epic Points**: 34 | **Epic Priority**: Low
 
 ### US-023: WhatsApp Business API Integration
-**As a** Customer  
-**I want** to interact with the business through WhatsApp  
-**So that** I can shop and get support through my preferred messaging platform  
+**Epic**: 🔮 Future Enhancements  
+**As a** Business Owner  
+**I want** to connect my WhatsApp Business account  
+**So that** customers can interact with my AI assistant directly through WhatsApp  
 
-**Description**: Integrate WhatsApp Business API for direct customer communication, message handling, and real-time interactions.
+**Description**: Integrate WhatsApp Business API to enable direct customer interactions through WhatsApp messaging platform.
 
 **Story Points**: 13  
 **Priority**: Low  
 **Difficulty**: Expert  
 **Sprint**: Future  
 **Dependencies**: US-011  
-**Labels**: Integration, WhatsApp  
+**Labels**: Backend, Integration, WhatsApp  
 
 **Acceptance Criteria**:
-- [ ] WhatsApp Business API credentials configured
+- [ ] WhatsApp Business API credentials configuration
 - [ ] Webhook endpoint for incoming messages
-- [ ] Message sending with templates
-- [ ] Media handling capabilities
-- [ ] Message status tracking
-- [ ] Conversation management
-- [ ] Rate limiting and quota management
+- [ ] Message sending capabilities with templates
+- [ ] Media handling (images, documents)
+- [ ] Conversation context management
+- [ ] Error handling and retry mechanisms
+- [ ] Compliance with WhatsApp policies
 
 **Definition of Done**:
 - [ ] WhatsApp integration fully functional
@@ -759,375 +852,382 @@
 - [ ] Customer experience seamless
 - [ ] Business requirements met
 
----
-
 ### US-024: Order Management System
-**As a** Business Owner  
-**I want** to manage customer orders  
-**So that** I can track sales and fulfill customer requests  
+**Epic**: 🔮 Future Enhancements  
+**As a** Customer  
+**I want** to place orders through the AI assistant  
+**So that** I can purchase products directly through conversation  
 
-**Description**: Implement order persistence and management system to bridge AI-generated orders with business data management.
+**Description**: Implement order management system with cart functionality, payment processing, and order tracking integrated with the AI assistant.
 
 **Story Points**: 13  
 **Priority**: Low  
 **Difficulty**: Expert  
 **Sprint**: Future  
-**Dependencies**: US-011  
+**Dependencies**: US-008, US-011  
 **Labels**: Backend, Frontend, E-commerce  
 
 **Acceptance Criteria**:
-- [ ] Order and OrderItem database models
-- [ ] OrderCompleted function persistence
-- [ ] Order management APIs
-- [ ] Order status management
-- [ ] Frontend orders interface
-- [ ] Order analytics and reporting
-- [ ] Export functionality
+- [ ] Shopping cart functionality
+- [ ] Order creation and management
+- [ ] Payment gateway integration
+- [ ] Order status tracking
+- [ ] Inventory management integration
+- [ ] AI assistant order processing
+- [ ] Order confirmation and notifications
 
 **Definition of Done**:
-- [ ] Order lifecycle complete
-- [ ] Business reporting functional
+- [ ] Order flow working end-to-end
+- [ ] Payment processing secure
 - [ ] Customer experience excellent
 - [ ] Data integrity maintained
 
----
-
 ### US-025: Two-Factor Authentication
+**Epic**: 🔮 Future Enhancements  
 **As a** Business Owner  
-**I want** enhanced security with 2FA  
-**So that** my business data is protected from unauthorized access  
+**I want** two-factor authentication for my account  
+**So that** my business data is protected with additional security  
 
-**Description**: Implement two-factor authentication using TOTP, authenticator apps, and SMS verification for enhanced security.
+**Description**: Implement 2FA using TOTP (Time-based One-Time Password) for enhanced account security.
 
 **Story Points**: 8  
 **Priority**: Low  
 **Difficulty**: Hard  
 **Sprint**: Future  
 **Dependencies**: US-005  
-**Labels**: Security, Authentication  
+**Labels**: Backend, Frontend, Security  
 
 **Acceptance Criteria**:
-- [ ] TOTP system implemented
-- [ ] Authenticator app integration
-- [ ] SMS-based 2FA option
-- [ ] 2FA setup interface
-- [ ] Backup codes system
-- [ ] Login verification process
-- [ ] 2FA management settings
+- [ ] TOTP implementation with QR code generation
+- [ ] 2FA setup and configuration interface
+- [ ] Backup codes generation and management
+- [ ] 2FA verification during login
+- [ ] Account recovery procedures
+- [ ] Security audit compliance
+- [ ] User education and documentation
 
 **Definition of Done**:
 - [ ] 2FA working reliably
+- [ ] Security standards met
 - [ ] User experience smooth
-- [ ] Security enhanced significantly
 - [ ] Recovery options available
 
----
+## 🎨 EPIC: UI COMPONENTS & DESIGN SYSTEM
 
-## 🎨 UI COMPONENTS & DESIGN SYSTEM
+**Epic Goal**: Ensure the platform has a consistent and visually appealing design system.
+
+**Epic Value**: Provides a comprehensive set of UI components and design system features.
+
+**Epic Stories**: 2 User Stories | **Epic Points**: 13 | **Epic Priority**: High
 
 ### US-026: Reusable Component Library
+**Epic**: 🎨 UI Components & Design System  
 **As a** Frontend Developer  
-**I want** a comprehensive reusable component library  
+**I want** a comprehensive component library  
 **So that** the UI is consistent and development is efficient  
 
-**Description**: Build a complete design system with reusable components including buttons, forms, modals, tables, and navigation elements with ShopMefy branding.
+**Description**: Create reusable React components with TypeScript, TailwindCSS styling, and comprehensive documentation.
 
 **Story Points**: 8  
 **Priority**: High  
 **Difficulty**: Medium  
 **Sprint**: 2  
 **Dependencies**: US-003  
-**Labels**: Frontend, UI, Components  
+**Labels**: Frontend, Components  
 
 **Acceptance Criteria**:
-- [ ] Button components with multiple variants (primary, secondary, danger)
-- [ ] Form components with validation (Input, Select, Textarea, Checkbox)
-- [ ] Modal dialogs with configurable content
-- [ ] Table components with sorting, pagination, search
-- [ ] Navigation components (Sidebar, Header, Breadcrumbs)
-- [ ] Toast notification system
-- [ ] Loading states and spinners
-- [ ] ShopMefy green theme implementation
+- [ ] Component library structure established
+- [ ] Core components implemented (Button, Input, Modal, etc.)
+- [ ] TypeScript interfaces for all components
+- [ ] TailwindCSS styling system
+- [ ] Component documentation with examples
+- [ ] Storybook integration for component showcase
+- [ ] Accessibility compliance (WCAG 2.1)
 
 **Definition of Done**:
-- [ ] All components documented with examples
-- [ ] Components tested and accessible
+- [ ] Component library fully functional
+- [ ] Documentation comprehensive
 - [ ] Consistent styling across application
 - [ ] Performance optimized
 
----
-
 ### US-027: Navigation System
+**Epic**: 🎨 UI Components & Design System  
 **As a** Business Owner  
 **I want** intuitive navigation throughout the admin panel  
 **So that** I can easily access all features and manage my business  
 
-**Description**: Implement comprehensive navigation system with sidebar, header, breadcrumbs, and mobile-responsive design.
+**Description**: Implement responsive navigation system with sidebar, breadcrumbs, and mobile-friendly design.
 
 **Story Points**: 5  
 **Priority**: High  
 **Difficulty**: Medium  
 **Sprint**: 2  
 **Dependencies**: US-026  
-**Labels**: Frontend, Navigation, UI  
+**Labels**: Frontend, Navigation  
 
 **Acceptance Criteria**:
-- [ ] Multi-level sidebar navigation with icons
-- [ ] Active section indicators
-- [ ] Collapsible sidebar for mobile
-- [ ] Header with user profile dropdown
-- [ ] Breadcrumb navigation
+- [ ] Responsive sidebar navigation
+- [ ] Breadcrumb navigation system
 - [ ] Mobile hamburger menu
-- [ ] Responsive design for all screen sizes
+- [ ] Active state indicators
+- [ ] Smooth animations and transitions
+- [ ] Keyboard navigation support
+- [ ] Search functionality in navigation
 
 **Definition of Done**:
-- [ ] Navigation works on all devices
+- [ ] Navigation working on all devices
 - [ ] User experience intuitive
 - [ ] Performance optimized
 - [ ] Accessibility compliant
 
----
+## 🤖 EPIC: AGENT CONFIGURATION
 
-## 🤖 AGENT CONFIGURATION
+**Epic Goal**: Ensure the platform's AI assistant is well-configured and represents the business accurately.
+
+**Epic Value**: Provides a comprehensive set of agent configuration features.
+
+**Epic Stories**: 2 User Stories | **Epic Points**: 16 | **Epic Priority**: High
 
 ### US-028: Agent Settings Management
+**Epic**: 🤖 Agent Configuration  
 **As a** Business Owner  
-**I want** to configure my AI assistant's behavior and responses  
-**So that** it represents my business accurately and provides the right tone  
+**I want** to configure my AI assistant's behavior  
+**So that** it represents my business personality and follows my preferences  
 
-**Description**: Implement agent configuration management allowing customization of AI assistant prompt, temperature, model selection, and response behavior.
+**Description**: Implement agent configuration interface for customizing AI assistant behavior, personality, and business rules.
 
 **Story Points**: 8  
 **Priority**: High  
-**Difficulty**: Hard  
+**Difficulty**: Medium  
 **Sprint**: 4  
-**Dependencies**: US-002, US-010  
-**Labels**: Backend, Frontend, AI, Configuration  
+**Dependencies**: US-003, US-010  
+**Labels**: Frontend, Backend, AI  
 
 **Acceptance Criteria**:
-- [ ] Agent configuration CRUD operations
-- [ ] Prompt template customization interface
-- [ ] Temperature and model parameter controls
-- [ ] Response behavior settings (tone, style, language)
-- [ ] Preview functionality for testing changes
-- [ ] Default configuration templates
-- [ ] Validation for configuration parameters
-- [ ] Real-time configuration updates
+- [ ] Agent personality configuration interface
+- [ ] Business rules and preferences settings
+- [ ] Response tone and style customization
+- [ ] Product recommendation rules
+- [ ] Conversation flow configuration
+- [ ] Real-time preview of changes
+- [ ] Configuration validation and testing
 
 **Definition of Done**:
-- [ ] Agent behavior fully customizable
-- [ ] Configuration changes apply immediately
+- [ ] Agent configuration fully functional
+- [ ] Changes reflected in AI responses
 - [ ] User interface intuitive
 - [ ] Validation prevents invalid configurations
 
----
-
 ### US-029: Agent Prompt Engineering Interface
+**Epic**: 🤖 Agent Configuration  
 **As a** Business Owner  
-**I want** to customize my AI assistant's personality and knowledge  
-**So that** it reflects my brand and provides accurate business information  
+**I want** to customize my AI assistant's prompts  
+**So that** it provides responses that match my business communication style  
 
-**Description**: Create advanced prompt engineering interface with templates, variables, and testing capabilities for fine-tuning AI assistant behavior.
+**Description**: Create interface for managing AI prompts, templates, and response patterns with testing capabilities.
 
 **Story Points**: 8  
 **Priority**: Medium  
 **Difficulty**: Hard  
 **Sprint**: 5  
 **Dependencies**: US-028  
-**Labels**: Frontend, AI, Prompt Engineering  
+**Labels**: Frontend, Backend, AI  
 
 **Acceptance Criteria**:
-- [ ] Rich text editor for prompt customization
-- [ ] Template variables for dynamic content
-- [ ] Prompt testing interface with sample conversations
+- [ ] Prompt template management interface
+- [ ] Custom prompt creation and editing
+- [ ] Template variables and placeholders
+- [ ] Prompt testing and preview functionality
 - [ ] Version control for prompt changes
-- [ ] Rollback functionality for prompt versions
-- [ ] Performance metrics for different prompts
-- [ ] Best practices guidance and examples
+- [ ] Rollback capabilities for prompts
+- [ ] Performance impact monitoring
 
 **Definition of Done**:
-- [ ] Prompt engineering fully functional
-- [ ] Testing capabilities comprehensive
-- [ ] Version control working
+- [ ] Prompt management fully functional
+- [ ] Testing capabilities working
+- [ ] Version control reliable
 - [ ] User guidance helpful
 
----
+## 📊 EPIC: COMPLETE CRUD OPERATIONS
 
-## 📊 COMPLETE CRUD OPERATIONS
+**Epic Goal**: Ensure all CRUD operations are well-implemented and functional.
+
+**Epic Value**: Provides a comprehensive set of CRUD operations features.
+
+**Epic Stories**: 4 User Stories | **Epic Points**: 29 | **Epic Priority**: Medium
 
 ### US-030: User Management CRUD
+**Epic**: 📊 Complete CRUD Operations  
 **As a** System Administrator  
 **I want** to manage user accounts and permissions  
 **So that** I can control access to the admin panel  
 
-**Description**: Implement complete user management system with CRUD operations, role management, and permission controls.
+**Description**: Implement comprehensive user management system with role-based access control, user creation, editing, and permission management.
 
 **Story Points**: 8  
 **Priority**: Medium  
-**Difficulty**: Medium  
-**Sprint**: 3  
+**Difficulty**: Hard  
+**Sprint**: Future  
 **Dependencies**: US-005  
-**Labels**: Backend, Frontend, CRUD, Security  
+**Labels**: Backend, Frontend, Security  
 
 **Acceptance Criteria**:
-- [ ] User CRUD operations (Create, Read, Update, Delete)
-- [ ] User listing with pagination and search
-- [ ] Role assignment and management
-- [ ] Permission controls and validation
+- [ ] User CRUD operations implemented
+- [ ] Role-based permission system
+- [ ] User invitation and registration flow
 - [ ] Password reset functionality
-- [ ] User activation/deactivation
-- [ ] Frontend user management interface
+- [ ] User profile management
+- [ ] Activity logging and audit trails
+- [ ] Bulk user operations
 
 **Definition of Done**:
 - [ ] User management fully functional
-- [ ] Security properly implemented
+- [ ] Security permissions working
 - [ ] Role-based access working
 - [ ] User interface complete
 
----
-
 ### US-031: Profile Management CRUD
+**Epic**: 📊 Complete CRUD Operations  
 **As a** Business Owner  
 **I want** to manage multiple business profiles  
-**So that** I can handle different business configurations  
+**So that** I can handle different business locations or brands  
 
-**Description**: Implement comprehensive profile management with CRUD operations for business information, settings, and configurations.
+**Description**: Extend business profile management to support multiple profiles with switching capabilities and profile-specific configurations.
 
 **Story Points**: 5  
-**Priority**: Medium  
+**Priority**: Low  
 **Difficulty**: Medium  
-**Sprint**: 3  
-**Dependencies**: US-002  
-**Labels**: Backend, Frontend, CRUD  
+**Sprint**: Future  
+**Dependencies**: US-016  
+**Labels**: Backend, Frontend, Multi-tenant  
 
 **Acceptance Criteria**:
-- [ ] Profile CRUD operations implemented
-- [ ] Business information management (name, address, contact)
-- [ ] Operating hours configuration
-- [ ] Business sector and description
-- [ ] Logo and branding management
-- [ ] Multiple profile support
+- [ ] Multiple profile creation and management
 - [ ] Profile switching interface
+- [ ] Profile-specific data isolation
+- [ ] Profile templates and cloning
+- [ ] Profile archiving and restoration
+- [ ] Profile-specific agent configurations
+- [ ] Data migration between profiles
 
 **Definition of Done**:
-- [ ] Profile management complete
-- [ ] Data validation comprehensive
+- [ ] Multi-profile system working
+- [ ] Data isolation verified
 - [ ] Multi-profile support working
 - [ ] User interface intuitive
 
----
-
 ### US-032: Document Management CRUD
+**Epic**: 📊 Complete CRUD Operations  
 **As a** Business Owner  
-**I want** to manage all my business documents  
-**So that** the AI assistant has access to current policies and information  
+**I want** advanced document management capabilities  
+**So that** I can organize and maintain my business documents effectively  
 
-**Description**: Implement complete document management system with upload, processing, categorization, and AI integration.
+**Description**: Enhance document management with advanced features like versioning, categorization, search, and bulk operations.
 
 **Story Points**: 8  
 **Priority**: Medium  
 **Difficulty**: Hard  
-**Sprint**: 5  
+**Sprint**: Future  
 **Dependencies**: US-015  
-**Labels**: Backend, Frontend, CRUD, AI  
+**Labels**: Backend, Frontend, Document Management  
 
 **Acceptance Criteria**:
-- [ ] Document CRUD operations
-- [ ] File upload with validation (PDF, DOC, TXT)
+- [ ] Document versioning system
 - [ ] Document categorization and tagging
-- [ ] Text extraction and processing
-- [ ] Embedding generation for search
-- [ ] Document preview and download
-- [ ] Bulk operations (upload, delete)
-- [ ] Search and filtering capabilities
+- [ ] Advanced search and filtering
+- [ ] Bulk document operations
+- [ ] Document sharing and permissions
+- [ ] Document templates and automation
+- [ ] File format conversion capabilities
 
 **Definition of Done**:
-- [ ] Document management fully functional
-- [ ] AI integration working
+- [ ] Advanced features working
+- [ ] Document organization efficient
 - [ ] File processing reliable
 - [ ] User interface complete
 
----
-
 ### US-033: Agent Configuration CRUD
+**Epic**: 📊 Complete CRUD Operations  
 **As a** Business Owner  
-**I want** to manage different AI agent configurations  
-**So that** I can optimize my assistant for different scenarios  
+**I want** to manage multiple agent configurations  
+**So that** I can have different AI assistants for different purposes  
 
-**Description**: Implement CRUD operations for agent configurations with versioning, testing, and deployment capabilities.
+**Description**: Implement multiple agent configuration management with templates, cloning, and deployment controls.
 
 **Story Points**: 8  
-**Priority**: Medium  
+**Priority**: Low  
 **Difficulty**: Hard  
-**Sprint**: 5  
+**Sprint**: Future  
 **Dependencies**: US-028  
-**Labels**: Backend, Frontend, CRUD, AI  
+**Labels**: Backend, Frontend, AI Configuration  
 
 **Acceptance Criteria**:
-- [ ] Agent configuration CRUD operations
-- [ ] Configuration versioning and history
-- [ ] A/B testing capabilities
-- [ ] Performance metrics tracking
-- [ ] Configuration templates
-- [ ] Import/export functionality
-- [ ] Rollback and deployment controls
+- [ ] Multiple agent configuration support
+- [ ] Agent configuration templates
+- [ ] Configuration cloning and inheritance
+- [ ] A/B testing for different configurations
+- [ ] Configuration deployment controls
+- [ ] Performance monitoring per configuration
+- [ ] Configuration backup and restore
 
 **Definition of Done**:
-- [ ] Configuration management complete
-- [ ] Versioning system working
-- [ ] Testing capabilities functional
+- [ ] Multi-agent system working
+- [ ] Configuration management efficient
+- [ ] A/B testing functional
 - [ ] Deployment controls reliable
 
----
+## 🏗️ EPIC: INFRASTRUCTURE & DEPLOYMENT
 
-## 🏗️ INFRASTRUCTURE & DEPLOYMENT
+**Epic Goal**: Ensure the platform is deployed and maintained efficiently.
+
+**Epic Value**: Provides a comprehensive set of deployment and infrastructure features.
+
+**Epic Stories**: 4 User Stories | **Epic Points**: 42 | **Epic Priority**: High
 
 ### US-034: Terraform Infrastructure Setup
+**Epic**: 🏗️ Infrastructure & Deployment  
 **As a** DevOps Engineer  
-**I want** to provision AWS infrastructure using Infrastructure as Code  
-**So that** the deployment is reproducible and scalable  
+**I want** Infrastructure as Code with Terraform  
+**So that** the infrastructure is reproducible and version-controlled  
 
-**Description**: Create complete Terraform configuration for AWS infrastructure including VPC, EC2, RDS, S3, and security configurations.
+**Description**: Implement comprehensive Terraform configuration for AWS infrastructure including networking, compute, storage, and security components.
 
 **Story Points**: 13  
 **Priority**: High  
 **Difficulty**: Expert  
-**Sprint**: 1  
+**Sprint**: Future  
 **Dependencies**: None  
-**Labels**: Infrastructure, DevOps, Terraform  
+**Labels**: Infrastructure, Terraform, AWS  
 
 **Acceptance Criteria**:
-- [ ] Terraform configuration for complete AWS stack
-- [ ] VPC with public/private subnets
+- [ ] VPC and networking configuration
 - [ ] EC2 instances with auto-scaling
-- [ ] RDS PostgreSQL with backup configuration
-- [ ] S3 buckets for static assets and deployments
-- [ ] CloudFront CDN configuration
-- [ ] Route53 DNS management
+- [ ] RDS PostgreSQL with backup strategy
+- [ ] S3 buckets with lifecycle policies
 - [ ] Security groups and IAM roles
+- [ ] Load balancer configuration
 - [ ] Monitoring and logging setup
 
 **Definition of Done**:
-- [ ] Infrastructure deployable with single command
-- [ ] All security best practices implemented
+- [ ] Infrastructure fully automated
+- [ ] Security best practices implemented
 - [ ] Monitoring and alerting configured
 - [ ] Documentation complete
 
----
-
 ### US-035: CI/CD Pipeline Implementation
+**Epic**: 🏗️ Infrastructure & Deployment  
 **As a** DevOps Engineer  
-**I want** automated CI/CD pipeline for safe deployments  
-**So that** code changes are tested and deployed reliably  
+**I want** advanced CI/CD pipeline with multiple environments  
+**So that** deployments are safe, automated, and reliable  
 
 **Description**: Implement comprehensive CI/CD pipeline with GitHub Actions for automated testing, building, and deployment.
 
 **Story Points**: 13  
 **Priority**: High  
 **Difficulty**: Expert  
-**Sprint**: 6  
-**Dependencies**: US-034, US-018  
-**Labels**: DevOps, CI/CD, Automation  
+**Sprint**: Future  
+**Dependencies**: US-034  
+**Labels**: CI/CD, DevOps, Automation  
 
 **Acceptance Criteria**:
 - [ ] GitHub Actions workflow configuration
@@ -1145,331 +1245,349 @@
 - [ ] Zero-downtime deployments working
 - [ ] Rollback procedures tested
 
----
-
 ### US-036: Production Deployment Strategy
+**Epic**: 🏗️ Infrastructure & Deployment  
 **As a** DevOps Engineer  
-**I want** a robust production deployment process  
+**I want** production-ready deployment strategy  
 **So that** the application runs reliably in production  
 
-**Description**: Implement production deployment strategy with blue-green deployments, health checks, and monitoring.
+**Description**: Implement production deployment strategy with blue-green deployments, health checks, monitoring, and disaster recovery.
 
 **Story Points**: 8  
 **Priority**: High  
 **Difficulty**: Hard  
-**Sprint**: 6  
+**Sprint**: Future  
 **Dependencies**: US-035  
-**Labels**: DevOps, Deployment, Production  
+**Labels**: Production, Deployment, Reliability  
 
 **Acceptance Criteria**:
 - [ ] Blue-green deployment strategy
 - [ ] Health check endpoints and monitoring
-- [ ] Load balancer configuration
-- [ ] SSL/TLS certificate management
-- [ ] Environment variable management
-- [ ] Log aggregation and monitoring
+- [ ] Database backup and recovery procedures
+- [ ] SSL certificate management
+- [ ] CDN configuration for static assets
 - [ ] Performance monitoring and alerting
-- [ ] Backup and disaster recovery procedures
+- [ ] Disaster recovery plan and testing
 
 **Definition of Done**:
-- [ ] Production environment stable and monitored
-- [ ] Deployment process documented
+- [ ] Production environment stable
+- [ ] Deployment strategy proven
 - [ ] Monitoring and alerting working
 - [ ] Disaster recovery tested
 
----
-
 ### US-037: Environment Management
+**Epic**: 🏗️ Infrastructure & Deployment  
 **As a** DevOps Engineer  
-**I want** separate environments for development, staging, and production  
-**So that** we can test changes safely before production deployment  
+**I want** multiple environment management  
+**So that** development, staging, and production are properly isolated  
 
-**Description**: Set up multiple environments with proper isolation, configuration management, and promotion workflows.
+**Description**: Implement environment management with proper isolation, configuration management, and promotion workflows.
 
 **Story Points**: 8  
 **Priority**: Medium  
 **Difficulty**: Hard  
-**Sprint**: 6  
+**Sprint**: Future  
 **Dependencies**: US-034  
-**Labels**: DevOps, Environment Management  
+**Labels**: Environment Management, Configuration  
 
 **Acceptance Criteria**:
-- [ ] Development environment for local testing
-- [ ] Staging environment mirroring production
-- [ ] Production environment with high availability
+- [ ] Development, staging, and production environments
 - [ ] Environment-specific configuration management
-- [ ] Data seeding for non-production environments
+- [ ] Data seeding strategies per environment
 - [ ] Environment promotion workflows
 - [ ] Resource isolation and security
+- [ ] Cost optimization per environment
+- [ ] Environment monitoring and alerting
 
 **Definition of Done**:
-- [ ] All environments operational
-- [ ] Configuration management working
-- [ ] Promotion workflows tested
+- [ ] All environments working independently
+- [ ] Configuration management automated
+- [ ] Promotion workflows reliable
 - [ ] Security isolation verified
 
----
+## 🔧 EPIC: ADDITIONAL CRUD OPERATIONS
 
-## 🔧 ADDITIONAL CRUD OPERATIONS
+**Epic Goal**: Ensure all additional CRUD operations are well-implemented and functional.
+
+**Epic Value**: Provides a comprehensive set of additional CRUD operations features.
+
+**Epic Stories**: 2 User Stories | **Epic Points**: 10 | **Epic Priority**: Low
 
 ### US-038: FAQ Chunks Management
-**As a** Content Manager  
-**I want** to manage FAQ content chunks for AI processing  
-**So that** the AI assistant can provide accurate and detailed answers  
+**Epic**: 🔧 Additional CRUD Operations  
+**As a** Business Owner  
+**I want** to manage FAQ content chunks  
+**So that** I can fine-tune how the AI assistant uses FAQ information  
 
-**Description**: Implement CRUD operations for FAQ chunks with embedding management and search optimization.
+**Description**: Implement management interface for FAQ chunks generated during the embedding process with editing and optimization capabilities.
 
 **Story Points**: 5  
 **Priority**: Low  
 **Difficulty**: Medium  
-**Sprint**: 5  
+**Sprint**: Future  
 **Dependencies**: US-013  
-**Labels**: Backend, Frontend, CRUD, AI  
+**Labels**: Backend, Frontend, AI Content  
 
 **Acceptance Criteria**:
-- [ ] FAQ chunk CRUD operations
-- [ ] Automatic chunking of FAQ content
-- [ ] Embedding generation and management
-- [ ] Chunk search and retrieval
-- [ ] Performance optimization for large datasets
-- [ ] Chunk versioning and history
+- [ ] FAQ chunk listing and search interface
+- [ ] Chunk editing and optimization tools
+- [ ] Chunk quality scoring and validation
+- [ ] Bulk chunk operations
+- [ ] Chunk relationship management
+- [ ] Performance impact monitoring
+- [ ] Chunk regeneration capabilities
 
 **Definition of Done**:
-- [ ] Chunk management functional
-- [ ] AI search integration working
+- [ ] Chunk management fully functional
+- [ ] Quality improvements measurable
 - [ ] Performance optimized
 - [ ] User interface complete
 
----
-
 ### US-039: Document Chunks Management
-**As a** Content Manager  
-**I want** to manage document chunks for AI processing  
-**So that** the AI assistant can find relevant information quickly  
+**Epic**: 🔧 Additional CRUD Operations  
+**As a** Business Owner  
+**I want** to manage document content chunks  
+**So that** I can optimize how the AI assistant uses document information  
 
-**Description**: Implement CRUD operations for document chunks with advanced search and embedding management.
+**Description**: Implement management interface for document chunks with editing, merging, and optimization capabilities for better AI performance.
 
 **Story Points**: 5  
 **Priority**: Low  
 **Difficulty**: Medium  
-**Sprint**: 5  
-**Dependencies**: US-032  
-**Labels**: Backend, Frontend, CRUD, AI  
+**Sprint**: Future  
+**Dependencies**: US-015  
+**Labels**: Backend, Frontend, AI Content  
 
 **Acceptance Criteria**:
-- [ ] Document chunk CRUD operations
-- [ ] Intelligent chunking algorithms
-- [ ] Embedding generation and optimization
-- [ ] Semantic search capabilities
-- [ ] Chunk relevance scoring
-- [ ] Performance monitoring and optimization
+- [ ] Document chunk listing and search interface
+- [ ] Chunk editing and merging tools
+- [ ] Chunk quality assessment
+- [ ] Semantic similarity analysis
+- [ ] Chunk optimization recommendations
+- [ ] Performance monitoring and analytics
+- [ ] Automated chunk improvement suggestions
 
 **Definition of Done**:
-- [ ] Chunk management complete
-- [ ] Search performance optimized
-- [ ] AI integration reliable
+- [ ] Chunk management comprehensive
+- [ ] AI performance improved
+- [ ] Analytics providing insights
 - [ ] Monitoring in place
 
----
+## 📁 EPIC: PROJECT STRUCTURE & DOCUMENTATION
 
-## 📁 PROJECT STRUCTURE & DOCUMENTATION
+**Epic Goal**: Ensure the platform is well-documented and accessible.
+
+**Epic Value**: Provides comprehensive documentation and project structure features.
+
+**Epic Stories**: 2 User Stories | **Epic Points**: 5 | **Epic Priority**: Medium
 
 ### US-040: Project Folder Structure Setup
+**Epic**: 📁 Project Structure & Documentation  
 **As a** Developer  
-**I want** a well-organized project folder structure  
+**I want** a well-organized project structure  
 **So that** the codebase is maintainable and follows best practices  
 
-**Description**: Establish a comprehensive folder structure for the ShopMefy project following DDD principles and modern development practices.
-
-**Story Points**: 3  
-**Priority**: High  
-**Difficulty**: Easy  
-**Sprint**: 1  
-**Dependencies**: US-002, US-003  
-**Labels**: Backend, Frontend, Structure  
-
-**Acceptance Criteria**:
-- [ ] Backend folder structure with DDD layers (Domain, Application, Infrastructure, Presentation)
-- [ ] Frontend folder structure with components, pages, services, types
-- [ ] Shared utilities and common folders
-- [ ] Documentation folder structure
-- [ ] Environment configuration structure
-- [ ] Testing folder organization
-- [ ] Build and deployment scripts organization
-
-**Definition of Done**:
-- [ ] Folder structure documented
-- [ ] All team members understand organization
-- [ ] Consistent naming conventions applied
-- [ ] README files in key directories
-
----
-
-### US-041: UI Screenshots Integration
-**As a** Product Manager  
-**I want** to integrate Lovable UI screenshots into the documentation  
-**So that** stakeholders can visualize the final product design  
-
-**Description**: Integrate and document the UI screenshots from Lovable design system into the project documentation and development guidelines.
+**Description**: Establish comprehensive project folder structure with clear separation of concerns, documentation, and development guidelines.
 
 **Story Points**: 2  
 **Priority**: Medium  
 **Difficulty**: Easy  
-**Sprint**: 2  
-**Dependencies**: US-003  
-**Labels**: Frontend, Documentation, UI  
+**Sprint**: Completed  
+**Dependencies**: None  
+**Labels**: Project Structure, Documentation  
 
 **Acceptance Criteria**:
-- [ ] Screenshots organized in `/prompts/docs/img` folder
-- [ ] Screenshots referenced in PRD documentation
-- [ ] UI component mapping to screenshots
-- [ ] Design system guidelines documented
-- [ ] Responsive design variations shown
-- [ ] User flow screenshots included
+- [ ] Backend folder structure with DDD architecture
+- [ ] Frontend folder structure with component organization
+- [ ] Documentation folder with comprehensive guides
+- [ ] Scripts folder for automation and utilities
+- [ ] Configuration files properly organized
+- [ ] Development environment setup documentation
+- [ ] Consistent naming conventions applied
+- [ ] README files in key directories
 
 **Definition of Done**:
-- [ ] All screenshots properly integrated
-- [ ] Documentation updated with visual references
-- [ ] Design guidelines clear
+- [ ] Project structure clear and logical
+- [ ] Documentation comprehensive
+- [ ] Development workflow efficient
+- [ ] Team onboarding streamlined
+
+### US-041: UI Screenshots Integration
+**Epic**: 📁 Project Structure & Documentation  
+**As a** Developer  
+**I want** UI screenshots integrated into the project  
+**So that** the design system and components are visually documented  
+
+**Description**: Integrate UI screenshots from Lovable design system into the project documentation and component library.
+
+**Story Points**: 3  
+**Priority**: Medium  
+**Difficulty**: Easy  
+**Sprint**: Completed  
+**Dependencies**: US-026  
+**Labels**: Documentation, UI, Design System  
+
+**Acceptance Criteria**:
+- [ ] Screenshots organized in documentation folder
+- [ ] Component screenshots linked to component library
+- [ ] Design system visual guide created
+- [ ] UI consistency verification process
+- [ ] Screenshot update workflow established
+- [ ] Visual regression testing setup
+- [ ] Design-development alignment process
+
+**Definition of Done**:
+- [ ] Screenshots properly integrated
+- [ ] Documentation visually enhanced
+- [ ] Design system documented
 - [ ] Team alignment on UI direction
 
----
+## 🛡️ EPIC: ADVANCED SECURITY & ANTI-SPAM
 
-## 🛡️ ADVANCED SECURITY & ANTI-SPAM
+**Epic Goal**: Ensure the platform is secure and protected from abuse.
+
+**Epic Value**: Provides comprehensive security and anti-spam features.
+
+**Epic Stories**: 2 User Stories | **Epic Points**: 13 | **Epic Priority**: High
 
 ### US-042: Anti-Spam Security System
+**Epic**: 🛡️ Advanced Security & Anti-Spam  
 **As a** System Administrator  
 **I want** comprehensive anti-spam protection  
-**So that** the platform is protected from abuse and malicious users  
+**So that** the system is protected from abuse and malicious usage  
 
-**Description**: Implement advanced anti-spam measures including message limits, user blocking, content filtering, and automated abuse detection.
+**Description**: Implement advanced anti-spam system with rate limiting, content filtering, user behavior analysis, and automated protection mechanisms.
 
 **Story Points**: 8  
 **Priority**: High  
 **Difficulty**: Hard  
-**Sprint**: 3  
+**Sprint**: Future  
 **Dependencies**: US-007  
-**Labels**: Backend, Security, Anti-Spam  
+**Labels**: Security, Anti-Spam, Protection  
 
 **Acceptance Criteria**:
-- [ ] Message rate limiting per user (50 messages/day default)
-- [ ] Automatic user blocking for spam behavior
-- [ ] Content filtering for inappropriate messages
-- [ ] IP-based blocking and whitelist management
-- [ ] Spam pattern detection algorithms
-- [ ] Admin interface for managing blocked users
-- [ ] Configurable spam thresholds per business
-- [ ] Automated alerts for suspicious activity
+- [ ] Rate limiting with adaptive thresholds
+- [ ] Content filtering and spam detection
+- [ ] User behavior analysis and scoring
+- [ ] IP-based blocking and whitelisting
+- [ ] CAPTCHA integration for suspicious activity
+- [ ] Automated response to spam attempts
+- [ ] Reporting and analytics dashboard
 
 **Definition of Done**:
-- [ ] Anti-spam system fully functional
-- [ ] Admin controls working
+- [ ] Spam protection effective
+- [ ] False positive rate minimized
 - [ ] Monitoring and alerting active
 - [ ] Performance impact minimal
 
----
-
 ### US-043: API Rate Limiting Implementation
+**Epic**: 🛡️ Advanced Security & Anti-Spam  
 **As a** System Administrator  
 **I want** sophisticated API rate limiting  
-**So that** the system remains stable under high load and prevents abuse  
+**So that** the system resources are protected and fairly distributed  
 
-**Description**: Implement comprehensive API rate limiting with different tiers, user-based limits, and intelligent throttling mechanisms.
+**Description**: Implement advanced API rate limiting with user-based quotas, endpoint-specific limits, and intelligent throttling mechanisms.
 
 **Story Points**: 5  
 **Priority**: High  
 **Difficulty**: Medium  
-**Sprint**: 3  
-**Dependencies**: US-007  
-**Labels**: Backend, Security, Performance  
+**Sprint**: Future  
+**Dependencies**: US-042  
+**Labels**: Security, Rate Limiting, API  
 
 **Acceptance Criteria**:
-- [ ] Per-endpoint rate limiting configuration
-- [ ] User-tier based rate limits (Basic/Pro/Enterprise)
-- [ ] IP-based rate limiting for anonymous requests
-- [ ] Intelligent throttling with burst allowance
+- [ ] User-based rate limiting with quotas
+- [ ] Endpoint-specific rate limits
+- [ ] Intelligent throttling based on usage patterns
 - [ ] Rate limit headers in API responses
-- [ ] Redis-based distributed rate limiting
-- [ ] Admin interface for rate limit monitoring
-- [ ] Automatic scaling based on usage patterns
+- [ ] Bypass mechanisms for trusted sources
+- [ ] Rate limit monitoring and analytics
+- [ ] Graceful degradation under high load
 
 **Definition of Done**:
-- [ ] Rate limiting working across all endpoints
-- [ ] Performance monitoring active
-- [ ] Admin controls functional
+- [ ] Rate limiting working effectively
+- [ ] API performance maintained
+- [ ] Monitoring providing insights
 - [ ] Documentation updated
 
----
+## 🔧 EPIC: TECHNICAL INFRASTRUCTURE ENHANCEMENTS
 
-## 🔧 TECHNICAL INFRASTRUCTURE ENHANCEMENTS
+**Epic Goal**: Enhance the platform's technical infrastructure capabilities.
+
+**Epic Value**: Provides a comprehensive set of technical infrastructure features.
+
+**Epic Stories**: 2 User Stories | **Epic Points**: 16 | **Epic Priority**: Medium
 
 ### US-047: Advanced Monitoring and Logging
+**Epic**: 🔧 Technical Infrastructure Enhancements  
 **As a** DevOps Engineer  
 **I want** comprehensive monitoring and logging  
-**So that** I can maintain system health and quickly resolve issues  
+**So that** I can proactively identify and resolve issues  
 
-**Description**: Implement advanced monitoring, logging, and alerting systems for the ShopMefy platform with real-time dashboards and automated incident response.
+**Description**: Implement advanced monitoring, logging, and alerting system with metrics collection, log aggregation, and intelligent alerting.
 
 **Story Points**: 8  
 **Priority**: Medium  
 **Difficulty**: Hard  
-**Sprint**: 5  
-**Dependencies**: US-034, US-035  
-**Labels**: DevOps, Monitoring, Infrastructure  
+**Sprint**: Future  
+**Dependencies**: US-034  
+**Labels**: Monitoring, Logging, DevOps  
 
 **Acceptance Criteria**:
 - [ ] Application performance monitoring (APM)
-- [ ] Real-time error tracking and alerting
-- [ ] Business metrics dashboards
-- [ ] Log aggregation and analysis
+- [ ] Centralized logging with log aggregation
+- [ ] Custom metrics and dashboards
+- [ ] Intelligent alerting with escalation
+- [ ] Error tracking and analysis
+- [ ] Performance bottleneck identification
 - [ ] Automated incident response
-- [ ] Performance bottleneck detection
-- [ ] Security event monitoring
-- [ ] Custom alerting rules and notifications
 
 **Definition of Done**:
-- [ ] Monitoring system operational
-- [ ] Alerts configured and tested
+- [ ] Monitoring comprehensive and reliable
+- [ ] Alerting reducing false positives
 - [ ] Dashboards providing value
 - [ ] Incident response automated
 
----
-
 ### US-048: Multi-Language Support Infrastructure
+**Epic**: 🔧 Technical Infrastructure Enhancements  
 **As a** Business Owner  
-**I want** multi-language support for international expansion  
-**So that** I can serve customers in their preferred language  
+**I want** multi-language support infrastructure  
+**So that** I can serve customers in different languages  
 
-**Description**: Implement comprehensive internationalization (i18n) infrastructure supporting Italian, English, and Spanish languages across the platform.
+**Description**: Implement internationalization (i18n) infrastructure with language detection, translation management, and localized content delivery.
 
 **Story Points**: 8  
-**Priority**: Low  
+**Priority**: Medium  
 **Difficulty**: Hard  
 **Sprint**: Future  
-**Dependencies**: US-003, US-010  
-**Labels**: Frontend, Backend, Internationalization  
+**Dependencies**: US-003  
+**Labels**: Internationalization, Frontend, Backend  
 
 **Acceptance Criteria**:
-- [ ] i18n framework implementation
+- [ ] i18n framework integration
 - [ ] Language detection and switching
-- [ ] Translated UI components
-- [ ] Multi-language AI assistant responses
-- [ ] Localized date, time, and currency formats
-- [ ] Right-to-left language support preparation
-- [ ] Translation management system
-- [ ] Cultural adaptation for different markets
+- [ ] Translation key management system
+- [ ] Localized content delivery
+- [ ] RTL language support
+- [ ] Currency and date localization
+- [ ] Translation workflow for content updates
 
 **Definition of Done**:
 - [ ] Multi-language support working
-- [ ] Translation workflow established
-- [ ] Cultural adaptations appropriate
+- [ ] Translation workflow efficient
+- [ ] Localization comprehensive
 - [ ] Performance impact minimal
 
----
+## 🌐 EPIC: MULTI-CHANNEL & ADVANCED SECURITY
 
-## 🌐 MULTI-CHANNEL & ADVANCED SECURITY
+**Epic Goal**: Ensure the platform is accessible and secure across multiple communication channels.
+
+**Epic Value**: Provides a comprehensive set of multi-channel and advanced security features.
+
+**Epic Stories**: 2 User Stories | **Epic Points**: 26 | **Epic Priority**: High
 
 ### US-049: Multi-Channel Management System
+**Epic**: 🌐 Multi-Channel & Advanced Security  
 **As a** Business Owner  
 **I want** to manage multiple communication channels from one platform  
 **So that** I can reach customers on their preferred messaging platforms  
@@ -1485,53 +1603,50 @@
 
 **Acceptance Criteria**:
 - [ ] Channel integration framework for multiple platforms
-- [ ] Unified customer profiles across all channels
+- [ ] Unified conversation management interface
+- [ ] Cross-platform customer profile synchronization
 - [ ] Channel-specific message formatting and features
-- [ ] Cross-platform conversation synchronization
-- [ ] Unified inbox interface for all channels
-- [ ] Channel performance analytics and reporting
-- [ ] Smart message routing based on customer preferences
-- [ ] Channel-specific configuration and customization
+- [ ] Unified analytics and reporting across channels
+- [ ] Channel health monitoring and status tracking
+- [ ] Automated channel failover and redundancy
 
 **Definition of Done**:
-- [ ] Multi-channel system fully operational
-- [ ] All supported platforms integrated
+- [ ] Multi-channel integration working
+- [ ] Unified interface functional
+- [ ] Customer data synchronized
 - [ ] Unified customer experience maintained
 - [ ] Performance metrics tracking active
 
----
-
 ### US-050: Enhanced Data Security & Privacy Framework
+**Epic**: 🌐 Multi-Channel & Advanced Security  
 **As a** Business Owner  
-**I want** enterprise-grade data security and privacy controls  
-**So that** I can ensure customer data protection and regulatory compliance  
+**I want** enhanced data security and privacy controls  
+**So that** customer data is protected and compliance requirements are met  
 
-**Description**: Implement comprehensive data security and privacy framework including end-to-end encryption, GDPR compliance tools, audit trails, and customer privacy controls.
+**Description**: Implement comprehensive data security and privacy framework with GDPR compliance, data encryption, access controls, and privacy management tools.
 
 **Story Points**: 13  
 **Priority**: High  
 **Difficulty**: Expert  
 **Sprint**: Future  
 **Dependencies**: US-007, US-042  
-**Labels**: Backend, Security, Privacy, Compliance  
+**Labels**: Security, Privacy, Compliance, GDPR  
 
 **Acceptance Criteria**:
-- [ ] End-to-end encryption for all customer data
-- [ ] GDPR compliance toolkit and automated workflows
-- [ ] Comprehensive data audit trails and logging
-- [ ] Right to be forgotten implementation
-- [ ] Configurable data retention policies
-- [ ] Customer privacy dashboard and self-service portal
-- [ ] Real-time security monitoring and threat detection
-- [ ] Automated compliance reporting and documentation
+- [ ] GDPR compliance framework implementation
+- [ ] Data encryption at rest and in transit
+- [ ] Granular access control and permissions
+- [ ] Data retention and deletion policies
+- [ ] Privacy consent management system
+- [ ] Data breach detection and response
+- [ ] Regular security audits and compliance reporting
 
 **Definition of Done**:
-- [ ] Security framework fully implemented
 - [ ] GDPR compliance verified
+- [ ] Data security comprehensive
+- [ ] Privacy controls functional
 - [ ] Audit trails comprehensive
 - [ ] Customer privacy controls functional
-
----
 
 ## 📊 STORY SUMMARY
 
