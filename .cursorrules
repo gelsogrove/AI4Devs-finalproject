@@ -70,3 +70,4 @@ All project documentation is located under:
 - **Agent Prompt**: `/Users/gelso/workspace/AI/AI4Devs-finalproject/finalproject-AG/others/prompt_agent.md`
 - IF YOU WANT TO SEE WHAT WE HAVE IN THE DB USE FOR EXAMPLES:
 cd /Users/gelso/workspace/AI/AI4Devs-finalproject && docker exec -it shopme-db psql -U shopme -d shopme -c "SELECT COUNT(*) FROM document_chunks;"
+- do not invent npm run commnad !! 

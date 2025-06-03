@@ -10,10 +10,19 @@
 # - Security: Basic Security Groups (SSH, HTTP, HTTPS, PostgreSQL)
 # - Storage: S3 bucket for deployments + RDS backups
 # - EC2 Setup: Pre-configured with Node.js, PM2, Nginx, user 'shopme'
-# - Secrets: AWS Secrets Manager for database credentials
+# - Secrets: AWS Secrets Manager for database credentials + GitHub Secrets for API keys
+# - API Keys: OpenRouter, HuggingFace, JWT Secret automatically configured
+# - Environment: Complete .env file with all required variables
 # - Monitoring: CloudWatch basic logging only
 # - Deploy Flow: CI/CD → S3 → EC2 (compatible with existing deploy.yml)
 # - Estimated Cost: ~$27-30/month
+#
+# REQUIRED GITHUB SECRETS:
+# - AWS_ACCESS_KEY_ID: AWS access key for Terraform
+# - AWS_SECRET_ACCESS_KEY: AWS secret key for Terraform  
+# - OPENROUTER_API_KEY: API key for ChatGPT/Claude integration
+# - HUGGINGFACE_API_KEY: API key for embeddings and document search
+# - JWT_SECRET: Secret key for authentication tokens
 
 name: 🚀 Deploy AWS Infrastructure with Terraform
 
@@ -753,6 +762,12 @@ jobs:
           NODE_ENV=production
           PORT=8080
           DATABASE_URL=postgresql://shopmefy:$(aws secretsmanager get-secret-value --secret-id ${secret_arn} --region ${aws_region} --query SecretString --output text | jq -r .password)@$(aws secretsmanager get-secret-value --secret-id ${secret_arn} --region ${aws_region} --query SecretString --output text | jq -r .host):5432/shopmefy
+          OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
+          HUGGINGFACE_API_KEY=${{ secrets.HUGGINGFACE_API_KEY }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          FRONTEND_URL=http://${aws_eip.web.public_ip}
+          AWS_REGION=${aws_region}
+          AWS_S3_BUCKET=${s3_bucket}
           EOL
           
           chown shopme:shopme /home/shopme/.env
