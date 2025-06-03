@@ -572,5 +572,4 @@ Build a system for configuring AI agents for customer interactions.
 ---
 
 ## 7. Pull Requests
-
-https://github.com/LIDR-academy/AI4Devs-finalproject/pull/34
+https://github.com/gelsogrove/AI4Devs-finalproject
