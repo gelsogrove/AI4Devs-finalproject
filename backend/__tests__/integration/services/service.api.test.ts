@@ -209,7 +209,6 @@ afterAll(async () => {
 describe('Service API', () => {
   beforeEach(() => {
     // Setup all embedding service mocks
-    mockEmbeddingService.generateEmbeddingsForServiceChunks.mockResolvedValue(undefined);
     mockEmbeddingService.generateEmbeddingsForAllServiceChunks.mockResolvedValue(undefined);
     mockEmbeddingService.searchServiceChunks.mockResolvedValue([]);
     mockEmbeddingService.getServiceChunks.mockResolvedValue([]);
@@ -439,36 +438,7 @@ describe('Service API', () => {
     });
 
     describe('POST /api/embeddings/services/:id/generate', () => {
-      it('should generate embeddings for a specific service', async () => {
-        const response = await request(app)
-          .post(`/api/embeddings/services/${testServiceId}/generate`)
-          .set('Authorization', `Bearer ${authToken}`);
-
-        expect(response.status).toBe(200);
-        expect(response.body).toHaveProperty('success', true);
-        expect(response.body).toHaveProperty('message', 'Service embeddings generated successfully');
-      });
-
-      it('should return 404 for non-existent service', async () => {
-        const nonExistentId = 'non-existent-service-id';
-        
-        // Mock the embedding service to throw "Service not found" error
-        embeddingService.generateEmbeddingsForServiceChunks.mockRejectedValueOnce(new Error('Service not found'));
-        
-        const response = await request(app)
-          .post(`/api/embeddings/services/${nonExistentId}/generate`)
-          .set('Authorization', `Bearer ${authToken}`);
-
-        expect(response.status).toBe(404);
-        expect(response.body).toHaveProperty('error', 'Service not found');
-      });
-
-      it('should require authentication', async () => {
-        const response = await request(app)
-          .post(`/api/embeddings/services/${testServiceId}/generate`);
-
-        expect(response.status).toBe(401);
-      });
+      // Test removed - individual service embedding generation no longer supported
     });
 
     describe('POST /api/embeddings/services/generate-all', () => {

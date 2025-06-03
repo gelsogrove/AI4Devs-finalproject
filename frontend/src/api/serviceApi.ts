@@ -68,10 +68,4 @@ export const serviceApi = {
     const response = await axios.post('/api/embeddings/services/generate-all', {}, getAuthHeader());
     return response.data;
   },
-
-  // Generate embeddings for a specific service using ServiceChunk
-  async generateEmbeddingsForService(serviceId: string) {
-    const response = await axios.post(`/api/embeddings/services/${serviceId}/generate`, {}, getAuthHeader());
-    return response.data;
-  }
 }; 

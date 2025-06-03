@@ -143,40 +143,6 @@ router.post('/services/generate-all', authenticate, embeddingController.generate
 
 /**
  * @swagger
- * /api/embeddings/services/{id}/generate:
- *   post:
- *     summary: Generate embeddings for a specific service
- *     tags: [Embeddings]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: Service ID
- *     responses:
- *       200:
- *         description: Embeddings generated successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *       404:
- *         description: Service not found
- *       500:
- *         description: Server error
- */
-router.post('/services/:id/generate', authenticate, embeddingController.generateEmbeddingForService);
-
-/**
- * @swagger
  * /api/embeddings/services/search:
  *   get:
  *     summary: Search services using semantic search

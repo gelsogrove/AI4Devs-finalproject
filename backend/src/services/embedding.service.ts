@@ -727,54 +727,6 @@ class EmbeddingService {
   // ===== SERVICE CHUNK METHODS =====
 
   /**
-   * Generate embeddings for a single service and store in database
-   */
-  async generateEmbeddingsForServiceChunks(serviceId: string): Promise<void> {
-    try {
-      // Get service from database
-      const service = await prisma.service.findUnique({
-        where: { id: serviceId },
-      });
-
-      if (!service) {
-        throw new Error('Service not found');
-      }
-
-      // Generate embedding for combined name, description and price
-      const combinedText = `${service.name}\n${service.description}\nPrice: €${service.price}`;
-      
-      // Split the service content into chunks
-      const contentChunks = splitIntoChunks(combinedText);
-
-      // Delete existing chunks for this service
-      await prismaClient.serviceChunk.deleteMany({
-        where: { serviceId },
-      });
-
-      // Generate embeddings for each chunk and save
-      for (const chunk of contentChunks) {
-        // Generate embedding using OpenAI
-        const embedding = await aiService.generateEmbedding(chunk);
-        
-        // Save chunk with embedding
-        await prismaClient.serviceChunk.create({
-          data: {
-            content: chunk,
-            embedding: JSON.stringify(embedding), // Store as JSON string
-            serviceId: service.id,
-          },
-        });
-      }
-
-      logger.info(`Generated embeddings for service ${serviceId}`);
-
-    } catch (error) {
-      logger.error(`Error generating embeddings for service ${serviceId}:`, error);
-      throw new Error('Failed to generate embeddings for service');
-    }
-  }
-
-  /**
    * Generate embeddings for all active services
    */
   async generateEmbeddingsForAllServiceChunks(): Promise<void> {
@@ -788,7 +740,33 @@ class EmbeddingService {
       logger.info(`Found ${services.length} active services to process`);
       
       for (const service of services) {
-        await this.generateEmbeddingsForServiceChunks(service.id);
+        // Generate embedding for combined name, description and price
+        const combinedText = `${service.name}\n${service.description}\nPrice: €${service.price}`;
+        
+        // Split the service content into chunks
+        const contentChunks = splitIntoChunks(combinedText);
+
+        // Delete existing chunks for this service
+        await prismaClient.serviceChunk.deleteMany({
+          where: { serviceId: service.id },
+        });
+
+        // Generate embeddings for each chunk and save
+        for (const chunk of contentChunks) {
+          // Generate embedding using OpenAI
+          const embedding = await aiService.generateEmbedding(chunk);
+          
+          // Save chunk with embedding
+          await prismaClient.serviceChunk.create({
+            data: {
+              content: chunk,
+              embedding: JSON.stringify(embedding), // Store as JSON string
+              serviceId: service.id,
+            },
+          });
+        }
+
+        logger.info(`Generated embeddings for service ${service.id}`);
       }
       
       logger.info(`Generated embeddings for ${services.length} services`);

@@ -147,29 +147,6 @@ class EmbeddingController {
   // ===== SERVICE CHUNK METHODS =====
 
   /**
-   * Generate embeddings for a specific service
-   */
-  async generateEmbeddingForService(req: Request, res: Response) {
-    try {
-      const { id } = req.params;
-      await embeddingService.generateEmbeddingsForServiceChunks(id);
-      
-      return res.status(200).json({
-        success: true,
-        message: 'Service embeddings generated successfully',
-      });
-    } catch (error) {
-      logger.error('Error generating embeddings for service:', error);
-      
-      if (error instanceof Error && error.message === 'Service not found') {
-        return res.status(404).json({ error: 'Service not found' });
-      }
-      
-      return res.status(500).json({ error: 'Failed to generate service embeddings' });
-    }
-  }
-
-  /**
    * Generate embeddings for all services
    */
   async generateEmbeddingsForAllServices(req: Request, res: Response) {
