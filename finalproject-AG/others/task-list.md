@@ -841,7 +841,7 @@ WhatsApp Business API integration will enable direct communication between ShopM
 Implement a complete Category management system to replace the current string-based category system in products. This will provide proper category hierarchy, better organization, and improved product filtering capabilities.
 
 **Current Status**: 
-⚠️ **NOT YET IMPLEMENTED** - Products currently use simple category strings. Need to create a proper Category entity with CRUD operations and migrate existing data.
+  Products currently use simple category strings. Need to create a proper Category entity with CRUD operations and migrate existing data.
 
 **Key Tasks**:
 - Create Category entity in Prisma schema with proper relationships
@@ -859,6 +859,9 @@ Implement a complete Category management system to replace the current string-ba
 - Create migration script to convert existing category strings to Category entities
 - Update product forms to use category dropdown instead of text input
 - Add category filtering in product lists
+- Create a menu above Agent Settings called Categories  and please use the same 
+layout the same UI apporch for managine the categoeries
+- If a categories is used 
 
 **Acceptance Criteria**:
 - 🚧 Category Prisma model created with hierarchy support
@@ -875,7 +878,6 @@ Implement a complete Category management system to replace the current string-ba
 
 ---
 
-### Task 38: Debug Mode Display Fix (✅ COMPLETED)
 **Description**: 
 Fixed issue where the debug mode in the frontend was not showing function calls even when they were being executed correctly by the backend. The debug panel was showing "No function calls recorded yet" despite functions being called successfully.
 
