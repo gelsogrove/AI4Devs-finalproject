@@ -62,10 +62,10 @@ The platform includes an admin panel where business owners can manage:
 - Performance metrics
 
 
-![Channel](./img/channel.png)
-![Products](./img/products.png)
-![Agent configuration](./img/agentConfiguration.png)
-![Chat History](./img/chatHistory.png)
+![Channel](./prompts/docs/img/channel.png)
+![Products](./prompts/docs/img/products.png)
+![Agent configuration](./prompts/docs/img/agentConfiguration.png)
+![Chat History](./prompts/docs/img/chatHistory.png)
 
 I used Lovable
 
@@ -138,6 +138,7 @@ flowchart TB
     subgraph "Backend"
         NodeJS["Node.js Express"]
         API["REST API"]
+        LangChain["LangChain\n(AI Orchestration)"]
     end
     
     subgraph "Data Layer"
@@ -156,9 +157,11 @@ flowchart TB
     Operator --> React
     React --> API
     API --> NodeJS
+    NodeJS --> LangChain
+    LangChain <--> OpenRouter
     NodeJS --> Prisma
     Prisma --> DB
-    NodeJS <--> OpenRouter
+    LangChain --> Prisma
     NodeJS <--> Payment
     
     classDef frontend fill:#42A5F5,stroke:#1976D2,color:white
@@ -166,9 +169,11 @@ flowchart TB
     classDef database fill:#AB47BC,stroke:#7B1FA2,color:white
     classDef external fill:#FF7043,stroke:#E64A19,color:white
     classDef user fill:#78909C,stroke:#455A64,color:white
+    classDef ai fill:#9C27B0,stroke:#6A1B9A,color:white
 
     class React frontend
     class NodeJS,API backend
+    class LangChain ai
     class Prisma,DB database
     class WhatsApp,OpenRouter,Payment external
     class User,Operator user
@@ -180,11 +185,13 @@ flowchart TB
 
 - **Backend**: Node.js Express application using Domain-Driven Design architecture to handle business logic and API routes.
 
+- **LangChain**: AI orchestration framework that manages function calling, conversation memory, and intelligent response generation. Coordinates between OpenRouter API and business data to provide contextual AI assistance.
+
 - **Data Layer**: Prisma ORM with PostgreSQL database.
 
 - **External Services**:
   - **WhatsApp Business API**: For customer communication
-  - **OpenRouter API**: Powers the AI chatbot
+  - **OpenRouter API**: Powers the AI chatbot through LangChain orchestration
   - **Payment Gateway**: Handles secure payments
 
 ### **2.3. High-level project description**
@@ -193,7 +200,7 @@ The project follows a Domain-Driven Design architecture with clear separation of
 
 **Backend Architecture**
 - **Domain Layer**: Core business entities and rules
-- **Application Layer**: Use cases and business operations
+- **Application Layer**: Use cases and business operations with LangChain AI orchestration
 - **Infrastructure Layer**: Database access and external services
 - **Interface Layer**: API endpoints and controllers
 
@@ -574,7 +581,7 @@ For detailed user stories and additional scenarios, see: [`/prompts/03_userstori
 Integrate LangChain framework to power the Sofia AI assistant with intelligent function calling capabilities, enabling seamless access to business data and contextual response generation.
 
 **Type**: Backend Development  
-**Status**: TODO  
+**Status**: DONE  
 **Epic**: 🤖 AI Assistant & Chatbot  
 **Priority**: Critical  
 **Complexity**: High  
@@ -782,156 +789,6 @@ Design and implement comprehensive database schema to support AI agent configura
    - Optimize for conversation retrieval patterns
    - Implement data archiving for old conversations
 
-**Database Schema**:
-
-```mermaid
-erDiagram
-    Product {
-        string id PK
-        string name
-        string description
-        decimal price
-        string category
-        boolean isActive
-        datetime createdAt
-        datetime updatedAt
-        string tagsJson
-    }
-
-    FAQ {
-        string id PK
-        string question
-        string answer
-        boolean isActive
-        datetime createdAt
-        datetime updatedAt
-    }
-
-    FAQChunk {
-        string id PK
-        string content
-        string faqId FK
-        datetime createdAt
-        datetime updatedAt
-        string embedding
-    }
-
-    AgentConfig {
-        string id PK
-        float temperature
-        int maxTokens
-        float topP
-        string model
-        string prompt
-        datetime updatedAt
-    }
-
-    User {
-        string id PK
-        string email UK
-        string password
-        string firstName
-        string lastName
-        boolean isActive
-        datetime lastLogin
-        datetime createdAt
-        datetime updatedAt
-    }
-
-    Service {
-        string id PK
-        string name
-        string description
-        decimal price
-        datetime createdAt
-        datetime updatedAt
-        boolean isActive
-        string embedding
-    }
-
-    ServiceChunk {
-        string id PK
-        string content
-        string serviceId FK
-        datetime createdAt
-        datetime updatedAt
-        string embedding
-    }
-
-    Profile {
-        string id PK
-        string username UK
-        string companyName
-        string logoUrl
-        string description
-        string phoneNumber
-        string website
-        string email
-        string openingTime
-        string address
-        string sector
-        datetime createdAt
-        datetime updatedAt
-    }
-
-    Document {
-        string id PK
-        string filename
-        string originalName
-        string title
-        string mimeType
-        int size
-        string uploadPath
-        string status
-        boolean isActive
-        string userId
-        string metadata
-        datetime createdAt
-        datetime updatedAt
-        string path
-    }
-
-    DocumentChunk {
-        string id PK
-        string content
-        int pageNumber
-        int chunkIndex
-        string documentId FK
-        string embedding
-        datetime createdAt
-        datetime updatedAt
-    }
-
-    %% Relationships
-    FAQ ||--o{ FAQChunk : "has chunks"
-    Service ||--o{ ServiceChunk : "has chunks"
-    Document ||--o{ DocumentChunk : "has chunks"
-```
-
-### Database Tables Overview
-
-**Core Business Entities:**
-- **Product**: E-commerce products with pricing and categorization
-- **Service**: Business services with descriptions and pricing
-- **FAQ**: Frequently asked questions for customer support
-
-**AI/ML Components:**
-- **FAQChunk**: Text chunks from FAQs with embeddings for semantic search
-- **ServiceChunk**: Text chunks from services with embeddings
-- **DocumentChunk**: Text chunks from uploaded documents with embeddings
-
-**Configuration & Management:**
-- **AgentConfig**: AI agent configuration (temperature, model, prompts)
-- **Profile**: Business profile information
-- **User**: System users with authentication
-- **Document**: File management with metadata
-
-**Key Features:**
-- **Vector Embeddings**: All chunks support embeddings for semantic search
-- **Soft Deletes**: Most entities use `isActive` flags
-- **Audit Trail**: `createdAt` and `updatedAt` timestamps
-- **Cascade Deletes**: Chunks are automatically deleted when parent entities are removed
-
 **Acceptance Criteria**:
 - ✅ All database tables created with proper constraints
 - ✅ Foreign key relationships established and tested
@@ -940,7 +797,7 @@ erDiagram
 - ✅ Seed data supports comprehensive testing scenarios
 - ✅ Data validation prevents invalid configurations
 - ✅ GDPR compliance features implemented
-- ✅ Backup and recovery procedures documented
+- ✅ Backup procedures tested and verified
 
 **Definition of Done**:
 - Database schema reviewed by senior developer
