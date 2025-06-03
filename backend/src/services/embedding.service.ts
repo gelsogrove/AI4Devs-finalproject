@@ -123,10 +123,15 @@ class EmbeddingService {
       // Generate embedding for the search query
       const queryEmbedding = await aiService.generateEmbedding(query);
       
-      // Get all FAQ chunks with their embeddings
+      // Get all FAQ chunks with their embeddings - ONLY from active FAQs
       const chunks = await prisma.fAQChunk.findMany({
         include: {
           faq: true
+        },
+        where: {
+          faq: {
+            isActive: true
+          }
         }
       }) as FAQChunkWithFAQ[];
 
@@ -329,10 +334,15 @@ class EmbeddingService {
       // Generate embedding for the search query
       const queryEmbedding = await aiService.generateEmbedding(query);
       
-      // Get all FAQ chunks with their embeddings
+      // Get all FAQ chunks with their embeddings - ONLY from active FAQs
       const chunks = await prisma.fAQChunk.findMany({
         include: {
           faq: true
+        },
+        where: {
+          faq: {
+            isActive: true
+          }
         }
       }) as FAQChunkWithFAQ[];
 
