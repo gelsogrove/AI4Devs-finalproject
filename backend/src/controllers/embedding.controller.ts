@@ -143,6 +143,216 @@ class EmbeddingController {
       return res.status(500).json({ error: 'Failed to clear and regenerate embeddings' });
     }
   }
+
+  // ===== SERVICE CHUNK METHODS =====
+
+  /**
+   * Generate embeddings for a specific service
+   */
+  async generateEmbeddingForService(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      await embeddingService.generateEmbeddingsForServiceChunks(id);
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Service embeddings generated successfully',
+      });
+    } catch (error) {
+      logger.error('Error generating embeddings for service:', error);
+      
+      if (error instanceof Error && error.message === 'Service not found') {
+        return res.status(404).json({ error: 'Service not found' });
+      }
+      
+      return res.status(500).json({ error: 'Failed to generate service embeddings' });
+    }
+  }
+
+  /**
+   * Generate embeddings for all services
+   */
+  async generateEmbeddingsForAllServices(req: Request, res: Response) {
+    try {
+      await embeddingService.generateEmbeddingsForAllServiceChunks();
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Embeddings generated for all services',
+      });
+    } catch (error) {
+      logger.error('Error generating embeddings for all services:', error);
+      return res.status(500).json({ error: 'Failed to generate embeddings for all services' });
+    }
+  }
+
+  /**
+   * Search services using embeddings
+   */
+  async searchServices(req: Request, res: Response) {
+    try {
+      const { query, limit = 5 } = req.query;
+      
+      if (!query || typeof query !== 'string') {
+        return res.status(400).json({ error: 'Query parameter is required' });
+      }
+      
+      const services = await embeddingService.searchServiceChunks(query, parseInt(limit as string));
+      
+      return res.status(200).json({
+        success: true,
+        services,
+        total: services.length,
+      });
+    } catch (error) {
+      logger.error('Error searching services:', error);
+      return res.status(500).json({ error: 'Failed to search services' });
+    }
+  }
+
+  /**
+   * Debug endpoint to check service chunks and embeddings
+   */
+  async debugServiceChunks(req: Request, res: Response) {
+    try {
+      const { serviceId } = req.params;
+      
+      if (serviceId) {
+        // Get chunks for specific service
+        const chunks = await embeddingService.getServiceChunks(serviceId);
+        return res.status(200).json({
+          serviceId,
+          chunks: chunks.map(chunk => ({
+            id: chunk.id,
+            content: chunk.content,
+            hasEmbedding: !!chunk.embedding,
+            embeddingLength: chunk.embedding ? JSON.parse(chunk.embedding).length : 0
+          }))
+        });
+      } else {
+        // Get all chunks
+        const allChunks = await embeddingService.getAllServiceChunks();
+        return res.status(200).json({
+          total: allChunks.length,
+          chunks: allChunks.map(chunk => ({
+            id: chunk.id,
+            serviceId: chunk.serviceId,
+            content: chunk.content.substring(0, 100) + '...',
+            hasEmbedding: !!chunk.embedding,
+            embeddingLength: chunk.embedding ? JSON.parse(chunk.embedding).length : 0,
+            serviceName: chunk.service?.name || 'Unknown'
+          }))
+        });
+      }
+    } catch (error) {
+      logger.error('Error debugging service chunks:', error);
+      return res.status(500).json({ error: 'Failed to debug service chunks' });
+    }
+  }
+
+  /**
+   * Debug search services with detailed similarity scores
+   */
+  async debugSearchServices(req: Request, res: Response) {
+    try {
+      const { query, limit = 5 } = req.query;
+      
+      if (!query || typeof query !== 'string') {
+        return res.status(400).json({ error: 'Query parameter is required' });
+      }
+      
+      const debugResults = await embeddingService.debugSearchServiceChunks(query, parseInt(limit as string));
+      
+      return res.status(200).json(debugResults);
+    } catch (error) {
+      logger.error('Error in debug search services:', error);
+      return res.status(500).json({ error: 'Failed to debug search services' });
+    }
+  }
+
+  /**
+   * Clear all service chunks and regenerate embeddings
+   */
+  async clearAndRegenerateServiceEmbeddings(req: Request, res: Response) {
+    try {
+      await embeddingService.clearAllServiceChunks();
+      await embeddingService.generateEmbeddingsForAllServiceChunks();
+      
+      return res.status(200).json({
+        success: true,
+        message: 'All service chunks cleared and embeddings regenerated',
+      });
+    } catch (error) {
+      logger.error('Error clearing and regenerating service embeddings:', error);
+      return res.status(500).json({ error: 'Failed to clear and regenerate service embeddings' });
+    }
+  }
+
+  // ===== DOCUMENT EMBEDDING METHODS =====
+
+  /**
+   * Generate embeddings for a specific document
+   */
+  async generateEmbeddingForDocument(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      await embeddingService.generateEmbeddingsForDocument(id);
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Document embeddings generated successfully',
+      });
+    } catch (error) {
+      logger.error('Error generating embeddings for document:', error);
+      
+      if (error instanceof Error && error.message === 'Document not found') {
+        return res.status(404).json({ error: 'Document not found' });
+      }
+      
+      return res.status(500).json({ error: 'Failed to generate document embeddings' });
+    }
+  }
+
+  /**
+   * Generate embeddings for all documents
+   */
+  async generateEmbeddingsForAllDocuments(req: Request, res: Response) {
+    try {
+      await embeddingService.generateEmbeddingsForAllDocuments();
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Embeddings generated for all documents',
+      });
+    } catch (error) {
+      logger.error('Error generating embeddings for all documents:', error);
+      return res.status(500).json({ error: 'Failed to generate embeddings for all documents' });
+    }
+  }
+
+  /**
+   * Search documents using embeddings
+   */
+  async searchDocuments(req: Request, res: Response) {
+    try {
+      const { query, limit = 5 } = req.query;
+      
+      if (!query || typeof query !== 'string') {
+        return res.status(400).json({ error: 'Query parameter is required' });
+      }
+      
+      const documents = await embeddingService.searchDocuments(query, parseInt(limit as string));
+      
+      return res.status(200).json({
+        success: true,
+        documents,
+        total: documents.length,
+      });
+    } catch (error) {
+      logger.error('Error searching documents:', error);
+      return res.status(500).json({ error: 'Failed to search documents' });
+    }
+  }
 }
 
 export default new EmbeddingController(); 

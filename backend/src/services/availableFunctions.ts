@@ -209,11 +209,15 @@ export const availableFunctions = {
     try {
       const { search, isActive } = filters;
       
+      // Always use embedding search if search term is provided
       if (search) {
         try {
-          // Use embedding search if search term is provided
-          const services = await embeddingService.searchServices(search);
+          logger.info(`Using embedding search for services with query: ${search}`);
+          // Use ServiceChunk embedding search - we have chunks in the database
+          const services = await embeddingService.searchServiceChunks(search);
 
+          logger.info(`Embedding search found ${services.length} services for query: ${search}`);
+          
           // Filter by isActive if specified
           const filteredServices = typeof isActive === 'boolean' 
             ? services.filter(s => s.isActive === isActive)
@@ -230,56 +234,21 @@ export const availableFunctions = {
             }))
           };
         } catch (embeddingError) {
-          // Log error and fall back to regular search
-          logger.error('Service embedding search failed, falling back to text search:', embeddingError);
-          
-          // Continue with regular search below
+          logger.error('Service embedding search failed completely:', embeddingError);
+          // Return empty results instead of falling back to text search
+          // This forces the system to use the cascade logic properly
+          return {
+            total: 0,
+            services: [],
+            error: 'Service search temporarily unavailable'
+          };
         }
       }
 
-      // If no search term or embedding search failed, use regular filtering
-      const where: any = {};
-      
-      // Add isActive filter if provided
-      if (typeof isActive === 'boolean') {
-        where.isActive = isActive;
-      }
-      
-      // Add search filter if provided
-      if (search) {
-        // Split search into keywords for better matching
-        const rawKeywords = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
-        
-        // Filter out stop words
-        const keywords = rawKeywords.filter(word => !stopWords.includes(word));
-        
-        // If all words were stop words, use the original keywords
-        const searchTerms = keywords.length > 0 ? keywords : rawKeywords;
-        
-        if (searchTerms.length > 0) {
-          // Create OR conditions for each keyword
-          where.OR = searchTerms.flatMap(keyword => [
-            // Exact match - highest priority
-            {
-              name: {
-                equals: keyword
-              }
-            },
-            // Contains in name - medium priority
-            {
-              name: {
-                contains: keyword
-              }
-            },
-            // Contains in description - lower priority
-            {
-              description: {
-                contains: keyword
-              }
-            }
-          ]);
-        }
-      }
+      // If no search term, return all services
+      const where: any = {
+        isActive: isActive !== undefined ? isActive : true
+      };
       
       const services = await prisma.service.findMany({
         where,

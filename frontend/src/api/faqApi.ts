@@ -66,13 +66,13 @@ export const faqApi = {
   
   // Generate embeddings for a specific FAQ
   async generateEmbeddingsForFAQ(faqId: string) {
-    const response = await axios.post(`${FAQS_ENDPOINT}/embeddings/${faqId}`, {}, getAuthHeader());
+    const response = await axios.post(`${EMBEDDINGS_ENDPOINT}/faqs/${faqId}/generate`, {}, getAuthHeader());
     return response.data;
   },
   
   // Generate embeddings for all FAQs
   async generateEmbeddingsForAllFAQs() {
-    const response = await axios.post(`${FAQS_ENDPOINT}/embeddings`, {}, getAuthHeader());
+    const response = await axios.post(`${EMBEDDINGS_ENDPOINT}/faqs/generate-all`, {}, getAuthHeader());
     return response.data;
   },
   

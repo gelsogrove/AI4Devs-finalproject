@@ -11,6 +11,7 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 const DOCUMENTS_ENDPOINT = API_URL ? `${API_URL}/api/documents` : '/api/documents';
+const EMBEDDINGS_ENDPOINT = API_URL ? `${API_URL}/api/embeddings` : '/api/embeddings';
 
 // Get authentication token from localStorage
 const getAuthHeader = () => {
@@ -135,7 +136,7 @@ export const documentService = {
    * Generate embeddings for a specific document
    */
   async generateEmbeddingsForDocument(documentId: string): Promise<{ message: string; documentId: string }> {
-    const response = await axios.post(`${DOCUMENTS_ENDPOINT}/${documentId}/embeddings`, {}, getAuthHeader());
+    const response = await axios.post(`${EMBEDDINGS_ENDPOINT}/documents/${documentId}/generate`, {}, getAuthHeader());
     return response.data;
   },
 
@@ -143,7 +144,7 @@ export const documentService = {
    * Generate embeddings for all documents
    */
   async generateEmbeddingsForAllDocuments(): Promise<{ message: string; count: number }> {
-    const response = await axios.post(`${DOCUMENTS_ENDPOINT}/embeddings`, {}, getAuthHeader());
+    const response = await axios.post(`${EMBEDDINGS_ENDPOINT}/documents/generate-all`, {}, getAuthHeader());
     return response.data;
   },
 

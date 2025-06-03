@@ -8,7 +8,7 @@ describe('Chatbot Questions Integration Test', () => {
   });
 
   afterAll(async () => {
-    await global.testUtils.prisma.$disconnect();
+    // No cleanup needed - using mocks
   });
 
   describe('Individual Question Tests', () => {

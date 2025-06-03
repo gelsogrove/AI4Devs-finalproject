@@ -71,7 +71,6 @@ describe('Product API Integration Tests', () => {
     
     // Error handling middleware
     app.use((err: any, req: any, res: any, next: any) => {
-      console.error('Integration test error:', err);
       res.status(500).json({ error: err.message || 'Internal Server Error' });
     });
     

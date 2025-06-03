@@ -639,14 +639,24 @@ Electronic documentation and digital platforms are increasingly important in int
     
     for (const service of services) {
       // Generate embedding for combined name, description and price
-      const combinedText = `${service.name} - ${service.description} - Price: €${service.price}`;
-      const embedding = await generateEmbedding(combinedText);
-      
-      // Update service with embedding
-      await prisma.service.update({
-        where: { id: service.id },
-        data: { embedding: JSON.stringify(embedding) },
-      });
+      const combinedText = `${service.name}\n${service.description}\nPrice: €${service.price}`;
+      const chunks = splitIntoChunks(combinedText);
+
+      // Delete existing chunks for this service
+      await (prisma as any).serviceChunk.deleteMany({ where: { serviceId: service.id } });
+
+      // Generate embeddings for each chunk and save
+      for (const chunk of chunks) {
+        const embedding = await generateEmbedding(chunk);
+        
+        await (prisma as any).serviceChunk.create({
+          data: {
+            content: chunk,
+            embedding: JSON.stringify(embedding),
+            serviceId: service.id,
+          },
+        });
+      }
     }
     console.log(`✅ Generated embeddings for ${services.length} Services`);
   } catch (error) {

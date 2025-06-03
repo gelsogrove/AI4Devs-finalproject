@@ -12,7 +12,8 @@
     "test:chatbot": "cross-env NODE_ENV=test jest __tests__/integration/chatbot-questions.integration.test.ts",
     "db:reset": "prisma migrate reset --force && prisma migrate deploy",
     "db:seed": "prisma db seed",
-    "db:setup": "npm run db:reset && npm run db:seed",
+    "db:seed-complete": "prisma db seed && ../scripts/move-temp-files.sh",
+    "db:setup": "npm run db:reset && npm run db:seed-complete",
     "db:generate": "prisma generate",
     "db:push": "prisma db push"
   },

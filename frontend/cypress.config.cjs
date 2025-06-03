@@ -4,6 +4,8 @@ const path = require('path');
 
 module.exports = defineConfig({
   e2e: {
+    specPattern: '__test__/e2e/**/*.cy.{js,jsx,ts,tsx}',
+    supportFile: '__test__/e2e/support/e2e.js',
     setupNodeEvents(on, config) {
       // Database and file cleanup tasks
       on('task', {
@@ -20,7 +22,7 @@ module.exports = defineConfig({
             // 2️⃣ Reset database via API call - with document preservation
             const axios = require('axios');
             try {
-              await axios.post('http://localhost:8080/api/test/cleanup', {
+              await axios.post('http://localhost:3001/api/test/cleanup', {
                 preserveDocuments: true  // 🔒 PRESERVE USER DOCUMENTS
               }, {
                 headers: { 'Authorization': 'Bearer demo-token-test' }
@@ -40,7 +42,7 @@ module.exports = defineConfig({
         'db:seed:test': async () => {
           try {
             const axios = require('axios');
-            await axios.post('http://localhost:8080/api/test/seed', {}, {
+            await axios.post('http://localhost:3001/api/test/seed', {}, {
               headers: { 'Authorization': 'Bearer demo-token-test' }
             });
             console.log('✅ Test data seeded');
@@ -52,7 +54,7 @@ module.exports = defineConfig({
         }
       });
     },
-    baseUrl: 'http://localhost:3000',
+    baseUrl: 'http://localhost:3001',
     defaultCommandTimeout: 10000,
     requestTimeout: 10000,
     responseTimeout: 10000,

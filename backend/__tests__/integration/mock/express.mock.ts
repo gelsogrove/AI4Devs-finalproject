@@ -48,7 +48,6 @@ export const createMockExpressApp = () => {
         }
       });
     } catch (error) {
-      console.error('Login error:', error);
       return res.status(500).json({ error: 'An unexpected error occurred' });
     }
   });

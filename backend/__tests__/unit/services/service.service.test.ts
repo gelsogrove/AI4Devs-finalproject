@@ -45,6 +45,7 @@ describe('ServiceService', () => {
     isActive: true,
     createdAt: new Date(),
     updatedAt: new Date(),
+    chunks: undefined as any, // Allow chunks to be undefined or an array
   };
 
   describe('getServices', () => {
@@ -271,6 +272,56 @@ describe('ServiceService', () => {
 
       // Act & Assert
       await expect(serviceService.deleteService('1')).rejects.toThrow('Service not found');
+    });
+
+    it('should throw error when database query fails', async () => {
+      // Arrange
+      mockFindUnique.mockResolvedValue(mockService);
+      mockDelete.mockRejectedValue(new Error('Database error'));
+
+      // Act & Assert
+      await expect(serviceService.deleteService('1')).rejects.toThrow('Database error');
+    });
+  });
+
+  describe('ServiceChunk Integration', () => {
+    it('should handle service with chunks relationship', async () => {
+      // Arrange
+      const serviceWithChunks = {
+        ...mockService,
+        chunks: [
+          {
+            id: 'chunk-1',
+            content: 'Wine Tasting Experience - Professional wine tasting session',
+            serviceId: '1',
+            embedding: JSON.stringify([0.1, 0.2, 0.3]),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }
+        ]
+      } as any; // Use any type to avoid Prisma type conflicts
+      
+      mockFindUnique.mockResolvedValue(serviceWithChunks);
+
+      // Act
+      const result = await serviceService.getServiceById('1');
+
+      // Assert
+      expect(result).toEqual(serviceWithChunks);
+      expect((result as any).chunks).toBeDefined();
+      expect((result as any).chunks).toHaveLength(1);
+    });
+
+    it('should handle service without chunks', async () => {
+      // Arrange
+      mockFindUnique.mockResolvedValue(mockService);
+
+      // Act
+      const result = await serviceService.getServiceById('1');
+
+      // Assert
+      expect(result).toEqual(mockService);
+      expect((result as any).chunks).toBeUndefined();
     });
   });
 }); 

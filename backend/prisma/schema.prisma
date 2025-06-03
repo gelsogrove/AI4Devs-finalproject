@@ -70,6 +70,19 @@ model Service {
   updatedAt   DateTime @updatedAt
   isActive    Boolean  @default(true)
   embedding   String?
+  chunks      ServiceChunk[]
+}
+
+model ServiceChunk {
+  id        String   @id @default(uuid())
+  content   String
+  serviceId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  embedding String?
+  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@map("service_chunks")
 }
 
 model Profile {

@@ -239,7 +239,6 @@ describe('ChatController', () => {
         expect(responseArg).toBeDefined();
         
       } catch (error) {
-        console.error('Test error:', error);
         throw error;
       }
     }, 15000);

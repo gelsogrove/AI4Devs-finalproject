@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { CreateServiceDto, Service, ServiceFilters, UpdateServiceDto } from '../types/service';
+import { CreateServiceDto, Service, ServiceFilters, UpdateServiceDto } from '../types/dto/service.dto';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 const SERVICES_ENDPOINT = API_URL ? `${API_URL}/api/services` : '/api/services';
@@ -63,9 +63,15 @@ export const serviceApi = {
     return response.data;
   },
 
-  // Generate embeddings for all active services
+  // Generate embeddings for all active services using ServiceChunk
   async generateEmbeddingsForAllServices() {
-    const response = await axios.post(`${SERVICES_ENDPOINT}/embeddings/generate`, {}, getAuthHeader());
+    const response = await axios.post('/api/embeddings/services/generate-all', {}, getAuthHeader());
+    return response.data;
+  },
+
+  // Generate embeddings for a specific service using ServiceChunk
+  async generateEmbeddingsForService(serviceId: string) {
+    const response = await axios.post(`/api/embeddings/services/${serviceId}/generate`, {}, getAuthHeader());
     return response.data;
   }
 }; 

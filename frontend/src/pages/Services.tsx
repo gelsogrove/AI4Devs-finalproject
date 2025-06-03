@@ -5,7 +5,7 @@ import { ServiceForm } from "../components/services/ServiceForm";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { SlidePanel } from "../components/ui/SlidePanel";
 import { toast } from "../components/ui/use-toast";
-import { Service, ServiceFilters } from "../types/service";
+import { Service, ServiceFilters } from "../types/dto/service.dto";
 
 export default function Services() {
   const [services, setServices] = useState<Service[]>([]);
@@ -46,6 +46,26 @@ export default function Services() {
       });
     } finally {
       setGeneratingEmbeddings(false);
+    }
+  };
+
+  // Add function to generate embeddings for individual service
+  const handleGenerateServiceEmbeddings = async (serviceId: string, serviceName: string) => {
+    try {
+      await serviceApi.generateEmbeddingsForService(serviceId);
+      
+      toast({
+        title: "Success",
+        description: `Embeddings generated for "${serviceName}". Service is now searchable by AI.`,
+      });
+
+    } catch (err) {
+      console.error("Failed to generate embeddings for service", err);
+      toast({
+        title: "Error",
+        description: "Failed to generate embeddings. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -288,6 +308,13 @@ export default function Services() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleGenerateServiceEmbeddings(service.id, service.name)}
+                            className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                            title="Generate embeddings for this service"
+                          >
+                            <Zap className="h-4 w-4" />
+                          </button>
                           <button
                             onClick={() => handleEditService(service.id)}
                             className="p-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-all duration-200"

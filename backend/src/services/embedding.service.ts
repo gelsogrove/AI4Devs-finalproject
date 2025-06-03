@@ -1,19 +1,13 @@
 import { PrismaClient } from '@prisma/client';
 import { FAQ } from '../domain/interfaces/faq.interface';
+import { Service } from '../domain/interfaces/service.interface';
 import logger from '../utils/logger';
 import { aiService, splitIntoChunks } from '../utils/openai';
 
 const prisma = new PrismaClient();
 
-// Extend PrismaClient for missing types
-type PrismaExtended = PrismaClient & {
-  fAQChunk: {
-    deleteMany: (args: any) => Promise<any>;
-    create: (args: any) => Promise<any>;
-  }
-};
-
-const prismaClient = prisma as PrismaExtended;
+// Use the actual Prisma client directly - it now includes serviceChunk
+const prismaClient = prisma as any;
 
 type FAQChunkWithFAQ = {
   id: string;
@@ -26,6 +20,23 @@ type FAQChunkWithFAQ = {
     id: string;
     question: string;
     answer: string;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+};
+
+type ServiceChunkWithService = {
+  id: string;
+  content: string;
+  embedding: string | null;
+  serviceId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  service: {
+    id: string;
+    name: string;
+    description: string;
+    price: any;
     createdAt: Date;
     updatedAt: Date;
   };
@@ -711,6 +722,304 @@ class EmbeddingService {
     
     // Handle potential NaN or Infinity values
     return isNaN(similarity) || !isFinite(similarity) ? 0 : similarity;
+  }
+
+  // ===== SERVICE CHUNK METHODS =====
+
+  /**
+   * Generate embeddings for a single service and store in database
+   */
+  async generateEmbeddingsForServiceChunks(serviceId: string): Promise<void> {
+    try {
+      // Get service from database
+      const service = await prisma.service.findUnique({
+        where: { id: serviceId },
+      });
+
+      if (!service) {
+        throw new Error('Service not found');
+      }
+
+      // Generate embedding for combined name, description and price
+      const combinedText = `${service.name}\n${service.description}\nPrice: €${service.price}`;
+      
+      // Split the service content into chunks
+      const contentChunks = splitIntoChunks(combinedText);
+
+      // Delete existing chunks for this service
+      await prismaClient.serviceChunk.deleteMany({
+        where: { serviceId },
+      });
+
+      // Generate embeddings for each chunk and save
+      for (const chunk of contentChunks) {
+        // Generate embedding using OpenAI
+        const embedding = await aiService.generateEmbedding(chunk);
+        
+        // Save chunk with embedding
+        await prismaClient.serviceChunk.create({
+          data: {
+            content: chunk,
+            embedding: JSON.stringify(embedding), // Store as JSON string
+            serviceId: service.id,
+          },
+        });
+      }
+
+      logger.info(`Generated embeddings for service ${serviceId}`);
+
+    } catch (error) {
+      logger.error(`Error generating embeddings for service ${serviceId}:`, error);
+      throw new Error('Failed to generate embeddings for service');
+    }
+  }
+
+  /**
+   * Generate embeddings for all active services
+   */
+  async generateEmbeddingsForAllServiceChunks(): Promise<void> {
+    try {
+      const services = await prisma.service.findMany({
+        where: {
+          isActive: true
+        }
+      });
+      
+      logger.info(`Found ${services.length} active services to process`);
+      
+      for (const service of services) {
+        await this.generateEmbeddingsForServiceChunks(service.id);
+      }
+      
+      logger.info(`Generated embeddings for ${services.length} services`);
+    } catch (error) {
+      logger.error('Error generating embeddings for all services:', error);
+      throw new Error('Failed to generate embeddings for all services');
+    }
+  }
+
+  /**
+   * Search services using embeddings
+   */
+  async searchServiceChunks(query: string, limit = 5): Promise<Service[]> {
+    try {
+      // Generate embedding for the search query
+      const queryEmbedding = await aiService.generateEmbedding(query);
+      
+      // Get all service chunks with their embeddings
+      const chunks = await prismaClient.serviceChunk.findMany({
+        include: {
+          service: true
+        }
+      }) as ServiceChunkWithService[];
+
+      // If no chunks found, return empty results
+      if (!chunks || chunks.length === 0) {
+        logger.info('No service chunks found in database');
+        return [];
+      }
+
+      // Calculate cosine similarity between query and each chunk
+      const chunksWithSimilarity = chunks.map(chunk => {
+        try {
+          const chunkEmbedding = JSON.parse(chunk.embedding || '[]');
+          const similarity = this.cosineSimilarity(queryEmbedding, chunkEmbedding);
+          return { ...chunk, similarity };
+        } catch (error) {
+          logger.error(`Error parsing embedding for chunk ${chunk.id}:`, error);
+          return { ...chunk, similarity: 0 };
+        }
+      });
+
+      // Sort by similarity and get top chunks
+      const topChunks = chunksWithSimilarity
+        .sort((a, b) => b.similarity - a.similarity)
+        .slice(0, limit * 3); // Get more chunks to ensure we find relevant ones
+      
+      // Also check for keyword matches in case embedding similarity is low
+      const keywordMatches = chunksWithSimilarity.filter(chunk => {
+        const queryLower = query.toLowerCase();
+        const nameLower = chunk.service.name.toLowerCase();
+        const descriptionLower = chunk.service.description.toLowerCase();
+        
+        // Check if query words appear in name or description
+        const queryWords = queryLower.split(/\s+/).filter(word => word.length > 2);
+        return queryWords.some(word => 
+          nameLower.includes(word) || descriptionLower.includes(word)
+        );
+      });
+      
+      // Combine similarity results with keyword matches
+      const combinedChunks = [...topChunks];
+      keywordMatches.forEach(match => {
+        if (!combinedChunks.find(chunk => chunk.id === match.id)) {
+          combinedChunks.push(match);
+        }
+      });
+      
+      // Sort combined results by similarity (but include keyword matches even if low similarity)
+      const finalChunks = combinedChunks
+        .sort((a, b) => {
+          // Prioritize keyword matches
+          const aHasKeyword = keywordMatches.some(km => km.id === a.id);
+          const bHasKeyword = keywordMatches.some(km => km.id === b.id);
+          
+          if (aHasKeyword && !bHasKeyword) return -1;
+          if (!aHasKeyword && bHasKeyword) return 1;
+          
+          // Then sort by similarity
+          return b.similarity - a.similarity;
+        })
+        .slice(0, limit * 2); // Take more results to ensure we get relevant ones
+      
+      logger.info(`Found ${finalChunks.length} chunks, top similarity: ${finalChunks[0]?.similarity || 0}, keyword matches: ${keywordMatches.length}`);
+
+      // Get unique services from final chunks and transform to Service interface
+      const uniqueServices = Array.from(
+        new Map(finalChunks.map(chunk => [chunk.service.id, chunk.service]))
+      ).map(([_, service]) => ({
+        id: service.id,
+        name: service.name,
+        description: service.description,
+        price: parseFloat(service.price.toString()),
+        isActive: true,
+        createdAt: service.createdAt,
+        updatedAt: service.updatedAt
+      })).slice(0, limit); // Limit to requested number
+
+      logger.info(`Returning ${uniqueServices.length} unique services from embedding search`);
+      return uniqueServices;
+    } catch (error) {
+      logger.error('Error searching services:', error);
+      // Return empty results instead of falling back to text search
+      return [];
+    }
+  }
+
+  /**
+   * Get service chunks for a specific service (debug method)
+   */
+  async getServiceChunks(serviceId: string): Promise<any[]> {
+    try {
+      const chunks = await prismaClient.serviceChunk.findMany({
+        where: { serviceId },
+        include: {
+          service: true
+        }
+      });
+      return chunks;
+    } catch (error) {
+      logger.error(`Error getting service chunks for ${serviceId}:`, error);
+      throw new Error('Failed to get service chunks');
+    }
+  }
+
+  /**
+   * Get all service chunks (debug method)
+   */
+  async getAllServiceChunks(): Promise<any[]> {
+    try {
+      const chunks = await prismaClient.serviceChunk.findMany({
+        include: {
+          service: true
+        }
+      });
+      return chunks;
+    } catch (error) {
+      logger.error('Error getting all service chunks:', error);
+      throw new Error('Failed to get all service chunks');
+    }
+  }
+
+  /**
+   * Clear all service chunks from the database
+   */
+  async clearAllServiceChunks(): Promise<void> {
+    try {
+      await prismaClient.serviceChunk.deleteMany({});
+      logger.info('Cleared all service chunks');
+    } catch (error) {
+      logger.error('Error clearing all service chunks:', error);
+      throw new Error('Failed to clear all service chunks');
+    }
+  }
+
+  /**
+   * Debug search services with detailed similarity scores
+   */
+  async debugSearchServiceChunks(query: string, limit = 5): Promise<any> {
+    try {
+      // Generate embedding for the search query
+      const queryEmbedding = await aiService.generateEmbedding(query);
+      
+      // Get all service chunks with their embeddings
+      const chunks = await prismaClient.serviceChunk.findMany({
+        include: {
+          service: true
+        }
+      }) as ServiceChunkWithService[];
+
+      if (!chunks || chunks.length === 0) {
+        return {
+          query,
+          queryEmbeddingLength: queryEmbedding.length,
+          totalChunks: 0,
+          results: [],
+          error: 'No service chunks found'
+        };
+      }
+
+      // Calculate cosine similarity between query and each chunk
+      const chunksWithSimilarity = chunks.map(chunk => {
+        try {
+          const chunkEmbedding = JSON.parse(chunk.embedding || '[]');
+          const similarity = this.cosineSimilarity(queryEmbedding, chunkEmbedding);
+          return { 
+            ...chunk, 
+            similarity,
+            embeddingLength: chunkEmbedding.length,
+            hasValidEmbedding: Array.isArray(chunkEmbedding) && chunkEmbedding.length > 0
+          };
+        } catch (error) {
+          logger.error(`Error parsing embedding for chunk ${chunk.id}:`, error);
+          return { 
+            ...chunk, 
+            similarity: 0,
+            embeddingLength: 0,
+            hasValidEmbedding: false
+          };
+        }
+      });
+
+      // Sort by similarity
+      const sortedChunks = chunksWithSimilarity
+        .sort((a, b) => b.similarity - a.similarity);
+
+      return {
+        query,
+        queryEmbeddingLength: queryEmbedding.length,
+        totalChunks: chunks.length,
+        results: sortedChunks.map(chunk => ({
+          serviceId: chunk.serviceId,
+          serviceName: chunk.service.name,
+          chunkContent: chunk.content.substring(0, 200) + '...',
+          similarity: chunk.similarity,
+          embeddingLength: chunk.embeddingLength,
+          hasValidEmbedding: chunk.hasValidEmbedding
+        })),
+        topResults: sortedChunks.slice(0, limit).map(chunk => ({
+          serviceName: chunk.service.name,
+          similarity: chunk.similarity
+        }))
+      };
+    } catch (error) {
+      logger.error('Error in debug search services:', error);
+      return {
+        query,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        results: []
+      };
+    }
   }
 }
 

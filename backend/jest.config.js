@@ -11,9 +11,8 @@ module.exports = {
     'node_modules/(?!(file-type|strtok3|peek-readable|token-types)/)'
   ],
   moduleNameMapper: {
-    '^file-type$': '<rootDir>/__tests__/__mocks__/file-type.js'
+    '^file-type$': '<rootDir>/__tests__/integration/__mocks__/file-type.js'
   },
-  setupFilesAfterEnv: ['<rootDir>/__tests__/setup.ts'],
   testTimeout: 30000, // 30 seconds for integration tests
   collectCoverageFrom: [
     'src/**/*.{ts,js}',

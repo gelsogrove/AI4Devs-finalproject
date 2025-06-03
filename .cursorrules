@@ -10,7 +10,8 @@
 - **NEVER** run `git push` — **only Andrea** can do this
 - Use **PostgreSQL** (not SQLite)
 - **OPENROUTER_API_KEY** is stored in the `.env` file of the backend (DO NOT TOUCH `.env`)
-- All **scripts** must be placed inside the `/script` folder
+- All **scripts** must be placed inside the `/script` folderç
+- If the request is not documenteted on the 02_PRD.md please alert the user
 
 - Maintain the existing **graphics and layout**; DO NOT make changes unless **explicit permission** is granted
 
@@ -72,3 +73,105 @@ All project documentation is located under:
 - IF YOU WANT TO SEE WHAT WE HAVE IN THE DB USE FOR EXAMPLES:
 docker exec -it shopmefy-db psql -U shopmefy -d shopmefy -c "SELECT COUNT(*) FROM document_chunks;"
 - **DO NOT invent npm run commands!** 
+- mocks have to stay inside  __mocks__ folder inside unit or integration folder
+AI4Devs-finalproject/backend/__tests__/unit/mock
+AI4Devs-finalproject/backend/__tests__/integration/mock
+
+## 📁 Folder Structure Compliance
+
+- **ALWAYS** follow the folder structure defined below
+- **NEVER** create files outside the defined directory structure
+- **Test files** must be in `__tests__/` (backend) or `__test__/` (frontend) directories
+- **Mocks** must be in `__mocks__/` subdirectories within test folders
+- **Scripts** must be in `/scripts/` directory and be executable
+- **Configuration files** must be at the appropriate level (backend/frontend)
+- Use **kebab-case** for directories, **camelCase** for TypeScript files, **PascalCase** for React components
+
+### 🏗️ Root Project Structure
+```
+AI4Devs-finalproject/
+├── 📁 backend/                     # Backend Node.js application
+├── 📁 frontend/                    # Frontend React application  
+├── 📁 scripts/                     # Project automation scripts
+├── 📁 prompts/                     # Documentation and prompts
+├── 📄 docker-compose.yml           # Docker services configuration
+├── 📄 .gitignore                   # Git ignore rules
+└── 📄 README.md                    # Project overview
+```
+
+### 🔧 Backend Structure (`/backend/`)
+```
+backend/
+├── 📁 src/                         # Source code
+│   ├── 📁 controllers/             # API controllers (DDD Application Layer)
+│   ├── 📁 services/                # Business logic services (DDD Domain Layer)
+│   ├── 📁 repositories/            # Data access layer (DDD Infrastructure)
+│   ├── 📁 middleware/              # Express middleware
+│   ├── 📁 routes/                  # API route definitions
+│   ├── 📁 types/                   # TypeScript type definitions
+│   ├── 📁 utils/                   # Utility functions
+│   └── 📄 index.ts                 # Application entry point
+├── 📁 prisma/                      # Database schema and migrations
+│   ├── 📁 migrations/              # Database migration files
+│   ├── 📁 temp/                    # Temporary files for seeding
+│   ├── 📄 schema.prisma            # Database schema definition
+│   └── 📄 seed.ts                  # Database seeding script
+├── 📁 uploads/                     # File upload storage
+│   └── 📁 documents/               # Document storage directory
+├── 📁 __tests__/                   # Test files (MANDATORY structure)
+│   ├── 📁 unit/                    # Unit tests
+│   │   ├── 📁 __mocks__/           # Unit test mocks
+│   │   └── 📄 *.spec.ts            # Unit test files
+│   └── 📁 integration/             # Integration tests
+│       ├── 📁 __mocks__/           # Integration test mocks
+│       └── 📄 *.integration.spec.ts # Integration test files
+├── 📄 package.json                 # Dependencies and scripts
+├── 📄 jest.config.js               # Jest testing configuration
+├── 📄 tsconfig.json                # TypeScript configuration
+└── 📄 .env                         # Environment variables (DO NOT COMMIT)
+```
+
+### ⚛️ Frontend Structure (`/frontend/`)
+```
+frontend/
+├── 📁 src/                         # Source code
+│   ├── 📁 components/              # React components
+│   │   ├── 📁 ui/                  # Reusable UI components (shadcn/ui)
+│   │   └── 📁 layout/              # Layout components
+│   ├── 📁 pages/                   # Page components
+│   ├── 📁 hooks/                   # Custom React hooks
+│   ├── 📁 services/                # API service functions
+│   ├── 📁 types/                   # TypeScript type definitions
+│   ├── 📁 utils/                   # Utility functions
+│   ├── 📁 styles/                  # CSS and styling files
+│   └── 📄 main.tsx                 # Application entry point
+├── 📁 public/                      # Static assets
+├── 📁 __test__/                    # Test files (MANDATORY structure)
+│   ├── 📁 unit/                    # Unit tests
+│   │   └── 📄 *.{test,spec}.{js,ts,tsx} # Unit test files
+│   └── 📁 e2e/                     # End-to-end tests
+│       ├── 📁 support/             # Cypress support files
+│       │   ├── 📄 commands.js      # Custom Cypress commands
+│       │   └── 📄 e2e.js           # Cypress setup file
+│       └── 📄 *.cy.{js,ts,tsx}     # E2E test files
+├── 📄 package.json                 # Dependencies and scripts
+├── 📄 vite.config.ts               # Vite configuration
+├── 📄 vitest.config.ts             # Vitest testing configuration
+├── 📄 cypress.config.cjs           # Cypress E2E testing configuration
+├── 📄 tailwind.config.js           # Tailwind CSS configuration
+└── 📄 tsconfig.json                # TypeScript configuration
+```
+
+### 🚫 Forbidden Patterns
+**DO NOT CREATE:**
+- `package.json` in project root
+- Test files outside `__tests__/` or `__test__/` directories
+- `cypress/` directory in frontend (use `__test__/e2e/` instead)
+- Files directly in `src/` without proper subdirectories
+- Mixed naming conventions
+
+### ✅ Mandatory Naming Rules
+- **Directories**: kebab-case (`document-service`, `user-controller`)
+- **TypeScript files**: camelCase (`userService.ts`, `documentController.ts`)
+- **React components**: PascalCase (`UserProfile.tsx`, `DocumentList.tsx`)
+- **Test files**: `*.spec.ts` (unit), `*.integration.spec.ts` (integration), `*.cy.js` (E2E)

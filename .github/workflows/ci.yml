@@ -92,6 +92,12 @@ jobs:
         run: |
           echo "Running unit tests..."
           npm run test:unit
+
+      - name: Run frontend unit tests
+        working-directory: ./frontend
+        run: |
+          echo "Running frontend unit tests..."
+          npm run test:unit
           
       - name: Debug database state before integration tests
         working-directory: ./backend

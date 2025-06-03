@@ -578,6 +578,15 @@ erDiagram
         string embedding
     }
     
+    ServiceChunk {
+        string id PK
+        string content
+        string serviceId FK
+        DateTime createdAt
+        DateTime updatedAt
+        string embedding
+    }
+    
     Document {
         string id PK
         string filename
@@ -617,6 +626,7 @@ erDiagram
     }
 
     FAQ ||--o{ FAQChunk : "has chunks"
+    Service ||--o{ ServiceChunk : "has chunks"
     Document ||--o{ DocumentChunk : "has chunks"
 ```
 
@@ -628,6 +638,7 @@ erDiagram
 - **FAQ**: Frequently asked questions with answers for customer support knowledge base
 - **FAQChunk**: Text segments from FAQs processed for AI semantic search with embeddings
 - **Service**: Additional business offerings like wine tastings or cooking classes with pricing
+- **ServiceChunk**: Text segments extracted from services for AI processing with embeddings
 - **Document**: Uploaded business documents (PDFs) with metadata and processing status
 - **DocumentChunk**: Text segments extracted from documents for AI processing with embeddings
 - **AgentConfig**: AI assistant configuration including model parameters and behavior settings

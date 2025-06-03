@@ -219,59 +219,6 @@ router.get('/stats', authenticate, simpleDocumentController.getDocumentStats);
 
 /**
  * @swagger
- * /api/documents/embeddings:
- *   post:
- *     summary: Generate embeddings for all documents
- *     tags: [Documents]
- *     responses:
- *       200:
- *         description: Embeddings generated successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                 count:
- *                   type: integer
- *       500:
- *         description: Server error
- */
-router.post('/embeddings', authenticate, simpleDocumentController.generateEmbeddings);
-
-/**
- * @swagger
- * /api/documents/{id}/embeddings:
- *   post:
- *     summary: Generate embeddings for a specific document
- *     tags: [Documents]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: Document ID
- *     responses:
- *       200:
- *         description: Embeddings generated successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *       404:
- *         description: Document not found
- *       500:
- *         description: Server error
- */
-router.post('/:id/embeddings', authenticate, simpleDocumentController.generateEmbeddings);
-
-/**
- * @swagger
  * /api/documents/{id}/preview:
  *   get:
  *     summary: Preview document (serve PDF file)
@@ -305,6 +252,7 @@ router.post('/:id/embeddings', authenticate, simpleDocumentController.generateEm
  *         description: Server error
  */
 router.get('/:id/preview', simpleDocumentController.previewDocument);
+
 router.get('/:id', authenticate, simpleDocumentController.getDocumentById);
 router.put('/:id', authenticate, simpleDocumentController.updateDocument);
 router.delete('/:id', authenticate, simpleDocumentController.deleteDocument);
