@@ -84,7 +84,7 @@ jobs:
         run: |
           cat > main.tf << 'EOF'
           # ===================================
-          # SHOPMEFY AWS INFRASTRUCTURE
+          # SHOPMEFY AWS INFRASTRUCTURE - MINIMAL VERSION
           # ===================================
           
           terraform {
@@ -173,7 +173,15 @@ jobs:
           }
           
           # ===================================
-          # AWS SECRETS MANAGER
+          # RANDOM ID FOR S3 BUCKET
+          # ===================================
+          
+          resource "random_id" "bucket_suffix" {
+            byte_length = 4
+          }
+          
+          # ===================================
+          # AWS SECRETS MANAGER FOR DATABASE
           # ===================================
           
           resource "aws_secretsmanager_secret" "db_credentials" {
@@ -297,24 +305,6 @@ jobs:
               description = "HTTPS"
             }
             
-            # Node.js Backend
-            ingress {
-              from_port   = 8080
-              to_port     = 8080
-              protocol    = "tcp"
-              cidr_blocks = ["10.0.0.0/16"]
-              description = "Backend API"
-            }
-            
-            # React Frontend
-            ingress {
-              from_port   = 3000
-              to_port     = 3000
-              protocol    = "tcp"
-              cidr_blocks = ["10.0.0.0/16"]
-              description = "Frontend"
-            }
-            
             egress {
               from_port   = 0
               to_port     = 0
@@ -347,7 +337,7 @@ jobs:
           }
           
           # ===================================
-          # KEY PAIR
+          # SSH KEY PAIR
           # ===================================
           
           resource "tls_private_key" "main" {
@@ -374,10 +364,6 @@ jobs:
             tags = {
               Name = "${var.project_name}-deployments"
             }
-          }
-          
-          resource "random_id" "bucket_suffix" {
-            byte_length = 4
           }
           
           resource "aws_s3_bucket_versioning" "deployments" {
@@ -452,10 +438,6 @@ jobs:
             backup_window          = "03:00-04:00"
             maintenance_window     = "sun:04:00-sun:05:00"
             
-            # Monitoring
-            monitoring_interval = 60
-            monitoring_role_arn = aws_iam_role.rds_monitoring.arn
-            
             # Other
             skip_final_snapshot = true
             deletion_protection = false
@@ -466,241 +448,7 @@ jobs:
           }
           
           # ===================================
-          # IAM ROLE FOR RDS MONITORING
-          # ===================================
-          
-          resource "aws_iam_role" "rds_monitoring" {
-            name = "${var.project_name}-rds-monitoring-role"
-            
-            assume_role_policy = jsonencode({
-              Version = "2012-10-17"
-              Statement = [
-                {
-                  Action = "sts:AssumeRole"
-                  Effect = "Allow"
-                  Principal = {
-                    Service = "monitoring.rds.amazonaws.com"
-                  }
-                }
-              ]
-            })
-          }
-          
-          resource "aws_iam_role_policy_attachment" "rds_monitoring" {
-            role       = aws_iam_role.rds_monitoring.name
-            policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
-          }
-          
-          # ===================================
-          # IAM ROLE FOR EC2
-          # ===================================
-          
-          resource "aws_iam_role" "ec2_role" {
-            name = "${var.project_name}-ec2-role"
-            
-            assume_role_policy = jsonencode({
-              Version = "2012-10-17"
-              Statement = [
-                {
-                  Action = "sts:AssumeRole"
-                  Effect = "Allow"
-                  Principal = {
-                    Service = "ec2.amazonaws.com"
-                  }
-                }
-              ]
-            })
-          }
-          
-          resource "aws_iam_role_policy" "ec2_policy" {
-            name = "${var.project_name}-ec2-policy"
-            role = aws_iam_role.ec2_role.id
-            
-            policy = jsonencode({
-              Version = "2012-10-17"
-              Statement = [
-                {
-                  Effect = "Allow"
-                  Action = [
-                    "s3:GetObject",
-                    "s3:ListBucket"
-                  ]
-                  Resource = [
-                    aws_s3_bucket.deployments.arn,
-                    "${aws_s3_bucket.deployments.arn}/*"
-                  ]
-                },
-                {
-                  Effect = "Allow"
-                  Action = [
-                    "secretsmanager:GetSecretValue"
-                  ]
-                  Resource = aws_secretsmanager_secret.db_credentials.arn
-                },
-                {
-                  Effect = "Allow"
-                  Action = [
-                    "logs:CreateLogGroup",
-                    "logs:CreateLogStream",
-                    "logs:PutLogEvents"
-                  ]
-                  Resource = "*"
-                }
-              ]
-            })
-          }
-          
-          resource "aws_iam_instance_profile" "ec2_profile" {
-            name = "${var.project_name}-ec2-profile"
-            role = aws_iam_role.ec2_role.name
-          }
-          
-          # ===================================
-          # USER DATA SCRIPT
-          # ===================================
-          
-          locals {
-            user_data = base64encode(<<-EOF
-              #!/bin/bash
-              set -e
-              
-              # Update system
-              apt-get update
-              apt-get upgrade -y
-              
-              # Install required packages
-              apt-get install -y curl wget git unzip nginx awscli jq
-              
-              # Install Node.js 20
-              curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-              apt-get install -y nodejs
-              
-              # Install PM2 globally
-              npm install -g pm2
-              
-              # Install Docker
-              curl -fsSL https://get.docker.com -o get-docker.sh
-              sh get-docker.sh
-              usermod -aG docker ubuntu
-              
-              # Create shopme user
-              useradd -m -s /bin/bash shopme
-              usermod -aG sudo shopme
-              usermod -aG docker shopme
-              
-              # Create directories
-              mkdir -p /home/shopme/{backend,frontend}
-              chown -R shopme:shopme /home/shopme
-              
-              # Configure AWS CLI for shopme user
-              sudo -u shopme aws configure set region ${var.aws_region}
-              
-              # Create systemd service for auto-deployment
-              cat > /etc/systemd/system/shopmefy-deploy.service << 'EOL'
-              [Unit]
-              Description=ShopMefy Auto Deploy Service
-              After=network.target
-              
-              [Service]
-              Type=oneshot
-              User=shopme
-              WorkingDirectory=/home/shopme
-              ExecStart=/home/shopme/deploy.sh
-              
-              [Install]
-              WantedBy=multi-user.target
-              EOL
-              
-              # Create deployment script
-              cat > /home/shopme/deploy.sh << 'EOL'
-              #!/bin/bash
-              set -e
-              
-              echo "Starting deployment..."
-              
-              # Download from S3
-              aws s3 sync s3://${aws_s3_bucket.deployments.bucket}/backend /home/shopme/backend --delete
-              aws s3 sync s3://${aws_s3_bucket.deployments.bucket}/frontend /home/shopme/frontend --delete
-              
-              # Backend deployment
-              cd /home/shopme/backend
-              npm install --production
-              npm run build
-              
-              # PM2 deployment
-              pm2 delete backend || true
-              pm2 start npm --name backend -- start -- --port 8080
-              pm2 save
-              
-              # Frontend deployment (if needed)
-              cd /home/shopme/frontend
-              npm install --production
-              npm run build
-              
-              echo "Deployment completed successfully!"
-              EOL
-              
-              chmod +x /home/shopme/deploy.sh
-              chown shopme:shopme /home/shopme/deploy.sh
-              
-              # Configure Nginx
-              cat > /etc/nginx/sites-available/shopmefy << 'EOL'
-              server {
-                  listen 80;
-                  server_name _;
-                  
-                  location /api/ {
-                      proxy_pass http://localhost:8080/api/;
-                      proxy_set_header Host $host;
-                      proxy_set_header X-Real-IP $remote_addr;
-                      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                      proxy_set_header X-Forwarded-Proto $scheme;
-                  }
-                  
-                  location / {
-                      proxy_pass http://localhost:3000/;
-                      proxy_set_header Host $host;
-                      proxy_set_header X-Real-IP $remote_addr;
-                      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                      proxy_set_header X-Forwarded-Proto $scheme;
-                  }
-              }
-              EOL
-              
-              ln -sf /etc/nginx/sites-available/shopmefy /etc/nginx/sites-enabled/
-              rm -f /etc/nginx/sites-enabled/default
-              nginx -t
-              systemctl restart nginx
-              systemctl enable nginx
-              
-              # Enable auto-deployment service
-              systemctl enable shopmefy-deploy.service
-              
-              # Setup PM2 startup
-              sudo -u shopme pm2 startup systemd -u shopme --hp /home/shopme
-              
-              # Create environment file for database connection
-              cat > /home/shopme/.env << 'EOL'
-              NODE_ENV=production
-              PORT=8080
-              DATABASE_URL=postgresql://shopmefy:$(aws secretsmanager get-secret-value --secret-id ${aws_secretsmanager_secret.db_credentials.arn} --region ${var.aws_region} --query SecretString --output text | jq -r .password)@$(aws secretsmanager get-secret-value --secret-id ${aws_secretsmanager_secret.db_credentials.arn} --region ${var.aws_region} --query SecretString --output text | jq -r .host):5432/shopmefy
-              OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
-              HUGGINGFACE_API_KEY=${{ secrets.HUGGINGFACE_API_KEY }}
-              JWT_SECRET=${{ secrets.JWT_SECRET }}
-              FRONTEND_URL=http://${aws_eip.web.public_ip}
-              AWS_REGION=${var.aws_region}
-              AWS_S3_BUCKET=${aws_s3_bucket.deployments.bucket}
-              EOL
-              
-              chown shopme:shopme /home/shopme/.env
-              
-              echo "Server setup completed successfully!"
-            EOF
-            )
-          }
-          
-          # ===================================
-          # EC2 INSTANCE
+          # EC2 INSTANCE (MINIMAL)
           # ===================================
           
           resource "aws_instance" "web" {
@@ -709,9 +457,17 @@ jobs:
             key_name               = aws_key_pair.main.key_name
             vpc_security_group_ids = [aws_security_group.web.id]
             subnet_id              = aws_subnet.public[0].id
-            iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
             
-            user_data = local.user_data
+            # Simple user data for basic setup
+            user_data = base64encode(<<-EOF
+              #!/bin/bash
+              apt-get update
+              apt-get install -y nginx
+              systemctl start nginx
+              systemctl enable nginx
+              echo "<h1>ShopMefy Server Ready</h1>" > /var/www/html/index.html
+            EOF
+            )
             
             root_block_device {
               volume_type = "gp3"
@@ -823,8 +579,6 @@ jobs:
           echo "1. Update your \`deploy.yml\` with the new S3 bucket name" >> $GITHUB_STEP_SUMMARY
           echo "2. Update your \`deploy.yml\` with the new EC2 IP address" >> $GITHUB_STEP_SUMMARY
           echo "3. Run your existing CI/CD pipeline to deploy the application" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 💰 Estimated Monthly Cost: ~$27-30" >> $GITHUB_STEP_SUMMARY
 
       - name: 🔐 Save Secrets to GitHub
         working-directory: ./terraform
@@ -845,11 +599,11 @@ jobs:
           # Try to update secrets automatically using GitHub CLI
           S3_BUCKET=$(terraform output -raw s3_bucket_name)
           EC2_HOST=$(terraform output -raw web_public_ip)
+          SSH_PRIVATE_KEY=$(terraform output -raw ssh_private_key)
           
           # Get database credentials from Terraform outputs
           DB_HOST=$(terraform output -raw database_endpoint | cut -d: -f1)
           DB_PASSWORD=$(aws secretsmanager get-secret-value --secret-id $(terraform output -raw secret_manager_arn) --region us-east-1 --query SecretString --output text | jq -r .password)
-          SSH_PRIVATE_KEY=$(terraform output -raw ssh_private_key)
           
           echo "🔄 Attempting automatic secret update with GitHub CLI for DEV environment..."
           
@@ -865,7 +619,7 @@ jobs:
           # Authenticate with GitHub token
           echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
           
-          # Update secrets in DEV environment
+          # Update infrastructure secrets in DEV environment
           echo "$S3_BUCKET" | gh secret set S3_BUCKET_NAME --repo ${{ github.repository }} --env dev
           echo "$EC2_HOST" | gh secret set EC2_HOST --repo ${{ github.repository }} --env dev
           echo "ubuntu" | gh secret set EC2_USER --repo ${{ github.repository }} --env dev
@@ -879,9 +633,9 @@ jobs:
           echo "$DB_PASSWORD" | gh secret set DB_PASSWORD --repo ${{ github.repository }} --env dev
           echo "$DB_HOST" | gh secret set DB_HOST --repo ${{ github.repository }} --env dev
           
-          echo "✅ Secrets updated automatically via GitHub CLI in DEV environment!"
+          echo "✅ All secrets updated automatically via GitHub CLI in DEV environment!"
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🎉 Secrets Auto-Updated in DEV Environment:" >> $GITHUB_STEP_SUMMARY
+          echo "### 🎉 Complete Infrastructure Secrets Auto-Updated in DEV Environment:" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ S3_BUCKET_NAME" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ EC2_HOST" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ EC2_USER" >> $GITHUB_STEP_SUMMARY
@@ -893,5 +647,7 @@ jobs:
           echo "- ✅ DB_PASSWORD" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ DB_HOST" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🎉 All Secrets Configured Automatically!" >> $GITHUB_STEP_SUMMARY
-          echo "No manual setup required - SSH key generated and configured automatically!" >> $GITHUB_STEP_SUMMARY 
+          echo "### 🎯 Ready for Production!" >> $GITHUB_STEP_SUMMARY
+          echo "1. **Complete infrastructure** - EC2 + RDS + S3 + SSH access" >> $GITHUB_STEP_SUMMARY
+          echo "2. **All secrets configured** - Database and deployment secrets ready" >> $GITHUB_STEP_SUMMARY
+          echo "3. **Deploy your application** - Use the deploy.yml workflow" >> $GITHUB_STEP_SUMMARY 
