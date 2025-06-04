@@ -1,52 +1,198 @@
 # Terraform Infrastructure Workflow Generation Prompt
 
+## 🚨 CRITICAL ERROR PREVENTION RULES
+
+### 1. **Terraform Configuration Validation**
+- ✅ **ALWAYS** validate all resource dependencies before generation
+- ✅ **NEVER** use `templatefile()` - use inline `<<-EOF` heredoc syntax
+- ✅ **ALWAYS** ensure proper resource ordering (VPC → Subnets → Security Groups → EC2/RDS)
+- ✅ **VALIDATE** all variable interpolations use correct syntax: `${var.name}` not `${name}`
+- ✅ **TEST** all provider versions are compatible (AWS ~> 5.0, TLS ~> 4.0, Random ~> 3.1)
+
+### 2. **Resource Dependencies & References**
+- ✅ **EXPLICIT** dependencies: EC2 depends on VPC, Subnets, Security Groups, Key Pair
+- ✅ **DATABASE** dependencies: RDS depends on DB Subnet Group, Security Group, Password
+- ✅ **SECRETS** dependencies: Secrets Manager version depends on secret and RDS instance
+- ✅ **AVOID** circular dependencies in resource references
+
+### 3. **Common Error Patterns to AVOID**
+- ❌ **NEVER** reference resources before they're defined
+- ❌ **NEVER** use `file()` function for non-existent files
+- ❌ **NEVER** create complex nested templatefile structures
+- ❌ **NEVER** use undefined variables or outputs
+- ❌ **NEVER** mix resource creation with external file dependencies
+
+### 4. **AMI Query Best Practices (CRITICAL)**
+- ✅ **USE GENERIC PATTERNS**: `ubuntu/images/hvm-ssd/ubuntu-*-amd64-server-*` not specific versions
+- ✅ **ALWAYS** include `most_recent = true` for AMI data sources
+- ✅ **VERIFY** owner IDs: Canonical = `099720109477`, Amazon = `137112412989`
+- ✅ **MINIMAL FILTERS**: Only use essential filters (name, virtualization-type)
+- ❌ **AVOID** overly specific version filters like `ubuntu-22.04` that may not exist
+- ❌ **AVOID** unnecessary filters like `state = available` (implied by most_recent)
+
+### 5. **User Data Simplification Rules**
+- ✅ **KEEP SIMPLE**: Basic package installation only in initial deployment
+- ✅ **AVOID HEREDOC NESTING**: No complex bash scripts with multiple heredoc blocks
+- ✅ **ESCAPE VARIABLES**: Use `\$` for bash variables in Terraform heredoc
+- ✅ **MINIMAL SETUP**: nginx, basic status page, essential packages only
+- ❌ **NO COMPLEX CONFIGS**: Avoid inline nginx config files in user data
 
 ## Infrastructure Requirements
-1. **AWS Provider Setup** - Configure AWS credentials and Terraform
-2. **VPC & Networking** - Create VPC, subnets, internet gateway, route tables
-3. **Security Groups** - Web server (SSH, HTTP, HTTPS) and database security groups
-4. **EC2 Instance** - t3.micro Ubuntu with pre-configured software stack
-5. **RDS PostgreSQL** - Managed database with automatic backups
-6. **S3 Bucket** - For application deployments with versioning
-7. **Secrets Manager** - Database credentials management
-8. **IAM Roles** - EC2 and RDS monitoring permissions
+
+### Core Infrastructure (MANDATORY)
+1. **AWS Provider Setup** - Configure AWS credentials and Terraform with proper versions
+2. **VPC & Networking** - Create VPC, public/private subnets, internet gateway, route tables
+3. **Security Groups** - Web server (SSH, HTTP, HTTPS, 8080) and database security groups  
+4. **SSH Key Generation** - Use TLS provider to generate RSA 4096-bit key pair
+5. **EC2 Instance** - t3.micro Ubuntu with SIMPLE user data (no complex scripts)
+6. **RDS PostgreSQL** - Managed database in private subnets with proper security
+7. **S3 Bucket** - For deployments with versioning and encryption
+8. **Secrets Manager** - Database credentials with proper JSON structure
 9. **Elastic IP** - Static IP for web server
-10. **User Data Script** - Auto-install Node.js, PM2, Nginx, Docker, create shopme user
-11. **Environment Configuration** - Complete .env file with all required variables
-12. **API Keys Integration** - GitHub Secrets to production environment variables
+
+### Simplified Approach (TESTED PATTERN)
+10. **User Data** - MINIMAL inline script (apt update, install nginx, basic setup)
+11. **No Complex IAM** - Avoid complex IAM roles that can cause permission errors
+12. **No External Files** - Everything inline in main.tf
+13. **Proper Outputs** - All required outputs with correct sensitivity settings
+14. **Generic AMI Query** - Use flexible patterns that work across regions/time
 
 ## Workflow Features
-13. **Manual Trigger** - workflow_dispatch with action choice (plan/apply/destroy)
-14. **Instance Type Selection** - t3.micro/small/medium options
-15. **Terraform Generation** - Dynamic main.tf and user_data.sh creation
-16. **Output Display** - Show connection details and next steps
-17. **Cost Estimation** - Display monthly cost (~$27-30)
-18. **GitHub Secrets** - List required secrets for subsequent deployments
 
-## Required GitHub Secrets
+### GitHub Actions Integration
+15. **Manual Trigger** - workflow_dispatch with action choice (plan/apply/destroy)
+16. **Instance Type Selection** - t3.micro/small/medium dropdown options
+17. **Environment Targeting** - Use `environment: dev` for secrets consistency
+18. **Terraform Generation** - Single main.tf file with all resources inline
+19. **Error Handling** - Proper error messages and debugging information
+20. **Secrets Auto-Update** - GitHub CLI integration to update environment secrets
+
+### Output & Reporting
+21. **Connection Details** - Public IP, DNS, SSH command, S3 bucket
+22. **Cost Estimation** - Display monthly cost (~$27-30)
+23. **Next Steps** - Clear instructions for deployment workflow
+24. **Secret Status** - List all auto-configured secrets
+
+## Required GitHub Secrets (Environment: dev)
+
+### AWS Infrastructure
 - **AWS_ACCESS_KEY_ID** - AWS access key for Terraform operations
 - **AWS_SECRET_ACCESS_KEY** - AWS secret key for Terraform operations
+
+### Application APIs  
 - **OPENROUTER_API_KEY** - API key for ChatGPT/Claude LLM integration
 - **HUGGINGFACE_API_KEY** - API key for embeddings and document search
 - **JWT_SECRET** - Secret key for authentication tokens
 
-## Environment Variables Configured
-The workflow automatically creates a complete .env file with:
-- NODE_ENV=production
-- PORT=8080
-- DATABASE_URL (from AWS Secrets Manager)
-- OPENROUTER_API_KEY (from GitHub Secrets)
-- HUGGINGFACE_API_KEY (from GitHub Secrets)
-- JWT_SECRET (from GitHub Secrets)
-- FRONTEND_URL (dynamic public IP)
-- AWS_REGION and AWS_S3_BUCKET
+### Auto-Generated by Terraform
+- **S3_BUCKET_NAME** - S3 bucket for deployments
+- **EC2_HOST** - Public IP of EC2 instance
+- **EC2_USER** - SSH username (ubuntu)
+- **EC2_SSH_KEY** - Private SSH key for server access
+- **AWS_REGION** - AWS region (us-east-1)
+- **DATABASE_URL** - Complete PostgreSQL connection string
+- **DB_NAME, DB_USER, DB_PASSWORD, DB_HOST** - Individual database credentials
 
 ## Technical Specifications
-- **Region**: us-east-1
-- **Environment**: Production only
-- **Database**: PostgreSQL 15.4, db.t3.micro, 20GB storage
-- **Security**: Basic security groups, private database subnet
-- **Monitoring**: CloudWatch basic logging
+
+### Infrastructure Details
+- **Region**: us-east-1 (2 availability zones)
+- **Environment**: Development/Production compatible
+- **VPC CIDR**: 10.0.0.0/16
+- **Public Subnets**: 10.0.1.0/24, 10.0.2.0/24
+- **Private Subnets**: 10.0.10.0/24, 10.0.11.0/24
+
+### Database Configuration
+- **Engine**: PostgreSQL 15.4
+- **Instance**: db.t3.micro
+- **Storage**: 20GB GP2, encrypted, auto-scaling to 100GB
 - **Backup**: 7-day retention, automated maintenance windows
-- **Deploy Integration**: Compatible with existing CI/CD S3 upload pattern
+- **Network**: Private subnets only, security group restricted
+
+### Security & Access
+- **SSH**: RSA 4096-bit keys, auto-generated
+- **Database**: Private access only from EC2 security group
+- **S3**: Encrypted, versioned, private access
+- **Secrets**: AWS Secrets Manager with automatic rotation support
+
+## 🔧 TERRAFORM GENERATION RULES
+
+### File Structure
+```
+terraform/
+├── main.tf (ALL resources in single file)
+└── (NO external files - everything inline)
+```
+
+### Resource Order (CRITICAL)
+1. Providers and variables
+2. Data sources (AZs, AMI with generic patterns)
+3. Random resources (password, bucket suffix)
+4. VPC and networking
+5. Security groups
+6. TLS private key and AWS key pair
+7. S3 bucket and configuration
+8. Secrets Manager (secret only)
+9. DB subnet group
+10. RDS instance
+11. Secrets Manager version (AFTER RDS with depends_on)
+12. EC2 instance (depends on all above)
+13. Elastic IP
+14. Outputs
+
+### Testing Strategy
+- **Plan First**: Always run `terraform plan` before `apply`
+- **Incremental**: Start with basic resources, add complexity gradually
+- **Validation**: Use `terraform validate` in workflow
+- **Error Recovery**: Provide clear error messages and troubleshooting steps
+
+### Proven AMI Data Source Pattern
+```hcl
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  owners      = ["099720109477"] # Canonical
+  
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-*-amd64-server-*"]
+  }
+  
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}
+```
+
+### Proven User Data Pattern
+```hcl
+user_data = base64encode(<<-EOF
+  #!/bin/bash
+  apt-get update
+  apt-get install -y nginx
+  systemctl start nginx
+  systemctl enable nginx
+  echo "<h1>ShopMefy Server Ready</h1>" > /var/www/html/index.html
+EOF
+)
+```
+
+## 🎯 SUCCESS CRITERIA
+
+### Workflow Must Pass These Tests
+1. ✅ `terraform init` - Downloads providers successfully
+2. ✅ `terraform validate` - Configuration is syntactically correct
+3. ✅ `terraform plan` - Shows expected resources without errors
+4. ✅ AMI query returns results in us-east-1
+5. ✅ All resource dependencies resolved correctly
+6. ✅ No circular dependency errors
+7. ✅ All outputs defined and accessible
+
+### Common Failure Points to Check
+- ❌ AMI query returns no results (use generic patterns)
+- ❌ Unterminated template strings (avoid nested heredoc)
+- ❌ Circular dependencies (RDS endpoint in secrets before RDS creation)
+- ❌ Missing depends_on declarations
+- ❌ Invalid resource references
+- ❌ Provider version conflicts
 
