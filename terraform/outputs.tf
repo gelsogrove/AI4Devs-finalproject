@@ -33,4 +33,10 @@ output "database_url" {
 output "s3_bucket_name" {
   description = "S3 bucket name for deployments"
   value       = aws_s3_bucket.deployments.bucket
+}
+
+output "ssh_private_key" {
+  description = "SSH private key for connecting to the server"
+  value       = tls_private_key.main.private_key_pem
+  sensitive   = true
 } 

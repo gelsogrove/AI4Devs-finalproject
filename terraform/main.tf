@@ -14,6 +14,10 @@ terraform {
       source  = "hashicorp/random"
       version = "~> 3.1"
     }
+    tls = {
+      source  = "hashicorp/tls"
+      version = "~> 4.0"
+    }
   }
 }
 
@@ -148,21 +152,19 @@ resource "aws_security_group" "database" {
 # SSH KEY PAIR
 # ===================================
 
-# NOTE: You need to create this key pair manually in AWS Console
-# or add your public key here and uncomment:
-#
-# resource "aws_key_pair" "main" {
-#   key_name   = "shopmefy-key"
-#   public_key = "ssh-rsa YOUR_PUBLIC_KEY_HERE"
-#   
-#   tags = {
-#     Name = "shopmefy-keypair"
-#   }
-# }
+# Auto-generate SSH key pair
+resource "tls_private_key" "main" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
 
-# For now, use existing key pair
-data "aws_key_pair" "existing" {
-  key_name = "shopmefy-key"
+resource "aws_key_pair" "main" {
+  key_name   = "shopmefy-key"
+  public_key = tls_private_key.main.public_key_openssh
+  
+  tags = {
+    Name = "shopmefy-keypair"
+  }
 }
 
 # ===================================
@@ -259,7 +261,7 @@ resource "aws_db_instance" "postgres" {
 resource "aws_instance" "web" {
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = "t3.micro"
-  key_name               = data.aws_key_pair.existing.key_name
+  key_name               = aws_key_pair.main.key_name
   vpc_security_group_ids = [aws_security_group.web.id]
   
   # Enable hibernation for cost savings

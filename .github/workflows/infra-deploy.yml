@@ -28,7 +28,7 @@
 # - HUGGINGFACE_API_KEY: API key for embeddings and document search
 # - JWT_SECRET: Secret key for authentication tokens
 
-name: 🚀 Deploy AWS Infrastructure
+name: 🚀 Deploy to EC2
 
 on:
   workflow_dispatch:

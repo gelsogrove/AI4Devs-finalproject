@@ -71,6 +71,7 @@ jobs:
           # Get all outputs
           S3_BUCKET=$(terraform output -raw s3_bucket_name)
           EC2_HOST=$(terraform output -raw web_public_ip)
+          SSH_PRIVATE_KEY=$(terraform output -raw ssh_private_key)
           DB_HOST=$(terraform output -raw database_host)
           DB_PASSWORD=$(terraform output -raw database_password)
           DATABASE_URL=$(terraform output -raw database_url)
@@ -94,6 +95,7 @@ jobs:
           echo "$EC2_HOST" | gh secret set EC2_HOST --repo ${{ github.repository }} --env dev
           echo "ubuntu" | gh secret set EC2_USER --repo ${{ github.repository }} --env dev
           echo "us-east-1" | gh secret set AWS_REGION --repo ${{ github.repository }} --env dev
+          echo "$SSH_PRIVATE_KEY" | gh secret set EC2_SSH_KEY --repo ${{ github.repository }} --env dev
           
           # Add database secrets
           echo "$DATABASE_URL" | gh secret set DATABASE_URL --repo ${{ github.repository }} --env dev
@@ -109,6 +111,7 @@ jobs:
           echo "- ✅ EC2_HOST" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ EC2_USER" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ AWS_REGION" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ EC2_SSH_KEY (Auto-generated)" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ DATABASE_URL" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ DB_NAME, DB_USER, DB_PASSWORD, DB_HOST" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
