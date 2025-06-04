@@ -3,12 +3,12 @@
 # 
 # CONFIGURATION SUMMARY:
 # - Cloud Provider: AWS
-# - Environment: Production only
+# - Environment: Development/Production
 # - Database: RDS PostgreSQL managed with automatic backups
 # - App Server: 1 EC2 t3.micro instance (scalable to t3.small)
 # - Access: Public IP only (no custom domain)
 # - Security: Basic Security Groups (SSH, HTTP, HTTPS, PostgreSQL)
-# - Storage: S3 bucket for deployments + RDS backups
+# - Storage: S3 bucket for deployments + RDS backups (PRESERVED during destroy)
 # - EC2 Setup: Pre-configured with Node.js, PM2, Nginx, user 'shopme'
 # - Secrets: AWS Secrets Manager for database credentials + GitHub Secrets for API keys
 # - API Keys: OpenRouter, HuggingFace, JWT Secret automatically configured
@@ -38,6 +38,7 @@ on:
           - plan
           - apply
           - destroy
+          - cleanup-all
       instance_type:
         description: 'EC2 Instance Type'
         required: true
@@ -79,12 +80,148 @@ jobs:
           mkdir -p ./terraform
           cd ./terraform
 
+      - name: 🧹 Cleanup All ShopMefy-Dev Resources
+        if: github.event.inputs.action == 'cleanup-all'
+        run: |
+          echo "🧹 Starting cleanup of all shopmefy-dev* resources..."
+          
+          # Install AWS CLI if not available
+          if ! command -v aws &> /dev/null; then
+            echo "Installing AWS CLI..."
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            sudo ./aws/install
+          fi
+          
+          # Set AWS region
+          export AWS_DEFAULT_REGION=${{ env.AWS_REGION }}
+          
+          echo "🔍 Finding and deleting shopmefy-dev* resources..."
+          
+          # Delete EC2 instances
+          echo "🖥️ Deleting EC2 instances..."
+          INSTANCES=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=shopmefy-dev*" --query "Reservations[].Instances[?State.Name!='terminated'].InstanceId" --output text)
+          if [ ! -z "$INSTANCES" ]; then
+            echo "Terminating instances: $INSTANCES"
+            aws ec2 terminate-instances --instance-ids $INSTANCES
+            aws ec2 wait instance-terminated --instance-ids $INSTANCES
+          fi
+          
+          # Release Elastic IPs
+          echo "🌐 Releasing Elastic IPs..."
+          EIPS=$(aws ec2 describe-addresses --filters "Name=tag:Name,Values=shopmefy-dev*" --query "Addresses[].AllocationId" --output text)
+          for eip in $EIPS; do
+            if [ ! -z "$eip" ]; then
+              echo "Releasing EIP: $eip"
+              aws ec2 release-address --allocation-id $eip
+            fi
+          done
+          
+          # Delete RDS instances
+          echo "🗄️ Deleting RDS instances..."
+          RDS_INSTANCES=$(aws rds describe-db-instances --query "DBInstances[?starts_with(DBInstanceIdentifier, 'shopmefy-dev')].DBInstanceIdentifier" --output text)
+          for db in $RDS_INSTANCES; do
+            if [ ! -z "$db" ]; then
+              echo "Deleting RDS instance: $db"
+              aws rds delete-db-instance --db-instance-identifier $db --skip-final-snapshot --delete-automated-backups
+            fi
+          done
+          
+          # Delete DB Subnet Groups
+          echo "🔗 Deleting DB Subnet Groups..."
+          DB_SUBNET_GROUPS=$(aws rds describe-db-subnet-groups --query "DBSubnetGroups[?starts_with(DBSubnetGroupName, 'shopmefy-dev')].DBSubnetGroupName" --output text)
+          for sg in $DB_SUBNET_GROUPS; do
+            if [ ! -z "$sg" ]; then
+              echo "Deleting DB Subnet Group: $sg"
+              aws rds delete-db-subnet-group --db-subnet-group-name $sg
+            fi
+          done
+          
+          # Delete Secrets Manager secrets
+          echo "🔐 Deleting Secrets Manager secrets..."
+          SECRETS=$(aws secretsmanager list-secrets --query "SecretList[?starts_with(Name, 'shopmefy-dev')].Name" --output text)
+          for secret in $SECRETS; do
+            if [ ! -z "$secret" ]; then
+              echo "Deleting secret: $secret"
+              aws secretsmanager delete-secret --secret-id $secret --force-delete-without-recovery
+            fi
+          done
+          
+          # Delete Key Pairs
+          echo "🔑 Deleting Key Pairs..."
+          KEY_PAIRS=$(aws ec2 describe-key-pairs --query "KeyPairs[?starts_with(KeyName, 'shopmefy-dev')].KeyName" --output text)
+          for key in $KEY_PAIRS; do
+            if [ ! -z "$key" ]; then
+              echo "Deleting key pair: $key"
+              aws ec2 delete-key-pair --key-name $key
+            fi
+          done
+          
+          # Delete Security Groups (after instances are terminated)
+          echo "🛡️ Deleting Security Groups..."
+          sleep 30  # Wait for instances to be fully terminated
+          SECURITY_GROUPS=$(aws ec2 describe-security-groups --filters "Name=tag:Name,Values=shopmefy-dev*" --query "SecurityGroups[?GroupName!='default'].GroupId" --output text)
+          for sg in $SECURITY_GROUPS; do
+            if [ ! -z "$sg" ]; then
+              echo "Deleting security group: $sg"
+              aws ec2 delete-security-group --group-id $sg || echo "Failed to delete $sg (may have dependencies)"
+            fi
+          done
+          
+          # Delete VPC and related resources
+          echo "🌐 Deleting VPC resources..."
+          VPCS=$(aws ec2 describe-vpcs --filters "Name=tag:Name,Values=shopmefy-dev*" --query "Vpcs[].VpcId" --output text)
+          for vpc in $VPCS; do
+            if [ ! -z "$vpc" ]; then
+              echo "Deleting VPC: $vpc"
+              
+              # Delete route table associations and route tables
+              ROUTE_TABLES=$(aws ec2 describe-route-tables --filters "Name=vpc-id,Values=$vpc" --query "RouteTables[?Associations[0].Main!=\`true\`].RouteTableId" --output text)
+              for rt in $ROUTE_TABLES; do
+                if [ ! -z "$rt" ]; then
+                  # Disassociate route tables
+                  ASSOCIATIONS=$(aws ec2 describe-route-tables --route-table-ids $rt --query "RouteTables[].Associations[?Main!=\`true\`].RouteTableAssociationId" --output text)
+                  for assoc in $ASSOCIATIONS; do
+                    if [ ! -z "$assoc" ]; then
+                      aws ec2 disassociate-route-table --association-id $assoc
+                    fi
+                  done
+                  aws ec2 delete-route-table --route-table-id $rt
+                fi
+              done
+              
+              # Delete subnets
+              SUBNETS=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$vpc" --query "Subnets[].SubnetId" --output text)
+              for subnet in $SUBNETS; do
+                if [ ! -z "$subnet" ]; then
+                  aws ec2 delete-subnet --subnet-id $subnet
+                fi
+              done
+              
+              # Delete internet gateway
+              IGWS=$(aws ec2 describe-internet-gateways --filters "Name=attachment.vpc-id,Values=$vpc" --query "InternetGateways[].InternetGatewayId" --output text)
+              for igw in $IGWS; do
+                if [ ! -z "$igw" ]; then
+                  aws ec2 detach-internet-gateway --internet-gateway-id $igw --vpc-id $vpc
+                  aws ec2 delete-internet-gateway --internet-gateway-id $igw
+                fi
+              done
+              
+              # Finally delete VPC
+              aws ec2 delete-vpc --vpc-id $vpc
+            fi
+          done
+          
+          echo "✅ Cleanup completed! All shopmefy-dev* resources have been removed."
+          echo "📦 S3 buckets have been preserved for backup purposes."
+
       - name: 📝 Generate Terraform Configuration
+        if: github.event.inputs.action != 'cleanup-all'
         working-directory: ./terraform
         run: |
           cat > main.tf << 'EOF'
           # ===================================
-          # SHOPMEFY AWS INFRASTRUCTURE - FIXED VERSION
+          # SHOPMEFY AWS INFRASTRUCTURE - DEV VERSION
           # ===================================
           
           terraform {
@@ -111,7 +248,7 @@ jobs:
             default_tags {
               tags = {
                 Project     = "ShopMefy"
-                Environment = "production"
+                Environment = "development"
                 ManagedBy   = "Terraform"
                 Owner       = "Andrea"
               }
@@ -137,7 +274,7 @@ jobs:
           variable "project_name" {
             description = "Project name"
             type        = string
-            default     = "shopmefy-v2"
+            default     = "shopmefy-dev"
           }
           
           # ===================================
@@ -338,15 +475,19 @@ jobs:
           }
           
           # ===================================
-          # S3 BUCKET FOR DEPLOYMENTS
+          # S3 BUCKET FOR DEPLOYMENTS (PRESERVED)
           # ===================================
           
           resource "aws_s3_bucket" "deployments" {
             bucket = "${var.project_name}-deployments-${random_id.bucket_suffix.hex}"
-            force_destroy = true
             
             tags = {
               Name = "${var.project_name}-deployments"
+              Preserve = "true"
+            }
+            
+            lifecycle {
+              prevent_destroy = true
             }
           }
           
@@ -377,7 +518,7 @@ jobs:
           }
           
           # ===================================
-          # AWS SECRETS MANAGER FOR DATABASE (FIXED)
+          # AWS SECRETS MANAGER FOR DATABASE
           # ===================================
           
           resource "aws_secretsmanager_secret" "db_credentials" {
@@ -576,10 +717,12 @@ jobs:
 
       - name: 🔧 Terraform Init
         working-directory: ./terraform
+        if: github.event.inputs.action != 'cleanup-all'
         run: terraform init
 
       - name: ✅ Terraform Validate
         working-directory: ./terraform
+        if: github.event.inputs.action != 'cleanup-all'
         run: terraform validate
 
       - name: 📋 Terraform Plan
@@ -598,13 +741,31 @@ jobs:
             -var="instance_type=${{ github.event.inputs.instance_type }}" \
             -auto-approve
 
-      - name: 💥 Terraform Destroy
+      - name: 💥 Terraform Destroy (Selective)
         working-directory: ./terraform
         if: github.event.inputs.action == 'destroy'
         run: |
+          echo "🛡️ Performing selective destroy - S3 buckets will be preserved"
           terraform destroy \
             -var="instance_type=${{ github.event.inputs.instance_type }}" \
+            -target="aws_instance.web" \
+            -target="aws_eip.web" \
+            -target="aws_db_instance.postgres" \
+            -target="aws_secretsmanager_secret_version.db_credentials" \
+            -target="aws_secretsmanager_secret.db_credentials" \
+            -target="aws_db_subnet_group.main" \
+            -target="aws_security_group.database" \
+            -target="aws_security_group.web" \
+            -target="aws_key_pair.main" \
+            -target="tls_private_key.main" \
+            -target="aws_route_table_association.public" \
+            -target="aws_route_table.public" \
+            -target="aws_subnet.private" \
+            -target="aws_subnet.public" \
+            -target="aws_internet_gateway.main" \
+            -target="aws_vpc.main" \
             -auto-approve
+          echo "✅ Selective destroy completed - S3 buckets preserved for backups"
 
       - name: 📊 Show Outputs
         working-directory: ./terraform
