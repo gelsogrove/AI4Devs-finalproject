@@ -472,15 +472,12 @@ Remember: Every response MUST start with a function call. NO EXCEPTIONS!`,
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
 
-    // Handle transport-law.pdf file
-    const transportLawFilename = 'transport-law.pdf';
-    const transportLawPath = path.join(uploadsDir, transportLawFilename);
+    // Always create the international-transportation-law.pdf document record
+    const legacyFilename = 'international-transportation-law.pdf';
+    const legacyPath = path.join(uploadsDir, legacyFilename);
     
-    if (fs.existsSync(transportLawPath)) {
-      const stats = fs.statSync(transportLawPath);
-      
-      // Create comprehensive document content about International Transportation Law
-      const documentContent = `International Transportation Law - Legal Framework and Regulations
+    // Create comprehensive document content about International Transportation Law
+    const documentContent = `International Transportation Law - Legal Framework and Regulations
 
 The International Maritime Organization (IMO) is a specialized agency of the United Nations responsible for regulating shipping. The IMO develops and maintains a comprehensive regulatory framework for shipping, including safety, environmental concerns, legal matters, technical co-operation, maritime security and the efficiency of shipping.
 
@@ -532,70 +529,46 @@ International transportation requires extensive documentation including:
 
 Technology and Digital Transformation:
 Electronic documentation and digital platforms are increasingly important in international transportation, with initiatives like electronic bills of lading and digital customs procedures streamlining operations while maintaining legal validity.`;
-      
-      const document = await prisma.document.create({
-        data: {
-          filename: transportLawFilename,
-          originalName: 'transport-law.pdf',
-          title: 'International Transportation Law',
-          mimeType: 'application/pdf',
-          size: stats.size,
-          uploadPath: transportLawPath,
-          status: 'COMPLETED',
-          metadata: JSON.stringify({
-            pages: 1,
-            language: 'en',
-            keywords: ['transportation', 'international', 'law', 'delivery', 'regulations', 'IMO', 'maritime', 'shipping', 'customs', 'trade'],
-            description: 'Comprehensive legal framework for international transportation and delivery regulations including IMO conventions, maritime law, and trade regulations'
-          })
-        }
-      });
 
-      // Generate chunks from the document content
-      const chunks = splitIntoChunks(documentContent, 800);
-
-      // Generate embeddings for each chunk and save to database
-      for (let i = 0; i < chunks.length; i++) {
-        const chunk = chunks[i];
-        const embedding = await generateEmbedding(chunk);
-        
-        await prisma.documentChunk.create({
-          data: {
-            content: chunk,
-            chunkIndex: i,
-            pageNumber: 1,
-            documentId: document.id,
-            embedding: JSON.stringify(embedding)
-          }
-        });
+    // Create the document record (file will be copied by reset script)
+    const document = await prisma.document.create({
+      data: {
+        filename: legacyFilename,
+        originalName: 'international-transportation-law.pdf',
+        title: 'International Transportation Law',
+        mimeType: 'application/pdf',
+        size: 137879, // Correct size of the actual PDF file
+        uploadPath: legacyPath,
+        status: 'COMPLETED',
+        metadata: JSON.stringify({
+          pages: 1,
+          language: 'en',
+          keywords: ['transportation', 'international', 'law', 'delivery', 'regulations', 'IMO', 'maritime', 'shipping', 'customs', 'trade'],
+          description: 'Comprehensive legal framework for international transportation and delivery regulations including IMO conventions, maritime law, and trade regulations'
+        })
       }
-    }
+    });
 
-    // Legacy support for international-transportation-law.pdf (keeping for backward compatibility)
-    const legacyFilename = 'international-transportation-law.pdf';
-    const legacyPath = path.join(uploadsDir, legacyFilename);
-    
-    if (fs.existsSync(legacyPath)) {
-      const stats = fs.statSync(legacyPath);
+    // Generate chunks from the document content
+    const chunks = splitIntoChunks(documentContent, 800);
+
+    // Generate embeddings for each chunk and save to database
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
+      const embedding = await generateEmbedding(chunk);
       
-      const document = await prisma.document.create({
+      await prisma.documentChunk.create({
         data: {
-          filename: legacyFilename,
-          originalName: 'international-transportation-law.pdf',
-          title: 'International Transportation Law (Legacy)',
-          mimeType: 'application/pdf',
-          size: stats.size,
-          uploadPath: legacyPath,
-          status: 'COMPLETED',
-          metadata: JSON.stringify({
-            pages: 1,
-            language: 'en',
-            keywords: ['transportation', 'international', 'law', 'delivery', 'regulations', 'IMO', 'maritime', 'shipping', 'customs', 'trade'],
-            description: 'Legacy version - Comprehensive legal framework for international transportation and delivery regulations'
-          })
+          content: chunk,
+          chunkIndex: i,
+          pageNumber: 1,
+          documentId: document.id,
+          embedding: JSON.stringify(embedding)
         }
       });
     }
+
+    console.log('📄 Created document record for international-transportation-law.pdf');
 
   } catch (e) {
     console.error('Error seeding documents:', e);
@@ -700,6 +673,9 @@ Electronic documentation and digital platforms are increasingly important in int
   }
 
   console.log('🎉 Seed completed with embeddings!');
+
+  // Note: PDF file should already exist in prisma/temp/ directory
+  // The reset script will copy it to uploads/documents/
 }
 
 main()

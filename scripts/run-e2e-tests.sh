@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Simple script to run E2E tests with both backend and frontend
-# 1. Cleans up ports
-# 2. Starts backend
-# 3. Starts frontend
-# 4. Runs tests
+# E2E Test Script - Uses restart-all.sh for setup
+# 1. Calls restart-all.sh for complete system setup
+# 2. Waits for services to be ready
+# 3. Runs tests
+# 4. Cleans up
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -16,39 +16,29 @@ echo_msg() {
   echo -e "${YELLOW}[E2E Test]${NC} $1"
 }
 
-# Cleanup ports
-echo_msg "Cleaning up ports..."
-
-# Check and kill processes on common ports (3000, 3001, 3003)
-for PORT in 3000 3001 3003 8080; do
-  PID=$(lsof -t -i:$PORT -sTCP:LISTEN)
-  if [ -n "$PID" ]; then
-    echo_msg "Killing process on port $PORT (PID: $PID)"
-    kill -9 $PID
-  else
-    echo_msg "No process found on port $PORT"
-  fi
-done
-
 # Navigate to project root
 cd "$(dirname "$0")/.." || { echo_msg "${RED}Failed to navigate to project root${NC}"; exit 1; }
 ROOT_DIR=$(pwd)
 
-# Start backend
-echo_msg "Starting backend server..."
-cd "$ROOT_DIR/backend" || { echo_msg "${RED}Failed to navigate to backend directory${NC}"; exit 1; }
-npm run dev &
-BACKEND_PID=$!
+# Step 1: Use restart-all.sh for complete system setup
+echo_msg "Setting up complete system using restart-all.sh..."
+./scripts/restart-all.sh
 
-# Wait for backend
+if [ $? -ne 0 ]; then
+    echo_msg "${RED}System setup failed${NC}"
+    exit 1
+fi
+
+echo_msg "${GREEN}System setup completed!${NC}"
+
+# Step 2: Wait for backend health check
 echo_msg "Waiting for backend to be ready..."
 attempt=0
 max_attempts=30
-while ! curl -s http://localhost:8080/api/health > /dev/null; do
+while ! curl -s http://localhost:3001/api/health > /dev/null; do
   attempt=$((attempt+1))
   if [ $attempt -eq $max_attempts ]; then
     echo_msg "${RED}Backend failed to start${NC}"
-    if [ -n "$BACKEND_PID" ]; then kill -9 $BACKEND_PID || true; fi
     exit 1
   fi
   echo_msg "Waiting for backend... (attempt $attempt/$max_attempts)"
@@ -56,13 +46,7 @@ while ! curl -s http://localhost:8080/api/health > /dev/null; do
 done
 echo_msg "${GREEN}Backend is running!${NC}"
 
-# Start frontend
-echo_msg "Starting frontend server..."
-cd "$ROOT_DIR/frontend" || { echo_msg "${RED}Failed to navigate to frontend directory${NC}"; exit 1; }
-npm run dev &
-FRONTEND_PID=$!
-
-# Wait for frontend
+# Step 3: Wait for frontend
 echo_msg "Waiting for frontend to be ready..."
 attempt=0
 max_attempts=30
@@ -70,8 +54,6 @@ while ! curl -s http://localhost:3000 > /dev/null; do
   attempt=$((attempt+1))
   if [ $attempt -eq $max_attempts ]; then
     echo_msg "${RED}Frontend failed to start${NC}"
-    if [ -n "$BACKEND_PID" ]; then kill -9 $BACKEND_PID || true; fi
-    if [ -n "$FRONTEND_PID" ]; then kill -9 $FRONTEND_PID || true; fi
     exit 1
   fi
   echo_msg "Waiting for frontend... (attempt $attempt/$max_attempts)"
@@ -79,21 +61,12 @@ while ! curl -s http://localhost:3000 > /dev/null; do
 done
 echo_msg "${GREEN}Frontend is running!${NC}"
 
-# Run tests in headless mode
+# Step 4: Run tests in headless mode
 echo_msg "${GREEN}Running E2E tests in headless mode...${NC}"
 cd "$ROOT_DIR/frontend" && npx cypress run
 TEST_EXIT_CODE=$?
 
-# Cleanup processes
-echo_msg "Cleaning up processes..."
-if [ -n "$FRONTEND_PID" ]; then
-  kill -9 $FRONTEND_PID || true
-fi
-if [ -n "$BACKEND_PID" ]; then
-  kill -9 $BACKEND_PID || true
-fi
-
-# Return test result
+# Step 5: Return test result
 if [ $TEST_EXIT_CODE -eq 0 ]; then
   echo_msg "${GREEN}Tests completed successfully!${NC}"
   exit 0

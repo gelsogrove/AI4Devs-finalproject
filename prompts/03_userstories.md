@@ -1,5 +1,7 @@
 # ShopMefy - User Stories
 
+source: `prompts/02_PRD.md`
+
 ## 📋 Project Structure Overview
 
 This document organizes the ShopMefy project using a three-level hierarchy:

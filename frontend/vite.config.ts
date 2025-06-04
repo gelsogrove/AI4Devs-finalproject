@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 3000,
     proxy: {
-      '/api': 'http://localhost:8080'
+      '/api': 'http://localhost:3001'
     }
   },
   plugins: [
@@ -24,6 +24,6 @@ export default defineConfig(({ mode }) => ({
   },
   define: {
     // Define environment variables
-    'process.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || 'http://localhost:8080'),
+    'process.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || 'http://localhost:3001'),
   },
 }));

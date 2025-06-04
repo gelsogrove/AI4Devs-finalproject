@@ -1,11 +1,13 @@
 # ShopMefy - Task List
 
+source: `prompts/02_userstories.md`
+
 ## 📋 Task Overview
 
-**Total Tasks**: 50  
-**Completed**: 29  
+**Total Tasks**: 51  
+**Completed**: 30  
 **Remaining**: 21  
-**Progress**: 58%
+**Progress**: 59%
 
 ---
 
@@ -102,6 +104,31 @@
 - ✅ All seed data supports AI testing
 - ✅ Realistic business scenarios available
 - ✅ Seeding script documented
+
+---
+
+### Task 4.1: Development Environment Reset System
+**Title**: Unified Database and File Cleanup System  
+**Status**: DONE  
+**Priority**: Medium  
+**User Story**: US-004  
+**Story Points**: 3  
+
+**Key Tasks**:
+- ✅ Created unified `reset-development.sh` script
+- ✅ Simplified package.json database commands
+- ✅ Integrated file cleanup with database seeding
+- ✅ Removed redundant cleanup scripts
+- ✅ Updated documentation with clear instructions
+- ✅ Single command (`npm run db:clean`) for complete reset
+
+**Acceptance Criteria**:
+- ✅ One command resets entire development environment
+- ✅ Cleans uploads and temp directories
+- ✅ Seeds database with fresh data
+- ✅ Moves example files to proper locations
+- ✅ Documentation updated and clear
+- ✅ Script is maintainable and well-documented
 
 ---
 
@@ -1302,4 +1329,4 @@
 ---
 
 *Last Updated: December 2024*  
-*Progress: 29/50 tasks completed (58%)* 
+*Progress: 30/51 tasks completed (59%)* 

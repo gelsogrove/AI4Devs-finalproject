@@ -1,35 +1,20 @@
 #!/bin/bash
 
-# 🚀 Gusto Italiano - Complete System Management Script
-echo "🚀 Starting system restart..."
+# ShopMefy - Simple Restart Script
+# 1. Kill ports
+# 2. Restart Docker
+# 3. Start Backend and Frontend
 
-# Get the script directory and project root
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+echo "🔄 ShopMefy System Restart"
 
-# Step 1: Stop all services
-echo "🛑 Stopping services..."
+# Get project root
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# Stop services using saved PIDs first
-if [ -f "/tmp/gusto-italiano/backend.pid" ]; then
-    BACKEND_PID=$(cat "/tmp/gusto-italiano/backend.pid")
-    if kill -0 $BACKEND_PID 2>/dev/null; then
-        kill $BACKEND_PID 2>/dev/null
-    fi
-    rm -f "/tmp/gusto-italiano/backend.pid"
-fi
-
-if [ -f "/tmp/gusto-italiano/frontend.pid" ]; then
-    FRONTEND_PID=$(cat "/tmp/gusto-italiano/frontend.pid")
-    if kill -0 $FRONTEND_PID 2>/dev/null; then
-        kill $FRONTEND_PID 2>/dev/null
-    fi
-    rm -f "/tmp/gusto-italiano/frontend.pid"
-fi
-
-# Step 2: Kill processes on common ports using kill-port
-PORTS=(8080 3000 3001 3002 3003 3004 3005 5173)
+# Step 1: Kill processes on ports
+echo "🛑 Killing processes on ports..."
+PORTS=(3001 3000)
 for port in "${PORTS[@]}"; do
+    echo "   Killing port $port..."
     if command -v npx >/dev/null 2>&1; then
         npx kill-port $port >/dev/null 2>&1
     else
@@ -37,49 +22,52 @@ for port in "${PORTS[@]}"; do
     fi
 done
 
-sleep 2
+# Step 2: Check and start Docker
+echo "🐳 Checking Docker..."
+if ! docker info >/dev/null 2>&1; then
+    echo "❌ Docker is not running!"
+    echo "   Please start Docker Desktop and try again"
+    exit 1
+fi
 
-# Step 3: Setup backend
+# Step 3: Restart Docker containers
+echo "🐳 Restarting Docker containers..."
 cd "$PROJECT_ROOT/backend" || exit 1
-mkdir -p "/tmp/gusto-italiano"
+docker compose down >/dev/null 2>&1
+docker compose up -d >/dev/null 2>&1
 
-# Regenerate Prisma client silently
-npx prisma generate >/dev/null 2>&1
 if [ $? -ne 0 ]; then
-    echo "❌ Failed to regenerate Prisma client"
+    echo "❌ Failed to start Docker containers"
     exit 1
 fi
 
-# Step 4: Start backend server (no logs)
-npm run dev > /dev/null 2>&1 &
+# Wait for database
+echo "⏳ Waiting for database..."
+sleep 8
+
+# Step 4: Start Backend
+echo "🟢 Starting Backend..."
+cd "$PROJECT_ROOT/backend" || exit 1
+npm run dev &
 BACKEND_PID=$!
-echo $BACKEND_PID > "/tmp/gusto-italiano/backend.pid"
 
+# Wait for backend
 sleep 3
 
-# Check if backend is running
-if ! kill -0 $BACKEND_PID 2>/dev/null; then
-    echo "❌ Failed to start backend"
-    exit 1
-fi
-
-# Step 5: Start frontend (no logs)
+# Step 5: Start Frontend  
+echo "🟢 Starting Frontend..."
 cd "$PROJECT_ROOT/frontend" || exit 1
-npm run dev > /dev/null 2>&1 &
+npm run dev &
 FRONTEND_PID=$!
-echo $FRONTEND_PID > "/tmp/gusto-italiano/frontend.pid"
 
-sleep 3
-
-# Check if frontend is running
-if ! kill -0 $FRONTEND_PID 2>/dev/null; then
-    echo "❌ Failed to start frontend"
-    exit 1
-fi
-
-echo "✅ System ready!"
-echo "📊 Backend: http://localhost:8080"
-echo "📊 Frontend: Check terminal for port"
-echo "🛑 Stop: Use Ctrl+C or kill processes manually"
+# Final status
+sleep 2
+echo ""
+echo "✅ System restarted!"
+echo "📊 Backend: http://localhost:3001"
+echo "📊 Frontend: http://localhost:3000 (or check terminal)"
+echo "🗄️ Database: localhost:5434"
+echo ""
+echo "🛑 To stop: Use Ctrl+C in terminals or kill processes manually"
 
 cd "$PROJECT_ROOT" 

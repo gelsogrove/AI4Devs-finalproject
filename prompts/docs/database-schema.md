@@ -10,50 +10,50 @@ erDiagram
         string description
         decimal price
         string category
-        boolean isActive
-        datetime createdAt
-        datetime updatedAt
-        string tagsJson
+        boolean isActive "default(true)"
+        DateTime createdAt "default(now)"
+        DateTime updatedAt
+        string tagsJson "default('[]')"
     }
 
     FAQ {
         string id PK
         string question
         string answer
-        boolean isActive
-        datetime createdAt
-        datetime updatedAt
+        boolean isActive "default(true)"
+        DateTime createdAt "default(now)"
+        DateTime updatedAt
     }
 
     FAQChunk {
         string id PK
         string content
         string faqId FK
-        datetime createdAt
-        datetime updatedAt
-        string embedding
+        DateTime createdAt "default(now)"
+        DateTime updatedAt
+        string embedding "nullable"
     }
 
     AgentConfig {
         string id PK
-        float temperature
-        int maxTokens
-        float topP
-        string model
+        float temperature "default(0.7)"
+        int maxTokens "default(500)"
+        float topP "default(0.9)"
+        string model "default('gpt-4-turbo')"
         string prompt
-        datetime updatedAt
+        DateTime updatedAt
     }
 
     User {
         string id PK
         string email UK
         string password
-        string firstName
-        string lastName
-        boolean isActive
-        datetime lastLogin
-        datetime createdAt
-        datetime updatedAt
+        string firstName "nullable"
+        string lastName "nullable"
+        boolean isActive "default(true)"
+        DateTime lastLogin "nullable"
+        DateTime createdAt "default(now)"
+        DateTime updatedAt
     }
 
     Service {
@@ -61,63 +61,63 @@ erDiagram
         string name
         string description
         decimal price
-        datetime createdAt
-        datetime updatedAt
-        boolean isActive
-        string embedding
+        boolean isActive "default(true)"
+        DateTime createdAt "default(now)"
+        DateTime updatedAt
+        string embedding "nullable"
     }
 
     ServiceChunk {
         string id PK
         string content
         string serviceId FK
-        datetime createdAt
-        datetime updatedAt
-        string embedding
+        DateTime createdAt "default(now)"
+        DateTime updatedAt
+        string embedding "nullable"
     }
 
     Profile {
         string id PK
         string username UK
         string companyName
-        string logoUrl
+        string logoUrl "nullable"
         string description
         string phoneNumber
-        string website
+        string website "nullable"
         string email
         string openingTime
         string address
         string sector
-        datetime createdAt
-        datetime updatedAt
+        DateTime createdAt "default(now)"
+        DateTime updatedAt
     }
 
     Document {
         string id PK
         string filename
         string originalName
-        string title
+        string title "nullable"
         string mimeType
         int size
         string uploadPath
-        string status
-        boolean isActive
-        string userId
-        string metadata
-        datetime createdAt
-        datetime updatedAt
-        string path
+        string status "default('PROCESSING')"
+        boolean isActive "default(true)"
+        string userId "nullable"
+        string metadata "nullable"
+        DateTime createdAt "default(now)"
+        DateTime updatedAt
+        string path "nullable"
     }
 
     DocumentChunk {
         string id PK
         string content
-        int pageNumber
+        int pageNumber "nullable"
         int chunkIndex
         string documentId FK
-        string embedding
-        datetime createdAt
-        datetime updatedAt
+        string embedding "nullable"
+        DateTime createdAt "default(now)"
+        DateTime updatedAt
     }
 
     %% Relationships
@@ -144,16 +144,57 @@ erDiagram
 - **User**: System users with authentication
 - **Document**: File management with metadata
 
+### Database Constraints & Specifications
+
+#### Primary Keys
+- All tables use UUID strings as primary keys (`id`)
+- UUIDs provide distributed system compatibility and prevent ID collisions
+
+#### Unique Constraints
+- **User.email**: Ensures unique user identification
+- **Profile.username**: Prevents duplicate usernames
+
+#### Foreign Key Relationships
+- **FAQChunk.faqId** → **FAQ.id** (CASCADE DELETE)
+- **ServiceChunk.serviceId** → **Service.id** (CASCADE DELETE)
+- **DocumentChunk.documentId** → **Document.id** (CASCADE DELETE)
+
+#### Default Values
+- **Boolean fields**: `isActive` defaults to `true` for soft delete functionality
+- **Timestamps**: `createdAt` automatically set to current timestamp
+- **AgentConfig**: 
+  - `temperature`: 0.7 (balanced creativity/consistency)
+  - `maxTokens`: 500 (reasonable response length)
+  - `topP`: 0.9 (nucleus sampling parameter)
+  - `model`: 'gpt-4-turbo' (default AI model)
+- **Product.tagsJson**: Empty array `[]` for tag storage
+- **Document.status**: 'PROCESSING' for upload workflow
+
+#### Nullable Fields
+- **User**: `firstName`, `lastName`, `lastLogin` (optional personal info)
+- **Profile**: `logoUrl`, `website` (optional business info)
+- **Document**: `title`, `userId`, `metadata`, `path` (flexible document handling)
+- **DocumentChunk**: `pageNumber` (not all documents have page numbers)
+- **All embedding fields**: Allow null during processing/generation
+
+#### Data Types & Constraints
+- **Decimal fields**: `price` uses decimal for financial accuracy
+- **Integer fields**: `size`, `maxTokens`, `pageNumber`, `chunkIndex`
+- **Float fields**: `temperature`, `topP` for AI model parameters
+- **Text fields**: Variable length strings for content and descriptions
+- **DateTime fields**: ISO 8601 timestamps with timezone support
+
 ### Key Features
 - **Vector Embeddings**: All chunks support embeddings for semantic search
-- **Soft Deletes**: Most entities use `isActive` flags
-- **Audit Trail**: `createdAt` and `updatedAt` timestamps
+- **Soft Deletes**: Most entities use `isActive` flags instead of hard deletion
+- **Audit Trail**: `createdAt` and `updatedAt` timestamps on all entities
 - **Cascade Deletes**: Chunks are automatically deleted when parent entities are removed
+- **Data Integrity**: Foreign key constraints ensure referential integrity
 
 ### Relationships
 - **One-to-Many**: FAQ → FAQChunk, Service → ServiceChunk, Document → DocumentChunk
 - **Unique Constraints**: User email, Profile username
-- **Foreign Keys**: All chunk tables reference their parent entities
+- **Foreign Keys**: All chunk tables reference their parent entities with CASCADE DELETE
 
 ## Technical Implementation
 

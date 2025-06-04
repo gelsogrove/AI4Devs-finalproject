@@ -54,7 +54,7 @@ module.exports = defineConfig({
         }
       });
     },
-    baseUrl: 'http://localhost:3001',
+    baseUrl: 'http://localhost:3000',
     defaultCommandTimeout: 10000,
     requestTimeout: 10000,
     responseTimeout: 10000,

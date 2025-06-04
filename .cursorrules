@@ -15,6 +15,25 @@
 
 - Maintain the existing **graphics and layout**; DO NOT make changes unless **explicit permission** is granted
 
+## 🔒 CRITICAL BACKUP RULE FOR .ENV FILES
+
+⚠️ **MANDATORY BACKUP BEFORE ANY .ENV INTERACTION:**
+- **BEFORE** reading, checking, or interacting with ANY `.env` file, **ALWAYS** create a backup first
+- **COMMAND TO RUN FIRST:** `cp .env .env.backup.$(date +%Y%m%d_%H%M%S)`
+- **NEVER** touch `.env` files without creating a timestamped backup
+- **IF .ENV IS LOST:** immediately restore from the most recent `.env.backup.*` file
+- **ALWAYS** inform Andrea when creating backups: "Andrea, I'm creating a backup of .env before proceeding"
+
+## 🚨 CRITICAL PDF FILE PROTECTION RULE
+
+⚠️ **NEVER DELETE OR MODIFY THE PDF FILE:**
+- **NEVER** delete, modify, or touch `backend/prisma/temp/international-transportation-law.pdf`
+- **NEVER** remove files from `backend/prisma/temp/` directory
+- **NEVER** modify the seed script to remove PDF file creation
+- **THIS FILE IS CRITICAL** for the system to work properly
+- **IF DELETED:** Andrea will be very angry and the system will break
+- **ALWAYS** preserve this file during any script or seed modifications
+
 ## ❌ Strict Prohibitions - What Never to Do
 
 ### 🚫 NEVER HARDCODE DATA
@@ -175,3 +194,5 @@ frontend/
 - **TypeScript files**: camelCase (`userService.ts`, `documentController.ts`)
 - **React components**: PascalCase (`UserProfile.tsx`, `DocumentList.tsx`)
 - **Test files**: `*.spec.ts` (unit), `*.integration.spec.ts` (integration), `*.cy.js` (E2E)
+- system has to be sync , swagger, seed code, test BE FE Readme prompts folder when you finish a job ask me do you need to update this section too ? 
+- when i say PRD you have to consider this file `/prompts/02_PRD.md`

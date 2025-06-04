@@ -54,11 +54,12 @@ jobs:
           echo "OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY || 'test-key' }}" >> .env
           echo "NODE_ENV=test" >> .env
           echo "JWT_SECRET=test-jwt-secret-for-ci" >> .env
+          echo "PORT=3001" >> .env
 
       - name: Create frontend .env file
         working-directory: ./frontend
         run: |
-          echo "VITE_API_URL=${{ secrets.API_URL || 'http://localhost:8080/api' }}" > .env
+          echo "VITE_API_URL=http://localhost:3001" > .env
 
       - name: Generate Prisma client
         working-directory: ./backend
@@ -157,7 +158,7 @@ jobs:
           
           # Wait for backend to be ready
           echo "Waiting for backend to be ready..."
-          timeout 60s bash -c 'until curl -s http://localhost:8080/api/health > /dev/null; do sleep 2; done'
+          timeout 60s bash -c 'until curl -s http://localhost:3001/api/health > /dev/null; do sleep 2; done'
           echo "Backend is ready for E2E tests!"
 
       - name: Start frontend for E2E tests

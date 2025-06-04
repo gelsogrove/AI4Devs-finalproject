@@ -66,6 +66,7 @@ frontend/
 ├── 📁 public/                      # Static assets
 ├── 📁 __test__/                    # Test files (MANDATORY structure)
 │   ├── 📁 unit/                    # Unit tests
+│   │   ├── 📁 __mocks__/           # Unit test mocks
 │   │   └── 📄 *.{test,spec}.{js,ts,tsx} # Unit test files
 │   └── 📁 e2e/                     # End-to-end tests
 │       ├── 📁 support/             # Cypress support files

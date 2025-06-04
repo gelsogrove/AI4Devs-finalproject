@@ -1,5 +1,7 @@
 # ShopMefy - WhatsApp E-commerce Platform PRD
 
+source: `prompts/01_metaprompt.md`
+
 ## Table of Contents
 - [Introduction](#introduction)
   - [Short Description](#short-description)
@@ -511,29 +513,29 @@ The seeding system uses Prisma's built-in capabilities and supports environment-
 erDiagram
     User {
         string id PK
-        string email
+        string email UK
         string password
-        string firstName
-        string lastName
-        boolean isActive
-        DateTime lastLogin
-        DateTime createdAt
+        string firstName "nullable"
+        string lastName "nullable"
+        boolean isActive "default(true)"
+        DateTime lastLogin "nullable"
+        DateTime createdAt "default(now)"
         DateTime updatedAt
     }
     
     Profile {
         string id PK
-        string username
+        string username UK
         string companyName
-        string logoUrl
+        string logoUrl "nullable"
         string description
         string phoneNumber
-        string website
+        string website "nullable"
         string email
         string openingTime
         string address
         string sector
-        DateTime createdAt
+        DateTime createdAt "default(now)"
         DateTime updatedAt
     }
     
@@ -543,18 +545,18 @@ erDiagram
         string description
         decimal price
         string category
-        boolean isActive
-        DateTime createdAt
+        boolean isActive "default(true)"
+        DateTime createdAt "default(now)"
         DateTime updatedAt
-        string tagsJson
+        string tagsJson "default('[]')"
     }
     
     FAQ {
         string id PK
         string question
         string answer
-        boolean isActive
-        DateTime createdAt
+        boolean isActive "default(true)"
+        DateTime createdAt "default(now)"
         DateTime updatedAt
     }
     
@@ -562,9 +564,9 @@ erDiagram
         string id PK
         string content
         string faqId FK
-        DateTime createdAt
+        DateTime createdAt "default(now)"
         DateTime updatedAt
-        string embedding
+        string embedding "nullable"
     }
     
     Service {
@@ -572,55 +574,55 @@ erDiagram
         string name
         string description
         decimal price
-        boolean isActive
-        DateTime createdAt
+        boolean isActive "default(true)"
+        DateTime createdAt "default(now)"
         DateTime updatedAt
-        string embedding
+        string embedding "nullable"
     }
     
     ServiceChunk {
         string id PK
         string content
         string serviceId FK
-        DateTime createdAt
+        DateTime createdAt "default(now)"
         DateTime updatedAt
-        string embedding
+        string embedding "nullable"
     }
     
     Document {
         string id PK
         string filename
         string originalName
-        string title
+        string title "nullable"
         string mimeType
         int size
         string uploadPath
-        string status
-        boolean isActive
-        string userId
-        string metadata
-        DateTime createdAt
+        string status "default('PROCESSING')"
+        boolean isActive "default(true)"
+        string userId "nullable"
+        string metadata "nullable"
+        DateTime createdAt "default(now)"
         DateTime updatedAt
-        string path
+        string path "nullable"
     }
     
     DocumentChunk {
         string id PK
         string content
-        int pageNumber
+        int pageNumber "nullable"
         int chunkIndex
         string documentId FK
-        string embedding
-        DateTime createdAt
+        string embedding "nullable"
+        DateTime createdAt "default(now)"
         DateTime updatedAt
     }
     
     AgentConfig {
         string id PK
-        float temperature
-        int maxTokens
-        float topP
-        string model
+        float temperature "default(0.7)"
+        int maxTokens "default(500)"
+        float topP "default(0.9)"
+        string model "default('gpt-4-turbo')"
         string prompt
         DateTime updatedAt
     }

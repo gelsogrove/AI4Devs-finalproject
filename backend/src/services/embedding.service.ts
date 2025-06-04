@@ -20,6 +20,7 @@ type FAQChunkWithFAQ = {
     id: string;
     question: string;
     answer: string;
+    isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
   };
@@ -37,6 +38,34 @@ type ServiceChunkWithService = {
     name: string;
     description: string;
     price: any;
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+};
+
+type DocumentChunkWithDocument = {
+  id: string;
+  content: string;
+  pageNumber: number | null;
+  chunkIndex: number;
+  embedding: string | null;
+  documentId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  document: {
+    id: string;
+    filename: string;
+    originalName: string;
+    title: string | null;
+    mimeType: string;
+    size: number;
+    uploadPath: string;
+    status: string;
+    isActive: boolean;
+    userId: string | null;
+    metadata: string | null;
+    path: string | null;
     createdAt: Date;
     updatedAt: Date;
   };
@@ -205,6 +234,7 @@ class EmbeddingService {
         id: faq.id,
         question: faq.question,
         answer: faq.answer,
+        isActive: faq.isActive,
         createdAt: faq.createdAt,
         updatedAt: faq.updatedAt
       })).slice(0, limit); // Limit to requested number
@@ -579,14 +609,15 @@ class EmbeddingService {
     try {
       logger.info('Generating embeddings for all documents');
       
-      // Get all completed documents from database
+      // Get all completed and active documents from database
       const documents = await prisma.document.findMany({
         where: {
-          status: 'COMPLETED'
+          status: 'COMPLETED',
+          isActive: true
         }
       });
       
-      logger.info(`Found ${documents.length} completed documents`);
+      logger.info(`Found ${documents.length} completed and active documents`);
       
       for (const document of documents) {
         await this.generateEmbeddingsForDocument(document.id);
@@ -609,17 +640,18 @@ class EmbeddingService {
       // Generate embedding for the search query
       const queryEmbedding = await aiService.generateEmbedding(query);
       
-      // Get all document chunks with their embeddings
+      // Get all document chunks with their embeddings - ONLY from active and completed documents
       const chunks = await prisma.documentChunk.findMany({
         include: {
           document: true
         },
         where: {
           document: {
-            status: 'COMPLETED'
+            status: 'COMPLETED',
+            isActive: true
           }
         }
-      });
+      }) as DocumentChunkWithDocument[];
 
       // If no chunks found, fall back to text search
       if (!chunks || chunks.length === 0) {
@@ -661,6 +693,7 @@ class EmbeddingService {
         content: topChunks.find(c => c.document.id === document.id)?.content || '',
         similarity: topChunks.find(c => c.document.id === document.id)?.similarity || 0,
         status: document.status,
+        isActive: document.isActive,
         createdAt: document.createdAt,
         updatedAt: document.updatedAt
       }));
@@ -683,6 +716,7 @@ class EmbeddingService {
       const documents = await prisma.document.findMany({
         where: {
           status: 'COMPLETED',
+          isActive: true,
           OR: [
             { title: { contains: query } },
             { originalName: { contains: query } },
@@ -701,6 +735,7 @@ class EmbeddingService {
         content: document.metadata || '',
         similarity: 0.5, // Default similarity for text search
         status: document.status,
+        isActive: document.isActive,
         createdAt: document.createdAt,
         updatedAt: document.updatedAt
       }));
@@ -794,10 +829,15 @@ class EmbeddingService {
       // Generate embedding for the search query
       const queryEmbedding = await aiService.generateEmbedding(query);
       
-      // Get all service chunks with their embeddings
+      // Get all service chunks with their embeddings - ONLY from active services
       const chunks = await prismaClient.serviceChunk.findMany({
         include: {
           service: true
+        },
+        where: {
+          service: {
+            isActive: true
+          }
         }
       }) as ServiceChunkWithService[];
 
@@ -870,7 +910,7 @@ class EmbeddingService {
         name: service.name,
         description: service.description,
         price: parseFloat(service.price.toString()),
-        isActive: true,
+        isActive: service.isActive,
         createdAt: service.createdAt,
         updatedAt: service.updatedAt
       })).slice(0, limit); // Limit to requested number
@@ -940,10 +980,15 @@ class EmbeddingService {
       // Generate embedding for the search query
       const queryEmbedding = await aiService.generateEmbedding(query);
       
-      // Get all service chunks with their embeddings
+      // Get all service chunks with their embeddings - ONLY from active services
       const chunks = await prismaClient.serviceChunk.findMany({
         include: {
           service: true
+        },
+        where: {
+          service: {
+            isActive: true
+          }
         }
       }) as ServiceChunkWithService[];
 
@@ -1002,6 +1047,248 @@ class EmbeddingService {
       };
     } catch (error) {
       logger.error('Error in debug search services:', error);
+      return {
+        query,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        results: []
+      };
+    }
+  }
+
+  // ===== DOCUMENT CHUNK METHODS =====
+
+  /**
+   * Search document chunks using embeddings
+   */
+  async searchDocumentChunks(query: string, limit = 5): Promise<any[]> {
+    try {
+      // Generate embedding for the search query
+      const queryEmbedding = await aiService.generateEmbedding(query);
+      
+      // Get all document chunks with their embeddings - ONLY from active and completed documents
+      const chunks = await prisma.documentChunk.findMany({
+        include: {
+          document: true
+        },
+        where: {
+          document: {
+            status: 'COMPLETED',
+            isActive: true
+          }
+        }
+      }) as DocumentChunkWithDocument[];
+
+      // If no chunks found, return empty results
+      if (!chunks || chunks.length === 0) {
+        logger.info('No document chunks found in database');
+        return [];
+      }
+
+      // Calculate cosine similarity between query and each chunk
+      const chunksWithSimilarity = chunks.map(chunk => {
+        try {
+          const chunkEmbedding = JSON.parse(chunk.embedding || '[]');
+          const similarity = this.cosineSimilarity(queryEmbedding, chunkEmbedding);
+          return { ...chunk, similarity };
+        } catch (error) {
+          logger.error(`Error parsing embedding for chunk ${chunk.id}:`, error);
+          return { ...chunk, similarity: 0 };
+        }
+      });
+
+      // Sort by similarity and get top chunks
+      const topChunks = chunksWithSimilarity
+        .sort((a, b) => b.similarity - a.similarity)
+        .slice(0, limit * 3); // Get more chunks to ensure we find relevant ones
+      
+      // Also check for keyword matches in case embedding similarity is low
+      const keywordMatches = chunksWithSimilarity.filter(chunk => {
+        const queryLower = query.toLowerCase();
+        const titleLower = (chunk.document.title || '').toLowerCase();
+        const originalNameLower = chunk.document.originalName.toLowerCase();
+        const contentLower = chunk.content.toLowerCase();
+        
+        // Check if query words appear in title, filename, or content
+        const queryWords = queryLower.split(/\s+/).filter(word => word.length > 2);
+        return queryWords.some(word => 
+          titleLower.includes(word) || originalNameLower.includes(word) || contentLower.includes(word)
+        );
+      });
+      
+      // Combine similarity results with keyword matches
+      const combinedChunks = [...topChunks];
+      keywordMatches.forEach(match => {
+        if (!combinedChunks.find(chunk => chunk.id === match.id)) {
+          combinedChunks.push(match);
+        }
+      });
+      
+      // Sort combined results by similarity (but include keyword matches even if low similarity)
+      const finalChunks = combinedChunks
+        .sort((a, b) => {
+          // Prioritize keyword matches
+          const aHasKeyword = keywordMatches.some(km => km.id === a.id);
+          const bHasKeyword = keywordMatches.some(km => km.id === b.id);
+          
+          if (aHasKeyword && !bHasKeyword) return -1;
+          if (!aHasKeyword && bHasKeyword) return 1;
+          
+          // Then sort by similarity
+          return b.similarity - a.similarity;
+        })
+        .slice(0, limit * 2); // Take more results to ensure we get relevant ones
+      
+      logger.info(`Found ${finalChunks.length} chunks, top similarity: ${finalChunks[0]?.similarity || 0}, keyword matches: ${keywordMatches.length}`);
+
+      // Get unique documents from final chunks and transform to expected format
+      const uniqueDocuments = Array.from(
+        new Map(finalChunks.map(chunk => [chunk.document.id, chunk.document]))
+      ).map(([_, document]) => ({
+        id: document.id,
+        title: document.title || document.originalName,
+        originalName: document.originalName,
+        filename: document.filename,
+        content: finalChunks.find(c => c.document.id === document.id)?.content || '',
+        similarity: finalChunks.find(c => c.document.id === document.id)?.similarity || 0,
+        status: document.status,
+        isActive: document.isActive,
+        createdAt: document.createdAt,
+        updatedAt: document.updatedAt
+      })).slice(0, limit); // Limit to requested number
+
+      logger.info(`Returning ${uniqueDocuments.length} unique documents from embedding search`);
+      return uniqueDocuments;
+    } catch (error) {
+      logger.error('Error searching document chunks:', error);
+      // Return empty results instead of falling back to text search
+      return [];
+    }
+  }
+
+  /**
+   * Get document chunks for a specific document (debug method)
+   */
+  async getDocumentChunks(documentId: string): Promise<any[]> {
+    try {
+      const chunks = await prisma.documentChunk.findMany({
+        where: { documentId },
+        include: {
+          document: true
+        }
+      });
+      return chunks;
+    } catch (error) {
+      logger.error(`Error getting document chunks for ${documentId}:`, error);
+      throw new Error('Failed to get document chunks');
+    }
+  }
+
+  /**
+   * Get all document chunks (debug method)
+   */
+  async getAllDocumentChunks(): Promise<any[]> {
+    try {
+      const chunks = await prisma.documentChunk.findMany({
+        include: {
+          document: true
+        }
+      });
+      return chunks;
+    } catch (error) {
+      logger.error('Error getting all document chunks:', error);
+      throw new Error('Failed to get all document chunks');
+    }
+  }
+
+  /**
+   * Clear all document chunks from the database
+   */
+  async clearAllDocumentChunks(): Promise<void> {
+    try {
+      await prisma.documentChunk.deleteMany({});
+      logger.info('Cleared all document chunks');
+    } catch (error) {
+      logger.error('Error clearing all document chunks:', error);
+      throw new Error('Failed to clear all document chunks');
+    }
+  }
+
+  /**
+   * Debug search documents with detailed similarity scores
+   */
+  async debugSearchDocumentChunks(query: string, limit = 5): Promise<any> {
+    try {
+      // Generate embedding for the search query
+      const queryEmbedding = await aiService.generateEmbedding(query);
+      
+      // Get all document chunks with their embeddings - ONLY from active and completed documents
+      const chunks = await prisma.documentChunk.findMany({
+        include: {
+          document: true
+        },
+        where: {
+          document: {
+            status: 'COMPLETED',
+            isActive: true
+          }
+        }
+      }) as DocumentChunkWithDocument[];
+
+      if (!chunks || chunks.length === 0) {
+        return {
+          query,
+          queryEmbeddingLength: queryEmbedding.length,
+          totalChunks: 0,
+          results: [],
+          error: 'No document chunks found'
+        };
+      }
+
+      // Calculate cosine similarity between query and each chunk
+      const chunksWithSimilarity = chunks.map(chunk => {
+        try {
+          const chunkEmbedding = JSON.parse(chunk.embedding || '[]');
+          const similarity = this.cosineSimilarity(queryEmbedding, chunkEmbedding);
+          return { 
+            ...chunk, 
+            similarity,
+            embeddingLength: chunkEmbedding.length,
+            hasValidEmbedding: Array.isArray(chunkEmbedding) && chunkEmbedding.length > 0
+          };
+        } catch (error) {
+          logger.error(`Error parsing embedding for chunk ${chunk.id}:`, error);
+          return { 
+            ...chunk, 
+            similarity: 0,
+            embeddingLength: 0,
+            hasValidEmbedding: false
+          };
+        }
+      });
+
+      // Sort by similarity
+      const sortedChunks = chunksWithSimilarity
+        .sort((a, b) => b.similarity - a.similarity);
+
+      return {
+        query,
+        queryEmbeddingLength: queryEmbedding.length,
+        totalChunks: chunks.length,
+        results: sortedChunks.map(chunk => ({
+          documentId: chunk.documentId,
+          documentTitle: chunk.document.title || chunk.document.originalName,
+          chunkContent: chunk.content.substring(0, 200) + '...',
+          similarity: chunk.similarity,
+          embeddingLength: chunk.embeddingLength,
+          hasValidEmbedding: chunk.hasValidEmbedding
+        })),
+        topResults: sortedChunks.slice(0, limit).map(chunk => ({
+          documentTitle: chunk.document.title || chunk.document.originalName,
+          similarity: chunk.similarity
+        }))
+      };
+    } catch (error) {
+      logger.error('Error in debug search documents:', error);
       return {
         query,
         error: error instanceof Error ? error.message : 'Unknown error',

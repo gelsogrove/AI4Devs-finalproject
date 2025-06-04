@@ -72,7 +72,7 @@ I used Lovable
 cd backend
 docker-compose up -d
 npm install
-npm run db:setup
+npm run db:clean
 npm run dev
 ```
 
@@ -86,6 +86,28 @@ npm run dev
 ```
 
 **Frontend runs on**: `http://localhost:3000` (or next available port)
+
+### Database Commands
+```bash
+cd backend
+
+# Complete reset: Database + uploads cleanup + fresh seed data + example files
+npm run db:clean
+
+# Database operations only
+npm run db:reset    # Reset database schema only
+npm run db:seed     # Seed database only (no file operations)
+npm run db:generate # Generate Prisma client
+npm run db:push     # Push schema changes
+```
+
+**What `npm run db:clean` does:**
+1. 🗄️ Resets database schema and data
+2. 🧹 Cleans uploads/documents directory (removes test files)
+3. 🧹 Cleans prisma/temp directory
+4. 🌱 Seeds database with fresh data
+5. 📁 Moves example files to uploads directory
+6. ✅ Leaves you with a completely clean development environment
 
 ### Testing
 
@@ -133,7 +155,7 @@ flowchart TB
     subgraph "Backend"
         NodeJS["Node.js Express"]
         API["REST API"]
-        LangChain["LangChain\n(AI Orchestration)"]
+        LangChain["RAG\n(LangChain/OpenRouter)"]
     end
     
     subgraph "Data Layer"
@@ -180,13 +202,13 @@ flowchart TB
 
 - **Backend**: Node.js Express application using Domain-Driven Design architecture to handle business logic and API routes.
 
-- **LangChain**: AI orchestration framework that manages function calling, conversation memory, and intelligent response generation. Coordinates between OpenRouter API and business data to provide contextual AI assistance.
+- **RAG (LangChain/OpenRouter)**: Retrieval-Augmented Generation system that combines semantic search with AI generation. Uses LangChain for orchestration, OpenRouter for LLM access, and vector embeddings to provide contextually relevant responses based on business data.
 
 - **Data Layer**: Prisma ORM with PostgreSQL database.
 
 - **External Services**:
   - **WhatsApp Business API**: For customer communication
-  - **OpenRouter API**: Powers the AI chatbot through LangChain orchestration
+  - **OpenRouter API**: Powers the RAG system through LangChain integration for AI-driven responses
   - **Payment Gateway**: Handles secure payments
 
 ### **2.3. High-level project description**
@@ -195,7 +217,7 @@ The project follows a Domain-Driven Design architecture with clear separation of
 
 **Backend Architecture**
 - **Domain Layer**: Core business entities and rules
-- **Application Layer**: Use cases and business operations with LangChain AI orchestration
+- **Application Layer**: Use cases and business operations with RAG (LangChain/OpenRouter) integration
 - **Infrastructure Layer**: Database access and external services
 - **Interface Layer**: API endpoints and controllers
 
@@ -499,7 +521,7 @@ As a business owner using the ShopMefy platform, I want to configure my AI assis
 **Title**: Advanced AI Orchestration with Function Calling
 
 **Description**: 
-As a customer interacting with the ShopMefy platform, I want to communicate with an intelligent AI assistant that can access real business data so that I can get accurate, contextual information about products, services, and policies. The system integrates LangChain framework for sophisticated AI orchestration, enabling the assistant to understand user intent and execute appropriate function calls to retrieve relevant information. The AI can search product catalogs, access service information, query FAQ databases, and retrieve document content through semantic search. Advanced prompt engineering ensures consistent, professional responses while maintaining conversation context across multiple interactions.
+As a customer interacting with the ShopMefy platform, I want to communicate with an intelligent AI assistant that can access real business data so that I can get accurate, contextual information about products, services, and policies. The system integrates RAG (Retrieval-Augmented Generation) with LangChain framework for sophisticated AI processing, enabling the assistant to understand user intent and execute appropriate function calls to retrieve relevant information. The AI can search product catalogs, access service information, query FAQ databases, and retrieve document content through semantic search. Advanced prompt engineering ensures consistent, professional responses while maintaining conversation context across multiple interactions.
 
 **Story Points**: 13  
 **Priority**: High  
@@ -543,7 +565,7 @@ As a customer using WhatsApp to communicate with a business, I want to send mess
 - Develop robust chat endpoint with comprehensive message processing
 - Implement message validation, sanitization, and security measures
 - Build conversation context management with session persistence
-- Create seamless integration with LangChain orchestration system
+- Create seamless integration with RAG (LangChain/OpenRouter) system
 - Add comprehensive error handling with user-friendly fallback responses
 - Implement rate limiting and abuse prevention mechanisms
 - Build detailed logging system for conversation analytics and debugging
