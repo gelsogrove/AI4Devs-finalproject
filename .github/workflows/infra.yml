@@ -210,10 +210,35 @@ jobs:
           # Delete Security Groups (after instances and ENIs are deleted)
           echo "🛡️ Deleting Security Groups..."
           sleep 30  # Additional wait
-          SECURITY_GROUPS=$(aws ec2 describe-security-groups --filters "Name=tag:Name,Values=shopmefy-dev*" --query "SecurityGroups[?GroupName!='default'].GroupId" --output text)
+          
+          # Find Security Groups by multiple criteria
+          # 1. By tags
+          SG_BY_TAGS=$(aws ec2 describe-security-groups --filters "Name=tag:Name,Values=shopmefy-dev*" --query "SecurityGroups[?GroupName!='default'].GroupId" --output text)
+          # 2. By group name pattern
+          SG_BY_NAME=$(aws ec2 describe-security-groups --filters "Name=group-name,Values=shopmefy-dev*" --query "SecurityGroups[].GroupId" --output text)
+          # 3. By description containing shopmefy-dev
+          SG_BY_DESC=$(aws ec2 describe-security-groups --query "SecurityGroups[?contains(Description, 'shopmefy-dev') && GroupName!='default'].GroupId" --output text)
+          # 4. By VPC association (find SGs in our VPCs)
+          SG_BY_VPC=""
+          VPCS_FOR_SG=$(aws ec2 describe-vpcs --filters "Name=tag:Name,Values=shopmefy-dev*" --query "Vpcs[].VpcId" --output text)
+          for vpc in $VPCS_FOR_SG; do
+            if [ ! -z "$vpc" ]; then
+              VPC_SGS=$(aws ec2 describe-security-groups --filters "Name=vpc-id,Values=$vpc" --query "SecurityGroups[?GroupName!='default'].GroupId" --output text)
+              SG_BY_VPC="$SG_BY_VPC $VPC_SGS"
+            fi
+          done
+          
+          # Combine all results and remove duplicates
+          SECURITY_GROUPS="$SG_BY_TAGS $SG_BY_NAME $SG_BY_DESC $SG_BY_VPC"
+          SECURITY_GROUPS=$(echo $SECURITY_GROUPS | tr ' ' '\n' | sort -u | grep -v '^$' | tr '\n' ' ')
+          
+          echo "Found Security Groups to delete: $SECURITY_GROUPS"
+          
           for sg in $SECURITY_GROUPS; do
             if [ ! -z "$sg" ]; then
-              echo "Deleting security group: $sg"
+              # Get SG details for logging
+              SG_NAME=$(aws ec2 describe-security-groups --group-ids $sg --query "SecurityGroups[0].GroupName" --output text 2>/dev/null || echo "unknown")
+              echo "Deleting security group: $sg ($SG_NAME)"
               aws ec2 delete-security-group --group-id $sg || echo "Failed to delete $sg (may have dependencies)"
             fi
           done
