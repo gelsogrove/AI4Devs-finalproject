@@ -84,7 +84,7 @@ jobs:
         run: |
           cat > main.tf << 'EOF'
           # ===================================
-          # SHOPMEFY AWS INFRASTRUCTURE - MINIMAL VERSION
+          # SHOPMEFY AWS INFRASTRUCTURE - FIXED VERSION
           # ===================================
           
           terraform {
@@ -164,7 +164,7 @@ jobs:
           }
           
           # ===================================
-          # RANDOM PASSWORD FOR DATABASE
+          # RANDOM RESOURCES
           # ===================================
           
           resource "random_password" "db_password" {
@@ -172,34 +172,8 @@ jobs:
             special = true
           }
           
-          # ===================================
-          # RANDOM ID FOR S3 BUCKET
-          # ===================================
-          
           resource "random_id" "bucket_suffix" {
             byte_length = 4
-          }
-          
-          # ===================================
-          # AWS SECRETS MANAGER FOR DATABASE
-          # ===================================
-          
-          resource "aws_secretsmanager_secret" "db_credentials" {
-            name                    = "${var.project_name}-db-credentials"
-            description             = "Database credentials for ShopMefy"
-            recovery_window_in_days = 7
-          }
-          
-          resource "aws_secretsmanager_secret_version" "db_credentials" {
-            secret_id = aws_secretsmanager_secret.db_credentials.id
-            secret_string = jsonencode({
-              username = "shopmefy"
-              password = random_password.db_password.result
-              engine   = "postgres"
-              host     = aws_db_instance.postgres.endpoint
-              port     = 5432
-              dbname   = "shopmefy"
-            })
           }
           
           # ===================================
@@ -305,6 +279,15 @@ jobs:
               description = "HTTPS"
             }
             
+            # Node.js App Port
+            ingress {
+              from_port   = 8080
+              to_port     = 8080
+              protocol    = "tcp"
+              cidr_blocks = ["0.0.0.0/0"]
+              description = "Node.js Application"
+            }
+            
             egress {
               from_port   = 0
               to_port     = 0
@@ -393,6 +376,16 @@ jobs:
           }
           
           # ===================================
+          # AWS SECRETS MANAGER FOR DATABASE (FIXED)
+          # ===================================
+          
+          resource "aws_secretsmanager_secret" "db_credentials" {
+            name                    = "${var.project_name}-db-credentials"
+            description             = "Database credentials for ShopMefy"
+            recovery_window_in_days = 7
+          }
+          
+          # ===================================
           # RDS SUBNET GROUP
           # ===================================
           
@@ -448,7 +441,25 @@ jobs:
           }
           
           # ===================================
-          # EC2 INSTANCE (MINIMAL)
+          # SECRETS MANAGER VERSION (AFTER RDS)
+          # ===================================
+          
+          resource "aws_secretsmanager_secret_version" "db_credentials" {
+            secret_id = aws_secretsmanager_secret.db_credentials.id
+            secret_string = jsonencode({
+              username = "shopmefy"
+              password = random_password.db_password.result
+              engine   = "postgres"
+              host     = aws_db_instance.postgres.endpoint
+              port     = 5432
+              dbname   = "shopmefy"
+            })
+            
+            depends_on = [aws_db_instance.postgres]
+          }
+          
+          # ===================================
+          # EC2 INSTANCE
           # ===================================
           
           resource "aws_instance" "web" {
@@ -458,14 +469,69 @@ jobs:
             vpc_security_group_ids = [aws_security_group.web.id]
             subnet_id              = aws_subnet.public[0].id
             
-            # Simple user data for basic setup
+            # Enhanced user data for complete setup
             user_data = base64encode(<<-EOF
               #!/bin/bash
+              set -e
+              
+              # Update system
               apt-get update
-              apt-get install -y nginx
+              apt-get upgrade -y
+              
+              # Install basic packages
+              apt-get install -y nginx curl wget unzip jq
+              
+              # Install Node.js 18.x
+              curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+              apt-get install -y nodejs
+              
+              # Install PM2 globally
+              npm install -g pm2
+              
+              # Create shopme user
+              useradd -m -s /bin/bash shopme
+              usermod -aG sudo shopme
+              
+              # Setup nginx
               systemctl start nginx
               systemctl enable nginx
-              echo "<h1>ShopMefy Server Ready</h1>" > /var/www/html/index.html
+              
+              # Create basic nginx config for Node.js proxy
+              cat > /etc/nginx/sites-available/shopmefy << 'NGINX_EOF'
+              server {
+                  listen 80;
+                  server_name _;
+                  
+                  location / {
+                      proxy_pass http://localhost:8080;
+                      proxy_http_version 1.1;
+                      proxy_set_header Upgrade $http_upgrade;
+                      proxy_set_header Connection 'upgrade';
+                      proxy_set_header Host $host;
+                      proxy_set_header X-Real-IP $remote_addr;
+                      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                      proxy_set_header X-Forwarded-Proto $scheme;
+                      proxy_cache_bypass $http_upgrade;
+                  }
+              }
+              NGINX_EOF
+              
+              # Enable the site
+              ln -sf /etc/nginx/sites-available/shopmefy /etc/nginx/sites-enabled/
+              rm -f /etc/nginx/sites-enabled/default
+              systemctl reload nginx
+              
+              # Create app directory
+              mkdir -p /home/shopme/app
+              chown -R shopme:shopme /home/shopme/app
+              
+              # Create a simple status page
+              echo "<h1>ShopMefy Server Ready</h1><p>Node.js: $(node --version)</p><p>PM2: $(pm2 --version)</p>" > /var/www/html/index.html
+              
+              # Setup PM2 to start on boot
+              sudo -u shopme pm2 startup
+              
+              echo "✅ ShopMefy server setup completed successfully!"
             EOF
             )
             
@@ -478,6 +544,13 @@ jobs:
             tags = {
               Name = "${var.project_name}-web-server"
             }
+            
+            depends_on = [
+              aws_vpc.main,
+              aws_subnet.public,
+              aws_security_group.web,
+              aws_key_pair.main
+            ]
           }
           
           # ===================================
@@ -491,6 +564,8 @@ jobs:
             tags = {
               Name = "${var.project_name}-eip"
             }
+            
+            depends_on = [aws_instance.web]
           }
           
           # ===================================
@@ -510,6 +585,12 @@ jobs:
           output "database_endpoint" {
             description = "RDS instance endpoint"
             value       = aws_db_instance.postgres.endpoint
+            sensitive   = true
+          }
+          
+          output "database_host" {
+            description = "RDS instance host (without port)"
+            value       = split(":", aws_db_instance.postgres.endpoint)[0]
             sensitive   = true
           }
           
@@ -533,11 +614,27 @@ jobs:
             description = "SSH command to connect to the server"
             value       = "ssh -i shopmefy_key.pem ubuntu@${aws_eip.web.public_ip}"
           }
+          
+          output "database_password" {
+            description = "Database password"
+            value       = random_password.db_password.result
+            sensitive   = true
+          }
+          
+          output "database_url" {
+            description = "Complete database URL"
+            value       = "postgresql://shopmefy:${random_password.db_password.result}@${split(":", aws_db_instance.postgres.endpoint)[0]}:5432/shopmefy"
+            sensitive   = true
+          }
           EOF
 
       - name: 🔧 Terraform Init
         working-directory: ./terraform
         run: terraform init
+
+      - name: ✅ Terraform Validate
+        working-directory: ./terraform
+        run: terraform validate
 
       - name: 📋 Terraform Plan
         working-directory: ./terraform
@@ -580,30 +677,18 @@ jobs:
           echo "2. Update your \`deploy.yml\` with the new EC2 IP address" >> $GITHUB_STEP_SUMMARY
           echo "3. Run your existing CI/CD pipeline to deploy the application" >> $GITHUB_STEP_SUMMARY
 
-      - name: 🔐 Save Secrets to GitHub
-        working-directory: ./terraform
-        if: github.event.inputs.action == 'apply'
-        run: |
-          echo "## 🔐 Update these GitHub Secrets:" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- \`S3_BUCKET_NAME\`: $(terraform output -raw s3_bucket_name)" >> $GITHUB_STEP_SUMMARY
-          echo "- \`EC2_HOST\`: $(terraform output -raw web_public_ip)" >> $GITHUB_STEP_SUMMARY
-          echo "- \`EC2_USER\`: ubuntu" >> $GITHUB_STEP_SUMMARY
-          echo "- \`AWS_REGION\`: us-east-1" >> $GITHUB_STEP_SUMMARY
-
-      - name: 🤖 Auto-Update Secrets with GitHub CLI (Alternative)
+      - name: 🤖 Auto-Update GitHub Secrets
         working-directory: ./terraform
         if: github.event.inputs.action == 'apply'
         continue-on-error: true
         run: |
-          # Try to update secrets automatically using GitHub CLI
+          # Get all outputs
           S3_BUCKET=$(terraform output -raw s3_bucket_name)
           EC2_HOST=$(terraform output -raw web_public_ip)
           SSH_PRIVATE_KEY=$(terraform output -raw ssh_private_key)
-          
-          # Get database credentials from Terraform outputs
-          DB_HOST=$(terraform output -raw database_endpoint | cut -d: -f1)
-          DB_PASSWORD=$(aws secretsmanager get-secret-value --secret-id $(terraform output -raw secret_manager_arn) --region us-east-1 --query SecretString --output text | jq -r .password)
+          DB_HOST=$(terraform output -raw database_host)
+          DB_PASSWORD=$(terraform output -raw database_password)
+          DATABASE_URL=$(terraform output -raw database_url)
           
           echo "🔄 Attempting automatic secret update with GitHub CLI for DEV environment..."
           
@@ -627,7 +712,7 @@ jobs:
           echo "$SSH_PRIVATE_KEY" | gh secret set EC2_SSH_KEY --repo ${{ github.repository }} --env dev
           
           # Add database secrets
-          echo "postgresql://shopmefy:$DB_PASSWORD@$DB_HOST:5432/shopmefy" | gh secret set DATABASE_URL --repo ${{ github.repository }} --env dev
+          echo "$DATABASE_URL" | gh secret set DATABASE_URL --repo ${{ github.repository }} --env dev
           echo "shopmefy" | gh secret set DB_NAME --repo ${{ github.repository }} --env dev
           echo "shopmefy" | gh secret set DB_USER --repo ${{ github.repository }} --env dev
           echo "$DB_PASSWORD" | gh secret set DB_PASSWORD --repo ${{ github.repository }} --env dev
