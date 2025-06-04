@@ -1,66 +1,58 @@
-# Terraform Infrastructure Deployment for ShopMefy
-# This workflow creates complete AWS infrastructure for production environment
+# Complete Infrastructure Destruction for ShopMefy
+# This workflow completely destroys ALL AWS infrastructure and resources
 # 
-# CONFIGURATION SUMMARY:
-# - Cloud Provider: AWS
-# - Environment: Development/Production
-# - Database: RDS PostgreSQL managed with automatic backups
-# - App Server: 1 EC2 t3.micro instance (scalable to t3.small)
-# - Access: Public IP only (no custom domain)
-# - Security: Basic Security Groups (SSH, HTTP, HTTPS, PostgreSQL)
-# - Storage: S3 bucket for deployments + RDS backups (PRESERVED during destroy)
-# - EC2 Setup: Pre-configured with Node.js, PM2, Nginx, user 'shopme'
-# - Secrets: AWS Secrets Manager for database credentials + GitHub Secrets for API keys
-# - API Keys: OpenRouter, HuggingFace, JWT Secret automatically configured
-# - Environment: Complete .env file with all required variables
-# - Monitoring: CloudWatch basic logging only
-# - Deploy Flow: CI/CD → S3 → EC2 (compatible with existing deploy.yml)
-# - Estimated Cost: ~$27-30/month
+# ⚠️  DANGER ZONE ⚠️
+# This will permanently delete:
+# - All EC2 instances and data
+# - All RDS databases and data  
+# - All S3 buckets and content
+# - All networking (VPC, subnets, security groups)
+# - All secrets and keys
+# - Everything related to shopmefy-dev*
+#
+# 💰 RESULT: Zero AWS costs after completion
+# 🔄 RECOVERY: You can recreate everything with infra-deploy.yml
 #
 # REQUIRED GITHUB SECRETS:
-# - AWS_ACCESS_KEY_ID: AWS access key for Terraform
-# - AWS_SECRET_ACCESS_KEY: AWS secret key for Terraform  
-# - OPENROUTER_API_KEY: API key for ChatGPT/Claude integration
-# - HUGGINGFACE_API_KEY: API key for embeddings and document search
-# - JWT_SECRET: Secret key for authentication tokens
+# - AWS_ACCESS_KEY_ID: AWS access key for resource deletion
+# - AWS_SECRET_ACCESS_KEY: AWS secret key for resource deletion
 
-name: 🚀 Deploy AWS Infrastructure with Terraform
+name: 🗑️ Destroy AWS Infrastructure
 
 on:
   workflow_dispatch:
     inputs:
-      action:
-        description: 'Terraform Action'
+      confirm_destruction:
+        description: 'Type "DESTROY" to confirm complete infrastructure deletion'
         required: true
-        default: 'apply'
-        type: choice
-        options:
-          - apply
-          - stop
-          - cleanup-all
-      instance_type:
-        description: 'EC2 Instance Type'
-        required: true
-        default: 't3.micro'
-        type: choice
-        options:
-          - t3.micro
-          - t3.small
-          - t3.medium
+        type: string
+      force_delete:
+        description: 'Force delete even if resources have dependencies'
+        required: false
+        default: false
+        type: boolean
 
 env:
   AWS_REGION: us-east-1
-  TF_VERSION: 1.6.0
 
 jobs:
-  terraform:
-    name: 🏗️ Terraform Infrastructure
+  destroy:
+    name: 🧹 Complete Infrastructure Destruction
     runs-on: ubuntu-latest
     environment: dev
     
     steps:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v4
+
+      - name: ⚠️ Validate Destruction Confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirm_destruction }}" != "DESTROY" ]; then
+            echo "❌ ERROR: You must type 'DESTROY' to confirm infrastructure deletion"
+            echo "🛡️ This safety check prevents accidental destruction"
+            exit 1
+          fi
+          echo "✅ Destruction confirmed - proceeding with complete cleanup"
 
       - name: ⚙️ Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -69,13 +61,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: 🔧 Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-
-      - name: 🧹 Enhanced Infrastructure Cleanup
-        if: github.event.inputs.action == 'cleanup-all'
+      - name: 🧹 ENHANCED INFRASTRUCTURE DESTRUCTION
         run: |
           echo "🧹 ENHANCED CLEANUP STARTING..."
           echo "🗑️ This will delete ALL shopmefy-dev* resources"
@@ -405,14 +391,14 @@ jobs:
           done
           
           echo ""
-          echo "🎉 ENHANCED CLEANUP FINISHED!"
-          echo "🗑️ ALL shopmefy-dev* resources have been thoroughly removed"
-          echo "💰 No more AWS charges for this infrastructure"
-          echo "🔄 You can create fresh infrastructure anytime with 'apply'"
+          echo "🎉 COMPLETE INFRASTRUCTURE DESTRUCTION FINISHED!"
+          echo "🗑️ ALL shopmefy-dev* resources have been permanently removed"
+          echo "💰 Zero AWS costs - No resources left running"
+          echo "🔄 You can recreate everything with infra-deploy.yml anytime"
           echo ""
-          echo "## 🧹 Enhanced Infrastructure Cleanup Successful!" >> $GITHUB_STEP_SUMMARY
+          echo "## 🗑️ Complete Infrastructure Destruction Successful!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### ✅ Everything Removed:" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Everything Permanently Removed:" >> $GITHUB_STEP_SUMMARY
           echo "- 🖥️ **EC2 instances** - Terminated and removed" >> $GITHUB_STEP_SUMMARY
           echo "- 🗄️ **RDS databases** - Deleted with all data" >> $GITHUB_STEP_SUMMARY
           echo "- 🗑️ **S3 buckets** - Emptied and deleted completely" >> $GITHUB_STEP_SUMMARY
@@ -422,168 +408,15 @@ jobs:
           echo "- 🛡️ **Security Groups** - Removed" >> $GITHUB_STEP_SUMMARY
           echo "- 🛡️ **Network ACLs** - Custom ACLs deleted" >> $GITHUB_STEP_SUMMARY
           echo "- 🔗 **VPC Endpoints** - All endpoints removed" >> $GITHUB_STEP_SUMMARY
-          echo "- 🌐 **VPC & Networking** - Complete network cleanup including subnets" >> $GITHUB_STEP_SUMMARY
+          echo "- 🌐 **VPC & Networking** - Complete network cleanup" >> $GITHUB_STEP_SUMMARY
           echo "- 📊 **CloudWatch Logs** - Log groups deleted" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 💰 Result:" >> $GITHUB_STEP_SUMMARY
+          echo "### 💰 Final Result:" >> $GITHUB_STEP_SUMMARY
           echo "- **Zero AWS costs** - No resources left running" >> $GITHUB_STEP_SUMMARY
           echo "- **Clean slate** - Ready for fresh deployment anytime" >> $GITHUB_STEP_SUMMARY
-          echo "- **No traces** - All shopmefy-dev infrastructure completely removed" >> $GITHUB_STEP_SUMMARY
-
-      - name: 🔧 Terraform Init
-        working-directory: ./terraform
-        if: github.event.inputs.action != 'cleanup-all'
-        run: terraform init
-
-      - name: ✅ Terraform Validate
-        working-directory: ./terraform
-        if: github.event.inputs.action != 'cleanup-all'
-        run: terraform validate
-
-      - name: 🚀 Terraform Apply
-        working-directory: ./terraform
-        if: github.event.inputs.action == 'apply'
-        run: |
-          terraform apply \
-            -var="instance_type=${{ github.event.inputs.instance_type }}" \
-            -auto-approve
-
-      - name: 📊 Show Outputs
-        working-directory: ./terraform
-        if: github.event.inputs.action == 'apply'
-        run: |
-          echo "## 🎉 Infrastructure Deployed Successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "- **Complete destruction** - All shopmefy infrastructure permanently removed" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📋 Connection Details:" >> $GITHUB_STEP_SUMMARY
-          echo "- **Public IP**: $(terraform output -raw web_public_ip)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Public DNS**: $(terraform output -raw web_public_dns)" >> $GITHUB_STEP_SUMMARY
-          echo "- **SSH Command**: \`$(terraform output -raw ssh_command)\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **S3 Bucket**: $(terraform output -raw s3_bucket_name)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🔧 Next Steps:" >> $GITHUB_STEP_SUMMARY
-          echo "1. Update your \`deploy.yml\` with the new S3 bucket name" >> $GITHUB_STEP_SUMMARY
-          echo "2. Update your \`deploy.yml\` with the new EC2 IP address" >> $GITHUB_STEP_SUMMARY
-          echo "3. Run your existing CI/CD pipeline to deploy the application" >> $GITHUB_STEP_SUMMARY
-
-      - name: 🤖 Auto-Update GitHub Secrets
-        working-directory: ./terraform
-        if: github.event.inputs.action == 'apply'
-        continue-on-error: true
-        run: |
-          # Get all outputs
-          S3_BUCKET=$(terraform output -raw s3_bucket_name)
-          EC2_HOST=$(terraform output -raw web_public_ip)
-          SSH_PRIVATE_KEY=$(terraform output -raw ssh_private_key)
-          DB_HOST=$(terraform output -raw database_host)
-          DB_PASSWORD=$(terraform output -raw database_password)
-          DATABASE_URL=$(terraform output -raw database_url)
-          
-          echo "🔄 Attempting automatic secret update with GitHub CLI for DEV environment..."
-          
-          # Install GitHub CLI if not available
-          if ! command -v gh &> /dev/null; then
-            echo "Installing GitHub CLI..."
-            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-            sudo apt update
-            sudo apt install gh -y
-          fi
-          
-          # Authenticate with GitHub token
-          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
-          
-          # Update infrastructure secrets in DEV environment
-          echo "$S3_BUCKET" | gh secret set S3_BUCKET_NAME --repo ${{ github.repository }} --env dev
-          echo "$EC2_HOST" | gh secret set EC2_HOST --repo ${{ github.repository }} --env dev
-          echo "ubuntu" | gh secret set EC2_USER --repo ${{ github.repository }} --env dev
-          echo "us-east-1" | gh secret set AWS_REGION --repo ${{ github.repository }} --env dev
-          echo "$SSH_PRIVATE_KEY" | gh secret set EC2_SSH_KEY --repo ${{ github.repository }} --env dev
-          
-          # Add database secrets
-          echo "$DATABASE_URL" | gh secret set DATABASE_URL --repo ${{ github.repository }} --env dev
-          echo "shopmefy" | gh secret set DB_NAME --repo ${{ github.repository }} --env dev
-          echo "shopmefy" | gh secret set DB_USER --repo ${{ github.repository }} --env dev
-          echo "$DB_PASSWORD" | gh secret set DB_PASSWORD --repo ${{ github.repository }} --env dev
-          echo "$DB_HOST" | gh secret set DB_HOST --repo ${{ github.repository }} --env dev
-          
-          echo "✅ All secrets updated automatically via GitHub CLI in DEV environment!"
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🎉 Complete Infrastructure Secrets Auto-Updated in DEV Environment:" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ S3_BUCKET_NAME" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ EC2_HOST" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ EC2_USER" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ AWS_REGION" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ EC2_SSH_KEY (Generated automatically)" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ DATABASE_URL" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ DB_NAME" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ DB_USER" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ DB_PASSWORD" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ DB_HOST" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🎯 Ready for Production!" >> $GITHUB_STEP_SUMMARY
-          echo "1. **Complete infrastructure** - EC2 + RDS + S3 + SSH access" >> $GITHUB_STEP_SUMMARY
-          echo "2. **All secrets configured** - Database and deployment secrets ready" >> $GITHUB_STEP_SUMMARY
-          echo "3. **Deploy your application** - Use the deploy.yml workflow" >> $GITHUB_STEP_SUMMARY
-
-      - name: ⏹️ Stop Infrastructure (Cost Saving)
-        if: github.event.inputs.action == 'stop'
-        run: |
-          echo "⏹️ Stopping ShopMefy-Dev infrastructure to save costs..."
-          
-          # Install AWS CLI if not available
-          if ! command -v aws &> /dev/null; then
-            echo "Installing AWS CLI..."
-            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-            unzip awscliv2.zip
-            sudo ./aws/install
-          fi
-          
-          # Set AWS region
-          export AWS_DEFAULT_REGION=${{ env.AWS_REGION }}
-          
-          echo "🔍 Finding shopmefy-dev* resources to stop..."
-          
-          # Stop EC2 instances
-          echo "🖥️ Stopping EC2 instances..."
-          INSTANCES=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=shopmefy-dev*" "Name=instance-state-name,Values=running" --query "Reservations[].Instances[].InstanceId" --output text)
-          if [ ! -z "$INSTANCES" ]; then
-            echo "Stopping instances: $INSTANCES"
-            aws ec2 stop-instances --instance-ids $INSTANCES
-            echo "✅ EC2 instances stopped successfully"
-          else
-            echo "ℹ️ No running EC2 instances found"
-          fi
-          
-          # Stop RDS instances
-          echo "🗄️ Stopping RDS instances..."
-          RDS_INSTANCES=$(aws rds describe-db-instances --query "DBInstances[?starts_with(DBInstanceIdentifier, 'shopmefy-dev') && DBInstanceStatus=='available'].DBInstanceIdentifier" --output text)
-          for db in $RDS_INSTANCES; do
-            if [ ! -z "$db" ]; then
-              echo "Stopping RDS instance: $db"
-              aws rds stop-db-instance --db-instance-identifier $db
-              echo "✅ RDS instance $db stopped successfully"
-            fi
-          done
-          
-          if [ -z "$RDS_INSTANCES" ]; then
-            echo "ℹ️ No available RDS instances found to stop"
-          fi
-          
-          echo ""
-          echo "🎉 Infrastructure stopped successfully!"
-          echo "💰 Cost savings: EC2 and RDS instances are now stopped"
-          echo "📋 Infrastructure preserved: All configurations, data, and S3 buckets remain intact"
-          echo "🚀 To restart: Run this workflow with 'apply' action"
-          echo ""
-          echo "## ⏹️ Infrastructure Stopped Successfully!" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 💰 Cost Savings Activated:" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ **EC2 instances stopped** - No compute charges" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ **RDS instances stopped** - No database charges" >> $GITHUB_STEP_SUMMARY
-          echo "- 🛡️ **All data preserved** - Configurations and data intact" >> $GITHUB_STEP_SUMMARY
-          echo "- 📦 **S3 buckets active** - Minimal storage costs only" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🚀 To Restart Infrastructure:" >> $GITHUB_STEP_SUMMARY
-          echo "1. Run this workflow again with **'apply'** action" >> $GITHUB_STEP_SUMMARY
-          echo "2. All services will restart with existing configurations" >> $GITHUB_STEP_SUMMARY
-          echo "3. No data loss - everything will be exactly as before" >> $GITHUB_STEP_SUMMARY 
+          echo "### 🔄 Recovery:" >> $GITHUB_STEP_SUMMARY
+          echo "- Use **infra-deploy.yml** to recreate complete infrastructure" >> $GITHUB_STEP_SUMMARY
+          echo "- All configurations will be restored from Terraform" >> $GITHUB_STEP_SUMMARY
+          echo "- Fresh start with zero legacy issues" >> $GITHUB_STEP_SUMMARY 
