@@ -11,6 +11,13 @@ on:
         options:
           - production
           - staging
+  # Auto-deploy after successful CI/CD on main branch
+  workflow_run:
+    workflows: ["CI / CD"]
+    types:
+      - completed
+    branches:
+      - main
 
 env:
   AWS_REGION: us-east-1
@@ -20,10 +27,24 @@ jobs:
     name: 📦 Deploy to AWS EC2
     runs-on: ubuntu-latest
     environment: prod
+    # Only run if CI/CD was successful or if manually triggered
+    if: |
+      github.event_name == 'workflow_dispatch' || 
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     
     steps:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v4
+
+      - name: 🎯 Set Environment
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "DEPLOY_ENV=${{ github.event.inputs.environment }}" >> $GITHUB_ENV
+            echo "Manual deployment to ${{ github.event.inputs.environment }}"
+          else
+            echo "DEPLOY_ENV=production" >> $GITHUB_ENV
+            echo "Auto deployment to production after successful CI/CD"
+          fi
 
       - name: ⚙️ Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -137,7 +158,8 @@ jobs:
           echo "## 🎉 Deployment Completed Successfully!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📋 Deployment Details:" >> $GITHUB_STEP_SUMMARY
-          echo "- **Environment**: ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: ${{ env.DEPLOY_ENV }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Trigger**: ${{ github.event_name == 'workflow_dispatch' && 'Manual' || 'Automatic (after CI/CD)' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Target Server**: ${{ secrets.EC2_HOST }}" >> $GITHUB_STEP_SUMMARY
           echo "- **S3 Bucket**: ${{ secrets.S3_BUCKET_NAME }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Deployment Time**: $(date)" >> $GITHUB_STEP_SUMMARY
