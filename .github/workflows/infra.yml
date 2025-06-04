@@ -75,11 +75,13 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      - name: 🧹 Cleanup All ShopMefy-Dev Resources
+      - name: 🧹 Enhanced Infrastructure Cleanup
         if: github.event.inputs.action == 'cleanup-all'
         run: |
-          echo "🧹 Starting COMPLETE cleanup of all shopmefy-dev* resources..."
-          echo "⚠️  WARNING: This will remove EVERYTHING including S3 buckets and all data!"
+          echo "🧹 ENHANCED CLEANUP STARTING..."
+          echo "🗑️ This will delete ALL shopmefy-dev* resources"
+          echo "💰 After this, you'll have ZERO AWS costs"
+          echo ""
           
           # Install AWS CLI if not available
           if ! command -v aws &> /dev/null; then
@@ -92,42 +94,61 @@ jobs:
           # Set AWS region
           export AWS_DEFAULT_REGION=${{ env.AWS_REGION }}
           
-          echo "🔍 Finding and deleting ALL shopmefy-dev* resources..."
+          echo "🔍 Finding ALL shopmefy-dev* resources across AWS..."
           
-          # Delete EC2 instances first
-          echo "🖥️ Deleting EC2 instances..."
-          INSTANCES=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=shopmefy-dev*" --query "Reservations[].Instances[?State.Name!='terminated'].InstanceId" --output text)
+          # Terminate EC2 instances first (most important)
+          echo "🖥️ Terminating EC2 instances..."
+          # Multiple search criteria for EC2
+          EC2_BY_TAG=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=shopmefy-dev*" "Name=instance-state-name,Values=running,stopped,stopping" --query "Reservations[].Instances[].InstanceId" --output text)
+          EC2_BY_NAME=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=*shopmefy*" "Name=instance-state-name,Values=running,stopped,stopping" --query "Reservations[].Instances[].InstanceId" --output text)
+          # Search by any tag containing shopmefy
+          EC2_BY_ANY_TAG=$(aws ec2 describe-instances --query "Reservations[].Instances[?Tags && (Tags[?contains(Value, 'shopmefy')] || Tags[?contains(Key, 'shopmefy')])].InstanceId" --output text)
+          
+          # Combine and deduplicate
+          ALL_INSTANCES="$EC2_BY_TAG $EC2_BY_NAME $EC2_BY_ANY_TAG"
+          INSTANCES=$(echo $ALL_INSTANCES | tr ' ' '\n' | sort -u | grep -v '^$' | tr '\n' ' ')
+          
+          echo "Found EC2 instances: $INSTANCES"
+          
           if [ ! -z "$INSTANCES" ]; then
             echo "Terminating instances: $INSTANCES"
-            aws ec2 terminate-instances --instance-ids $INSTANCES
+            aws ec2 terminate-instances --instance-ids $INSTANCES || echo "Some instances failed to terminate"
             echo "Waiting for instances to terminate..."
-            aws ec2 wait instance-terminated --instance-ids $INSTANCES
+            aws ec2 wait instance-terminated --instance-ids $INSTANCES || echo "Wait timeout, continuing..."
           fi
           
-          # Release Elastic IPs
-          echo "🌐 Releasing Elastic IPs..."
-          # First try to find EIPs by tags
-          EIPS=$(aws ec2 describe-addresses --filters "Name=tag:Name,Values=shopmefy-dev*" --query "Addresses[].AllocationId" --output text)
-          # Also find EIPs associated with our instances
-          if [ ! -z "$INSTANCES" ]; then
-            EIP_BY_INSTANCE=$(aws ec2 describe-addresses --filters "Name=instance-id,Values=$INSTANCES" --query "Addresses[].AllocationId" --output text)
-            EIPS="$EIPS $EIP_BY_INSTANCE"
-          fi
-          # Also check for unassociated EIPs that might be ours (be careful with this)
-          echo "Checking for unassociated Elastic IPs..."
-          UNASSOCIATED_EIPS=$(aws ec2 describe-addresses --query "Addresses[?AssociationId==null].AllocationId" --output text)
-          for ueip in $UNASSOCIATED_EIPS; do
+          # Delete Elastic IPs with enhanced search
+          echo "🎯 Deleting Elastic IPs..."
+          # Search by tags
+          EIPS_BY_TAG=$(aws ec2 describe-addresses --filters "Name=tag:Name,Values=shopmefy-dev*" --query "Addresses[].AllocationId" --output text)
+          EIPS_BY_ANY_TAG=$(aws ec2 describe-addresses --query "Addresses[?Tags && (Tags[?contains(Value, 'shopmefy')] || Tags[?contains(Key, 'shopmefy')])].AllocationId" --output text)
+          # Search by instance association
+          EIPS_BY_INSTANCE=""
+          for instance in $INSTANCES; do
+            if [ ! -z "$instance" ]; then
+              INSTANCE_EIPS=$(aws ec2 describe-addresses --filters "Name=instance-id,Values=$instance" --query "Addresses[].AllocationId" --output text)
+              EIPS_BY_INSTANCE="$EIPS_BY_INSTANCE $INSTANCE_EIPS"
+            fi
+          done
+          # Search unassociated EIPs that might be ours
+          UNASSOC_EIPS=$(aws ec2 describe-addresses --query "Addresses[?!InstanceId].AllocationId" --output text)
+          for ueip in $UNASSOC_EIPS; do
             if [ ! -z "$ueip" ]; then
               # Get the EIP details to check if it might be ours
-              EIP_TAGS=$(aws ec2 describe-addresses --allocation-ids $ueip --query "Addresses[0].Tags[?Key=='Name'].Value" --output text)
-              if [[ "$EIP_TAGS" == *"shopmefy-dev"* ]]; then
-                echo "Found unassociated EIP with shopmefy-dev tag: $ueip"
-                EIPS="$EIPS $ueip"
+              EIP_TAGS=$(aws ec2 describe-addresses --allocation-ids $ueip --query "Addresses[0].Tags[?Key=='Name'].Value" --output text 2>/dev/null || echo "")
+              EIP_DOMAIN=$(aws ec2 describe-addresses --allocation-ids $ueip --query "Addresses[0].Domain" --output text 2>/dev/null || echo "")
+              if [[ "$EIP_TAGS" == *"shopmefy"* ]] || [[ "$EIP_DOMAIN" == "vpc" ]]; then
+                echo "Found potentially related EIP: $ueip"
+                EIPS_BY_INSTANCE="$EIPS_BY_INSTANCE $ueip"
               fi
             fi
           done
-          # Remove duplicates and empty values
-          EIPS=$(echo $EIPS | tr ' ' '\n' | sort -u | grep -v '^$' | tr '\n' ' ')
+          
+          # Combine all EIPs and remove duplicates
+          ALL_EIPS="$EIPS_BY_TAG $EIPS_BY_ANY_TAG $EIPS_BY_INSTANCE"
+          EIPS=$(echo $ALL_EIPS | tr ' ' '\n' | sort -u | grep -v '^$' | tr '\n' ' ')
+          
+          echo "Found EIPs to release: $EIPS"
           
           for eip in $EIPS; do
             if [ ! -z "$eip" ]; then
@@ -136,9 +157,15 @@ jobs:
             fi
           done
           
-          # Delete RDS instances
+          # Delete RDS instances with enhanced search
           echo "🗄️ Deleting RDS instances..."
-          RDS_INSTANCES=$(aws rds describe-db-instances --query "DBInstances[?starts_with(DBInstanceIdentifier, 'shopmefy-dev')].DBInstanceIdentifier" --output text)
+          RDS_BY_NAME=$(aws rds describe-db-instances --query "DBInstances[?starts_with(DBInstanceIdentifier, 'shopmefy-dev')].DBInstanceIdentifier" --output text)
+          RDS_BY_PATTERN=$(aws rds describe-db-instances --query "DBInstances[?contains(DBInstanceIdentifier, 'shopmefy')].DBInstanceIdentifier" --output text)
+          ALL_RDS="$RDS_BY_NAME $RDS_BY_PATTERN"
+          RDS_INSTANCES=$(echo $ALL_RDS | tr ' ' '\n' | sort -u | grep -v '^$' | tr '\n' ' ')
+          
+          echo "Found RDS instances: $RDS_INSTANCES"
+          
           for db in $RDS_INSTANCES; do
             if [ ! -z "$db" ]; then
               echo "Deleting RDS instance: $db"
@@ -152,9 +179,13 @@ jobs:
             sleep 60
           fi
           
-          # Delete DB Subnet Groups
+          # Delete DB Subnet Groups with enhanced search
           echo "🔗 Deleting DB Subnet Groups..."
-          DB_SUBNET_GROUPS=$(aws rds describe-db-subnet-groups --query "DBSubnetGroups[?starts_with(DBSubnetGroupName, 'shopmefy-dev')].DBSubnetGroupName" --output text)
+          DB_SG_BY_NAME=$(aws rds describe-db-subnet-groups --query "DBSubnetGroups[?starts_with(DBSubnetGroupName, 'shopmefy-dev')].DBSubnetGroupName" --output text)
+          DB_SG_BY_PATTERN=$(aws rds describe-db-subnet-groups --query "DBSubnetGroups[?contains(DBSubnetGroupName, 'shopmefy')].DBSubnetGroupName" --output text)
+          ALL_DB_SG="$DB_SG_BY_NAME $DB_SG_BY_PATTERN"
+          DB_SUBNET_GROUPS=$(echo $ALL_DB_SG | tr ' ' '\n' | sort -u | grep -v '^$' | tr '\n' ' ')
+          
           for sg in $DB_SUBNET_GROUPS; do
             if [ ! -z "$sg" ]; then
               echo "Deleting DB Subnet Group: $sg"
@@ -162,9 +193,15 @@ jobs:
             fi
           done
           
-          # Delete S3 buckets and ALL content
+          # Delete S3 buckets with enhanced search
           echo "🗑️ Deleting S3 buckets and ALL content..."
-          S3_BUCKETS=$(aws s3api list-buckets --query "Buckets[?starts_with(Name, 'shopmefy-dev')].Name" --output text)
+          S3_BY_NAME=$(aws s3api list-buckets --query "Buckets[?starts_with(Name, 'shopmefy-dev')].Name" --output text)
+          S3_BY_PATTERN=$(aws s3api list-buckets --query "Buckets[?contains(Name, 'shopmefy')].Name" --output text)
+          ALL_S3="$S3_BY_NAME $S3_BY_PATTERN"
+          S3_BUCKETS=$(echo $ALL_S3 | tr ' ' '\n' | sort -u | grep -v '^$' | tr '\n' ' ')
+          
+          echo "Found S3 buckets: $S3_BUCKETS"
+          
           for bucket in $S3_BUCKETS; do
             if [ ! -z "$bucket" ]; then
               echo "Emptying and deleting S3 bucket: $bucket"
@@ -173,9 +210,13 @@ jobs:
             fi
           done
           
-          # Delete Secrets Manager secrets
+          # Delete Secrets Manager secrets with enhanced search
           echo "🔐 Deleting Secrets Manager secrets..."
-          SECRETS=$(aws secretsmanager list-secrets --query "SecretList[?starts_with(Name, 'shopmefy-dev')].Name" --output text)
+          SECRETS_BY_NAME=$(aws secretsmanager list-secrets --query "SecretList[?starts_with(Name, 'shopmefy-dev')].Name" --output text)
+          SECRETS_BY_PATTERN=$(aws secretsmanager list-secrets --query "SecretList[?contains(Name, 'shopmefy')].Name" --output text)
+          ALL_SECRETS="$SECRETS_BY_NAME $SECRETS_BY_PATTERN"
+          SECRETS=$(echo $ALL_SECRETS | tr ' ' '\n' | sort -u | grep -v '^$' | tr '\n' ' ')
+          
           for secret in $SECRETS; do
             if [ ! -z "$secret" ]; then
               echo "Deleting secret: $secret"
@@ -183,9 +224,13 @@ jobs:
             fi
           done
           
-          # Delete Key Pairs
+          # Delete Key Pairs with enhanced search
           echo "🔑 Deleting Key Pairs..."
-          KEY_PAIRS=$(aws ec2 describe-key-pairs --query "KeyPairs[?starts_with(KeyName, 'shopmefy-dev')].KeyName" --output text)
+          KEYS_BY_NAME=$(aws ec2 describe-key-pairs --query "KeyPairs[?starts_with(KeyName, 'shopmefy-dev')].KeyName" --output text)
+          KEYS_BY_PATTERN=$(aws ec2 describe-key-pairs --query "KeyPairs[?contains(KeyName, 'shopmefy')].KeyName" --output text)
+          ALL_KEYS="$KEYS_BY_NAME $KEYS_BY_PATTERN"
+          KEY_PAIRS=$(echo $ALL_KEYS | tr ' ' '\n' | sort -u | grep -v '^$' | tr '\n' ' ')
+          
           for key in $KEY_PAIRS; do
             if [ ! -z "$key" ]; then
               echo "Deleting key pair: $key"
@@ -197,9 +242,14 @@ jobs:
           echo "⏳ Waiting for all instances to be fully terminated..."
           sleep 60
           
-          # Delete Network Interfaces (ENIs)
+          # Delete Network Interfaces (ENIs) with enhanced search
           echo "🔌 Deleting Network Interfaces..."
-          ENIS=$(aws ec2 describe-network-interfaces --filters "Name=tag:Name,Values=shopmefy-dev*" --query "NetworkInterfaces[?Status!='in-use'].NetworkInterfaceId" --output text)
+          ENIS_BY_TAG=$(aws ec2 describe-network-interfaces --filters "Name=tag:Name,Values=shopmefy-dev*" --query "NetworkInterfaces[?Status!='in-use'].NetworkInterfaceId" --output text)
+          ENIS_BY_ANY_TAG=$(aws ec2 describe-network-interfaces --query "NetworkInterfaces[?Status!='in-use' && Tags && (Tags[?contains(Value, 'shopmefy')] || Tags[?contains(Key, 'shopmefy')])].NetworkInterfaceId" --output text)
+          ENIS_BY_DESC=$(aws ec2 describe-network-interfaces --query "NetworkInterfaces[?Status!='in-use' && contains(Description, 'shopmefy')].NetworkInterfaceId" --output text)
+          ALL_ENIS="$ENIS_BY_TAG $ENIS_BY_ANY_TAG $ENIS_BY_DESC"
+          ENIS=$(echo $ALL_ENIS | tr ' ' '\n' | sort -u | grep -v '^$' | tr '\n' ' ')
+          
           for eni in $ENIS; do
             if [ ! -z "$eni" ]; then
               echo "Deleting network interface: $eni"
@@ -207,20 +257,27 @@ jobs:
             fi
           done
           
-          # Delete Security Groups (after instances and ENIs are deleted)
+          # Delete Security Groups with SUPER enhanced search
           echo "🛡️ Deleting Security Groups..."
           sleep 30  # Additional wait
           
           # Find Security Groups by multiple criteria
           # 1. By tags
           SG_BY_TAGS=$(aws ec2 describe-security-groups --filters "Name=tag:Name,Values=shopmefy-dev*" --query "SecurityGroups[?GroupName!='default'].GroupId" --output text)
+          SG_BY_ANY_TAG=$(aws ec2 describe-security-groups --query "SecurityGroups[?GroupName!='default' && Tags && (Tags[?contains(Value, 'shopmefy')] || Tags[?contains(Key, 'shopmefy')])].GroupId" --output text)
           # 2. By group name pattern
           SG_BY_NAME=$(aws ec2 describe-security-groups --filters "Name=group-name,Values=shopmefy-dev*" --query "SecurityGroups[].GroupId" --output text)
-          # 3. By description containing shopmefy-dev
+          SG_BY_NAME_PATTERN=$(aws ec2 describe-security-groups --query "SecurityGroups[?contains(GroupName, 'shopmefy') && GroupName!='default'].GroupId" --output text)
+          # 3. By description containing shopmefy
           SG_BY_DESC=$(aws ec2 describe-security-groups --query "SecurityGroups[?contains(Description, 'shopmefy-dev') && GroupName!='default'].GroupId" --output text)
+          SG_BY_DESC_PATTERN=$(aws ec2 describe-security-groups --query "SecurityGroups[?contains(Description, 'shopmefy') && GroupName!='default'].GroupId" --output text)
           # 4. By VPC association (find SGs in our VPCs)
           SG_BY_VPC=""
           VPCS_FOR_SG=$(aws ec2 describe-vpcs --filters "Name=tag:Name,Values=shopmefy-dev*" --query "Vpcs[].VpcId" --output text)
+          VPCS_BY_PATTERN=$(aws ec2 describe-vpcs --query "Vpcs[?Tags && (Tags[?contains(Value, 'shopmefy')] || Tags[?contains(Key, 'shopmefy')])].VpcId" --output text)
+          ALL_VPCS_FOR_SG="$VPCS_FOR_SG $VPCS_BY_PATTERN"
+          VPCS_FOR_SG=$(echo $ALL_VPCS_FOR_SG | tr ' ' '\n' | sort -u | grep -v '^$' | tr '\n' ' ')
+          
           for vpc in $VPCS_FOR_SG; do
             if [ ! -z "$vpc" ]; then
               VPC_SGS=$(aws ec2 describe-security-groups --filters "Name=vpc-id,Values=$vpc" --query "SecurityGroups[?GroupName!='default'].GroupId" --output text)
@@ -229,17 +286,28 @@ jobs:
           done
           
           # Combine all results and remove duplicates
-          SECURITY_GROUPS="$SG_BY_TAGS $SG_BY_NAME $SG_BY_DESC $SG_BY_VPC"
-          SECURITY_GROUPS=$(echo $SECURITY_GROUPS | tr ' ' '\n' | sort -u | grep -v '^$' | tr '\n' ' ')
+          ALL_SECURITY_GROUPS="$SG_BY_TAGS $SG_BY_ANY_TAG $SG_BY_NAME $SG_BY_NAME_PATTERN $SG_BY_DESC $SG_BY_DESC_PATTERN $SG_BY_VPC"
+          SECURITY_GROUPS=$(echo $ALL_SECURITY_GROUPS | tr ' ' '\n' | sort -u | grep -v '^$' | tr '\n' ' ')
           
           echo "Found Security Groups to delete: $SECURITY_GROUPS"
           
-          for sg in $SECURITY_GROUPS; do
-            if [ ! -z "$sg" ]; then
-              # Get SG details for logging
-              SG_NAME=$(aws ec2 describe-security-groups --group-ids $sg --query "SecurityGroups[0].GroupName" --output text 2>/dev/null || echo "unknown")
-              echo "Deleting security group: $sg ($SG_NAME)"
-              aws ec2 delete-security-group --group-id $sg || echo "Failed to delete $sg (may have dependencies)"
+          # Try to delete security groups multiple times (dependencies)
+          for attempt in 1 2 3; do
+            echo "Security Groups deletion attempt $attempt..."
+            for sg in $SECURITY_GROUPS; do
+              if [ ! -z "$sg" ]; then
+                # Check if SG still exists
+                SG_EXISTS=$(aws ec2 describe-security-groups --group-ids $sg --query "SecurityGroups[0].GroupId" --output text 2>/dev/null || echo "")
+                if [ ! -z "$SG_EXISTS" ]; then
+                  SG_NAME=$(aws ec2 describe-security-groups --group-ids $sg --query "SecurityGroups[0].GroupName" --output text 2>/dev/null || echo "unknown")
+                  echo "Deleting security group: $sg ($SG_NAME)"
+                  aws ec2 delete-security-group --group-id $sg || echo "Failed to delete $sg (may have dependencies)"
+                fi
+              fi
+            done
+            if [ $attempt -lt 3 ]; then
+              echo "Waiting 30 seconds before next attempt..."
+              sleep 30
             fi
           done
           
