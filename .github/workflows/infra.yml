@@ -35,7 +35,6 @@ on:
         default: 'apply'
         type: choice
         options:
-          - plan
           - apply
           - stop
           - cleanup-all
@@ -440,14 +439,6 @@ jobs:
         working-directory: ./terraform
         if: github.event.inputs.action != 'cleanup-all'
         run: terraform validate
-
-      - name: 📋 Terraform Plan
-        working-directory: ./terraform
-        if: github.event.inputs.action == 'plan'
-        run: |
-          terraform plan \
-            -var="instance_type=${{ github.event.inputs.instance_type }}" \
-            -out=tfplan
 
       - name: 🚀 Terraform Apply
         working-directory: ./terraform
