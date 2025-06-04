@@ -29,12 +29,27 @@ Cypress.Commands.add('login', (email = 'test@example.com', password = 'password1
       password
     }
   }).then((response) => {
-    window.localStorage.setItem('authToken', response.body.token);
+    // Store token and user data in sessionStorage to match AuthContext
+    window.sessionStorage.setItem('auth_token', response.body.token);
+    
+    // Create user object matching AuthContext format
+    const user = {
+      id: response.body.user.id,
+      email: response.body.user.email,
+      name: `${response.body.user.firstName} ${response.body.user.lastName}`.trim()
+    };
+    window.sessionStorage.setItem('user_data', JSON.stringify(user));
+    
+    // Set expiry time (1 hour) to match AuthContext
+    const expiry = new Date().getTime() + (60 * 60 * 1000);
+    window.sessionStorage.setItem('auth_expiry', expiry.toString());
   });
 });
 
 Cypress.Commands.add('logout', () => {
-  window.localStorage.removeItem('authToken');
+  window.sessionStorage.removeItem('auth_token');
+  window.sessionStorage.removeItem('user_data');
+  window.sessionStorage.removeItem('auth_expiry');
 });
 
 // Add command to wait for API to be ready

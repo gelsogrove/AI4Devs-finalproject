@@ -2,6 +2,9 @@ describe('Login Page', () => {
   beforeEach(() => {
     // Reset any previous login state
     cy.clearLocalStorage();
+    cy.window().then((win) => {
+      win.sessionStorage.clear();
+    });
     // Use cy.visit() with a timeout and failOnStatusCode false to be more resilient
     cy.visit('/', { timeout: 10000, failOnStatusCode: false });
   });
@@ -78,10 +81,16 @@ describe('Login Page', () => {
     // Should redirect to dashboard
     cy.url().should('include', '/dashboard');
     
-    // Should store auth data in localStorage
+    // Should store auth data in sessionStorage (not localStorage)
     cy.window().then(window => {
-      expect(window.localStorage.getItem('token')).to.equal('test-token');
-      expect(window.localStorage.getItem('user')).to.not.be.null;
+      expect(window.sessionStorage.getItem('auth_token')).to.equal('test-token');
+      expect(window.sessionStorage.getItem('user_data')).to.not.be.null;
+      
+      // Verify user data structure
+      const userData = JSON.parse(window.sessionStorage.getItem('user_data'));
+      expect(userData).to.have.property('id', '1');
+      expect(userData).to.have.property('email', 'test@example.com');
+      expect(userData).to.have.property('name', 'Test User');
     });
   });
 }); 

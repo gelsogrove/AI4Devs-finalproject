@@ -2,6 +2,9 @@ describe('Product and FAQ Lists', () => {
   beforeEach(() => {
     // Reset any previous login state
     cy.clearLocalStorage();
+    cy.window().then((win) => {
+      win.sessionStorage.clear();
+    });
     
     // Mock successful login
     cy.intercept('POST', '/api/auth/login', {
