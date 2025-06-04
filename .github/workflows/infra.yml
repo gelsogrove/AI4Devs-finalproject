@@ -58,10 +58,6 @@ jobs:
     runs-on: ubuntu-latest
     environment: dev
     
-    defaults:
-      run:
-        working-directory: ./terraform
-    
     steps:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v4
@@ -80,10 +76,11 @@ jobs:
 
       - name: 📁 Create Terraform Directory
         run: |
-          mkdir -p ../terraform
-          cd ../terraform
+          mkdir -p ./terraform
+          cd ./terraform
 
       - name: 📝 Generate Terraform Configuration
+        working-directory: ./terraform
         run: |
           cat > main.tf << 'EOF'
           # ===================================
@@ -637,6 +634,7 @@ jobs:
           EOF
 
       - name: 📝 Generate User Data Script
+        working-directory: ./terraform
         run: |
           cat > user_data.sh << 'EOF'
           #!/bin/bash
@@ -776,9 +774,11 @@ jobs:
           EOF
 
       - name: 🔧 Terraform Init
+        working-directory: ./terraform
         run: terraform init
 
       - name: 📋 Terraform Plan
+        working-directory: ./terraform
         if: github.event.inputs.action == 'plan'
         run: |
           terraform plan \
@@ -786,6 +786,7 @@ jobs:
             -out=tfplan
 
       - name: 🚀 Terraform Apply
+        working-directory: ./terraform
         if: github.event.inputs.action == 'apply'
         run: |
           terraform apply \
@@ -793,6 +794,7 @@ jobs:
             -auto-approve
 
       - name: 💥 Terraform Destroy
+        working-directory: ./terraform
         if: github.event.inputs.action == 'destroy'
         run: |
           terraform destroy \
@@ -800,6 +802,7 @@ jobs:
             -auto-approve
 
       - name: 📊 Show Outputs
+        working-directory: ./terraform
         if: github.event.inputs.action == 'apply'
         run: |
           echo "## 🎉 Infrastructure Deployed Successfully!" >> $GITHUB_STEP_SUMMARY
@@ -818,6 +821,7 @@ jobs:
           echo "### 💰 Estimated Monthly Cost: ~$27-30" >> $GITHUB_STEP_SUMMARY
 
       - name: 🔐 Save Secrets to GitHub
+        working-directory: ./terraform
         if: github.event.inputs.action == 'apply'
         run: |
           echo "## 🔐 Update these GitHub Secrets:" >> $GITHUB_STEP_SUMMARY
@@ -828,6 +832,7 @@ jobs:
           echo "- \`AWS_REGION\`: us-east-1" >> $GITHUB_STEP_SUMMARY
 
       - name: 🤖 Auto-Update Secrets with GitHub CLI (Alternative)
+        working-directory: ./terraform
         if: github.event.inputs.action == 'apply'
         continue-on-error: true
         run: |
