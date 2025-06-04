@@ -1,5 +1,13 @@
+/// <reference types="cypress" />
+
 describe('Profile Management', () => {
   beforeEach(() => {
+    // Reset any previous login state
+    cy.clearLocalStorage();
+    cy.window().then((win) => {
+      win.sessionStorage.clear();
+    });
+    
     // Mock auth API response
     cy.intercept('POST', '/api/auth/login', {
       statusCode: 200,
@@ -46,8 +54,12 @@ describe('Profile Management', () => {
     // Wait for redirect to dashboard
     cy.url().should('include', '/dashboard');
     
-    // Navigate to profile page
-    cy.get('[data-cy="nav-company-profile"]').click({ force: true });
+    // Wait for dashboard to fully load
+    cy.wait(2000);
+    
+    // Navigate to profile page via Dashboard link (correct navigation pattern)
+    // Use force: true to bypass any pointer-events issues
+    cy.contains('Company Profile').click({ force: true });
     cy.url().should('include', '/profile');
     cy.wait('@getProfile');
   });
@@ -76,8 +88,11 @@ describe('Profile Management', () => {
     cy.get('[data-cy="nav-dashboard"]').click();
     cy.url().should('include', '/dashboard');
     
-    // Navigate back to profile
-    cy.get('[data-cy="nav-company-profile"]').click({ force: true });
+    // Wait for dashboard to load
+    cy.wait(1000);
+    
+    // Navigate back to profile via Dashboard link
+    cy.contains('Company Profile').click({ force: true });
     cy.url().should('include', '/profile');
   });
 }); 
