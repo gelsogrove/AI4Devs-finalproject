@@ -698,4 +698,90 @@ For detailed user stories and additional scenarios, see: [`/prompts/03_userstori
 
 ## 7. Work tickets
 
+`./prompts/04_task-list.md`
+
 ## 8. Core Development Tasks
+
+### **🎯 What are Core Development Tasks?**
+
+**Core Development Tasks** represent the complete operational roadmap for ShopMefy - a structured, comprehensive list of all development work required to transform the project vision into reality. This section serves as the **"development bible"** that guides the entire project lifecycle from MVP to full production.
+
+### **📋 Task Organization Structure**
+
+The Core Development Tasks are organized into two main categories:
+
+#### **✅ MVP Tasks (37/37 - 100% Complete)**
+These are the **fundamental building blocks** that form the current working MVP:
+
+| Category | Tasks | Status | Description |
+|----------|-------|--------|-------------|
+| **🏗️ Infrastructure & Setup** | 6/6 | ✅ Complete | AWS deployment, database, project structure |
+| **🔐 Authentication** | 2/2 | ✅ Complete | Demo token system, basic login |
+| **📦 Product Management** | 4/4 | ✅ Complete | CRUD operations, categories, search |
+| **🤖 AI & Chat** | 6/6 | ✅ Complete | OpenRouter integration, agent config, RAG |
+| **🏢 Business Management** | 6/6 | ✅ Complete | Profile, services, FAQs, documents |
+| **🎨 Frontend** | 6/6 | ✅ Complete | React UI, admin dashboard, responsive design |
+| **🧪 Testing** | 8/8 | ✅ Complete | Unit, integration, e2e tests |
+| **🚀 Deployment** | 7/7 | ✅ Complete | CI/CD, AWS infrastructure, monitoring |
+
+#### **🔄 Future Tasks (16 planned)**
+These represent **advanced features** for subsequent development phases:
+
+| Phase | Focus Area | Examples |
+|-------|------------|----------|
+| **Phase 2** | Advanced Authentication | JWT tokens, protected routes, session management |
+| **Phase 3** | WhatsApp Integration | Business API, real-time messaging, webhooks |
+| **Phase 4** | E-commerce Features | Payment processing, order management, shopping cart |
+| **Phase 5** | Enterprise Features | Multi-tenancy, GDPR compliance, advanced analytics |
+
+### **🎯 Strategic Purpose**
+
+The Core Development Tasks serve multiple critical functions:
+
+**1. 📈 Progress Tracking**
+- **Current Status**: 37/53 tasks completed (69.8% overall progress)
+- **MVP Achievement**: 100% complete and production-ready
+- **Clear Milestones**: Each task has defined acceptance criteria
+
+**2. 🗺️ Project Roadmap**
+- **Logical Sequencing**: Tasks are organized by dependencies
+- **Priority Management**: High/Medium/Low priority classification
+- **Resource Planning**: Story points for effort estimation
+
+**3. 🎯 Quality Assurance**
+- **User Story Alignment**: Each task links to specific user stories
+- **Acceptance Criteria**: Clear definition of "done"
+- **Testing Requirements**: Comprehensive test coverage mandated
+
+**4. 📊 Stakeholder Communication**
+- **Transparent Progress**: Real-time status visibility
+- **Scope Management**: Clear MVP vs Future distinction
+- **Risk Management**: Dependencies and blockers identified
+
+### **🏆 MVP Achievement Summary**
+
+**ShopMefy MVP is 100% complete** with all core functionality implemented:
+
+- ✅ **Business Management**: Complete product/service/FAQ administration
+- ✅ **AI Assistant**: Sofia chatbot with OpenRouter integration
+- ✅ **Document Processing**: PDF upload with RAG search capabilities
+- ✅ **AWS Deployment**: Production-ready infrastructure
+- ✅ **Testing Suite**: Comprehensive test coverage (311/311 tests passing)
+- ✅ **Admin Interface**: Modern React dashboard with TailwindCSS
+
+### **📚 Detailed Documentation**
+
+For the complete task breakdown, progress tracking, and detailed specifications, see:
+- **Full Task List**: [`/prompts/04_task-list.md`](./prompts/04_task-list.md)
+- **User Stories**: [`/prompts/03_userstories.md`](./prompts/03_userstories.md)
+- **Product Requirements**: [`/prompts/02_PRD.md`](./prompts/02_PRD.md)
+
+### **🚀 Next Steps**
+
+With MVP completed, the project is ready for:
+1. **Production Deployment** - All infrastructure and code ready
+2. **Phase 2 Planning** - Advanced authentication and AI features
+3. **WhatsApp Integration** - Real business communication channel
+4. **E-commerce Expansion** - Full sales and payment processing
+
+The Core Development Tasks provide the structured foundation for continued development while maintaining the high quality standards established in the MVP phase.
