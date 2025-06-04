@@ -1,29 +1,29 @@
 import { profileApi } from '@/api/profileApi';
 import { Button } from '@/components/ui/button';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import PageLoader from '@/components/ui/PageLoader';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePageTransition } from '@/hooks/usePageTransition';
 import { Profile } from '@/types/dto';
 import {
-  ChevronDown,
-  FileText,
-  HelpCircle,
-  Home,
-  LogOut,
-  Menu,
-  MessageSquare,
-  Server,
-  Settings,
-  ShoppingBag,
-  User,
-  X
+    ChevronDown,
+    FileText,
+    HelpCircle,
+    Home,
+    LogOut,
+    Menu,
+    MessageSquare,
+    Server,
+    Settings,
+    ShoppingBag,
+    User,
+    X
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -31,7 +31,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 const MainLayout: React.FC = () => {
   const { auth, logout } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
+  const _location = useLocation();
   const { isLoading } = usePageTransition();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);

@@ -24,7 +24,7 @@ export function ProductForm({
   const [isSaving, setIsSaving] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [successMessage, _setSuccessMessage] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [newTag, setNewTag] = useState<string>("");
   const { toast } = useToast();

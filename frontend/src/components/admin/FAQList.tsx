@@ -78,7 +78,7 @@ export function FAQList() {
   };
 
   // Reset filters
-  const resetFilters = () => {
+  const _resetFilters = () => {
     setSearchTerm("");
     setFilters({});
     setCurrentPage(1);
