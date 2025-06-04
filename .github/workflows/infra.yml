@@ -218,6 +218,26 @@ jobs:
                 sleep 60
               fi
               
+              # Delete Network ACLs (except default)
+              echo "🛡️ Deleting Network ACLs..."
+              NETWORK_ACLS=$(aws ec2 describe-network-acls --filters "Name=vpc-id,Values=$vpc" --query "NetworkAcls[?IsDefault==\`false\`].NetworkAclId" --output text)
+              for acl in $NETWORK_ACLS; do
+                if [ ! -z "$acl" ]; then
+                  echo "Deleting Network ACL: $acl"
+                  aws ec2 delete-network-acl --network-acl-id $acl || echo "Failed to delete $acl"
+                fi
+              done
+              
+              # Delete VPC Endpoints
+              echo "🔗 Deleting VPC Endpoints..."
+              VPC_ENDPOINTS=$(aws ec2 describe-vpc-endpoints --filters "Name=vpc-id,Values=$vpc" --query "VpcEndpoints[].VpcEndpointId" --output text)
+              for endpoint in $VPC_ENDPOINTS; do
+                if [ ! -z "$endpoint" ]; then
+                  echo "Deleting VPC Endpoint: $endpoint"
+                  aws ec2 delete-vpc-endpoint --vpc-endpoint-id $endpoint || echo "Failed to delete $endpoint"
+                fi
+              done
+              
               # Delete route table associations and route tables
               ROUTE_TABLES=$(aws ec2 describe-route-tables --filters "Name=vpc-id,Values=$vpc" --query "RouteTables[?Associations[0].Main!=\`true\`].RouteTableId" --output text)
               for rt in $ROUTE_TABLES; do
@@ -286,6 +306,8 @@ jobs:
           echo "- 🔑 **SSH Key Pairs** - Deleted" >> $GITHUB_STEP_SUMMARY
           echo "- 🔌 **Network Interfaces** - Cleaned up" >> $GITHUB_STEP_SUMMARY
           echo "- 🛡️ **Security Groups** - Removed" >> $GITHUB_STEP_SUMMARY
+          echo "- 🛡️ **Network ACLs** - Custom ACLs deleted" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔗 **VPC Endpoints** - All endpoints removed" >> $GITHUB_STEP_SUMMARY
           echo "- 🌐 **VPC & Networking** - Complete network cleanup including subnets" >> $GITHUB_STEP_SUMMARY
           echo "- 📊 **CloudWatch Logs** - Log groups deleted" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
