@@ -145,6 +145,14 @@ docker-compose.override.yml
 embeddings/
 vectors/
 
+# ===== TERRAFORM =====
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/*.tfplan
+terraform/*.tfvars
+
 # ===== MISC =====
 .prettierrc
 *.tgz
