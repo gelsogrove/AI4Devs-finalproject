@@ -1,5 +1,6 @@
 # ===================================
-# SHOPMEFY AWS INFRASTRUCTURE - DEV VERSION
+# SHOPMEFY MINIMAL INFRASTRUCTURE
+# Only EC2 + RDS - Nothing else!
 # ===================================
 
 terraform {
@@ -13,10 +14,6 @@ terraform {
       source  = "hashicorp/random"
       version = "~> 3.1"
     }
-    tls = {
-      source  = "hashicorp/tls"
-      version = "~> 4.0"
-    }
   }
 }
 
@@ -25,10 +22,8 @@ provider "aws" {
   
   default_tags {
     tags = {
-      Project     = "ShopMefy"
-      Environment = "development"
-      ManagedBy   = "Terraform"
-      Owner       = "Andrea"
+      Project = "ShopMefy"
+      Owner   = "Andrea"
     }
   }
 }
@@ -49,11 +44,6 @@ data "aws_ami" "ubuntu" {
     name   = "name"
     values = ["ubuntu/images/hvm-ssd/ubuntu-*-amd64-server-*"]
   }
-  
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
 }
 
 # ===================================
@@ -70,70 +60,18 @@ resource "random_id" "bucket_suffix" {
 }
 
 # ===================================
-# VPC AND NETWORKING
+# DEFAULT VPC (Simple!)
 # ===================================
 
-resource "aws_vpc" "main" {
-  cidr_block           = "10.0.0.0/16"
-  enable_dns_hostnames = true
-  enable_dns_support   = true
-  
-  tags = {
-    Name = "${var.project_name}-vpc"
-  }
+data "aws_vpc" "default" {
+  default = true
 }
 
-resource "aws_internet_gateway" "main" {
-  vpc_id = aws_vpc.main.id
-  
-  tags = {
-    Name = "${var.project_name}-igw"
+data "aws_subnets" "default" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
   }
-}
-
-resource "aws_subnet" "public" {
-  count = 2
-  
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.${count.index + 1}.0/24"
-  availability_zone       = data.aws_availability_zones.available.names[count.index]
-  map_public_ip_on_launch = true
-  
-  tags = {
-    Name = "${var.project_name}-public-subnet-${count.index + 1}"
-  }
-}
-
-resource "aws_subnet" "private" {
-  count = 2
-  
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = "10.0.${count.index + 10}.0/24"
-  availability_zone = data.aws_availability_zones.available.names[count.index]
-  
-  tags = {
-    Name = "${var.project_name}-private-subnet-${count.index + 1}"
-  }
-}
-
-resource "aws_route_table" "public" {
-  vpc_id = aws_vpc.main.id
-  
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.main.id
-  }
-  
-  tags = {
-    Name = "${var.project_name}-public-rt"
-  }
-}
-
-resource "aws_route_table_association" "public" {
-  count = length(aws_subnet.public)
-  
-  subnet_id      = aws_subnet.public[count.index].id
-  route_table_id = aws_route_table.public.id
 }
 
 # ===================================
@@ -141,9 +79,9 @@ resource "aws_route_table_association" "public" {
 # ===================================
 
 resource "aws_security_group" "web" {
-  name_prefix = "${var.project_name}-web-"
-  vpc_id      = aws_vpc.main.id
-  description = "Security group for web server"
+  name_prefix = "shopmefy-web-"
+  vpc_id      = data.aws_vpc.default.id
+  description = "Security group for EC2"
   
   # SSH
   ingress {
@@ -151,7 +89,6 @@ resource "aws_security_group" "web" {
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-    description = "SSH"
   }
   
   # HTTP
@@ -160,7 +97,6 @@ resource "aws_security_group" "web" {
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-    description = "HTTP"
   }
   
   # HTTPS
@@ -169,16 +105,14 @@ resource "aws_security_group" "web" {
     to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-    description = "HTTPS"
   }
   
-  # Node.js App Port
+  # Node.js App
   ingress {
     from_port   = 8080
     to_port     = 8080
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-    description = "Node.js Application"
   }
   
   egress {
@@ -186,29 +120,27 @@ resource "aws_security_group" "web" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
-    description = "All outbound traffic"
   }
   
   tags = {
-    Name = "${var.project_name}-web-sg"
+    Name = "shopmefy-web-sg"
   }
 }
 
 resource "aws_security_group" "database" {
-  name_prefix = "${var.project_name}-db-"
-  vpc_id      = aws_vpc.main.id
-  description = "Security group for RDS database"
+  name_prefix = "shopmefy-db-"
+  vpc_id      = data.aws_vpc.default.id
+  description = "Security group for RDS"
   
   ingress {
     from_port       = 5432
     to_port         = 5432
     protocol        = "tcp"
     security_groups = [aws_security_group.web.id]
-    description     = "PostgreSQL from web servers"
   }
   
   tags = {
-    Name = "${var.project_name}-db-sg"
+    Name = "shopmefy-db-sg"
   }
 }
 
@@ -216,34 +148,32 @@ resource "aws_security_group" "database" {
 # SSH KEY PAIR
 # ===================================
 
-resource "tls_private_key" "main" {
-  algorithm = "RSA"
-  rsa_bits  = 4096
-}
+# NOTE: You need to create this key pair manually in AWS Console
+# or add your public key here and uncomment:
+#
+# resource "aws_key_pair" "main" {
+#   key_name   = "shopmefy-key"
+#   public_key = "ssh-rsa YOUR_PUBLIC_KEY_HERE"
+#   
+#   tags = {
+#     Name = "shopmefy-keypair"
+#   }
+# }
 
-resource "aws_key_pair" "main" {
-  key_name   = "${var.project_name}-key"
-  public_key = tls_private_key.main.public_key_openssh
-  
-  tags = {
-    Name = "${var.project_name}-keypair"
-  }
+# For now, use existing key pair
+data "aws_key_pair" "existing" {
+  key_name = "shopmefy-key"
 }
 
 # ===================================
-# S3 BUCKET FOR DEPLOYMENTS (PRESERVED)
+# S3 BUCKET FOR DEPLOYMENTS (Essential!)
 # ===================================
 
 resource "aws_s3_bucket" "deployments" {
-  bucket = "${var.project_name}-deployments-${random_id.bucket_suffix.hex}"
+  bucket = "shopmefy-deployments-${random_id.bucket_suffix.hex}"
   
   tags = {
-    Name = "${var.project_name}-deployments"
-    Preserve = "true"
-  }
-
-  lifecycle {
-    prevent_destroy = true
+    Name = "shopmefy-deployments"
   }
 }
 
@@ -274,25 +204,15 @@ resource "aws_s3_bucket_public_access_block" "deployments" {
 }
 
 # ===================================
-# AWS SECRETS MANAGER FOR DATABASE
-# ===================================
-
-resource "aws_secretsmanager_secret" "db_credentials" {
-  name                    = "${var.project_name}-db-credentials"
-  description             = "Database credentials for ShopMefy"
-  recovery_window_in_days = 7
-}
-
-# ===================================
-# RDS SUBNET GROUP
+# RDS SUBNET GROUP (Required for RDS)
 # ===================================
 
 resource "aws_db_subnet_group" "main" {
-  name       = "${var.project_name}-db-subnet-group"
-  subnet_ids = aws_subnet.private[*].id
+  name       = "shopmefy-db-subnet-group"
+  subnet_ids = data.aws_subnets.default.ids
   
   tags = {
-    Name = "${var.project_name}-db-subnet-group"
+    Name = "shopmefy-db-subnet-group"
   }
 }
 
@@ -301,18 +221,16 @@ resource "aws_db_subnet_group" "main" {
 # ===================================
 
 resource "aws_db_instance" "postgres" {
-  identifier = "${var.project_name}-db"
+  identifier = "shopmefy-db"
   
   # Engine
   engine         = "postgres"
   engine_version = "15.10"
-  instance_class = var.db_instance_class
+  instance_class = "db.t3.micro"
   
   # Storage
-  allocated_storage     = var.db_allocated_storage
-  max_allocated_storage = 100
-  storage_type          = "gp2"
-  storage_encrypted     = true
+  allocated_storage = 20
+  storage_type      = "gp2"
   
   # Database
   db_name  = "shopmefy"
@@ -324,54 +242,34 @@ resource "aws_db_instance" "postgres" {
   vpc_security_group_ids = [aws_security_group.database.id]
   publicly_accessible    = false
   
-  # Backup
-  backup_retention_period = var.backup_retention_period
-  backup_window          = "03:00-04:00"
-  maintenance_window     = "sun:04:00-sun:05:00"
-  
-  # Other
-  skip_final_snapshot = true
-  deletion_protection = false
+  # Backup (minimal)
+  backup_retention_period = 1
+  skip_final_snapshot     = true
+  deletion_protection     = false
   
   tags = {
-    Name = "${var.project_name}-database"
+    Name = "shopmefy-database"
   }
 }
 
 # ===================================
-# SECRETS MANAGER VERSION (AFTER RDS)
-# ===================================
-
-resource "aws_secretsmanager_secret_version" "db_credentials" {
-  secret_id = aws_secretsmanager_secret.db_credentials.id
-  secret_string = jsonencode({
-    username = "shopmefy"
-    password = random_password.db_password.result
-    engine   = "postgres"
-    host     = aws_db_instance.postgres.endpoint
-    port     = 5432
-    dbname   = "shopmefy"
-  })
-  
-  depends_on = [aws_db_instance.postgres]
-}
-
-# ===================================
-# EC2 INSTANCE
+# EC2 INSTANCE (The star of the show!)
 # ===================================
 
 resource "aws_instance" "web" {
   ami                    = data.aws_ami.ubuntu.id
-  instance_type          = var.instance_type
-  key_name               = aws_key_pair.main.key_name
+  instance_type          = "t3.micro"
+  key_name               = data.aws_key_pair.existing.key_name
   vpc_security_group_ids = [aws_security_group.web.id]
-  subnet_id              = aws_subnet.public[0].id
   
-  # Simple user data - basic setup only
+  # Enable hibernation for cost savings
+  hibernation = true
+  
+  # Basic setup
   user_data = base64encode(<<-EOF
     #!/bin/bash
     apt-get update
-    apt-get install -y nginx
+    apt-get install -y nginx nodejs npm
     systemctl start nginx
     systemctl enable nginx
     echo "<h1>ShopMefy Server Ready</h1>" > /var/www/html/index.html
@@ -385,19 +283,12 @@ resource "aws_instance" "web" {
   }
   
   tags = {
-    Name = "${var.project_name}-web-server"
+    Name = "shopmefy-web-server"
   }
-  
-  depends_on = [
-    aws_vpc.main,
-    aws_subnet.public,
-    aws_security_group.web,
-    aws_key_pair.main
-  ]
 }
 
 # ===================================
-# ELASTIC IP
+# ELASTIC IP (Fixed IP)
 # ===================================
 
 resource "aws_eip" "web" {
@@ -405,8 +296,6 @@ resource "aws_eip" "web" {
   domain   = "vpc"
   
   tags = {
-    Name = "${var.project_name}-eip"
+    Name = "shopmefy-eip"
   }
-  
-  depends_on = [aws_instance.web]
 } 
