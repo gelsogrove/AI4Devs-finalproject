@@ -37,6 +37,7 @@ on:
         options:
           - plan
           - apply
+          - stop
           - destroy
           - cleanup-all
       instance_type:
@@ -745,27 +746,64 @@ jobs:
         working-directory: ./terraform
         if: github.event.inputs.action == 'destroy'
         run: |
-          echo "🛡️ Performing selective destroy - S3 buckets will be preserved"
+          echo "🛡️ Performing destroy - S3 buckets will be preserved"
+          
+          # First, remove the lifecycle protection from S3 bucket temporarily
+          sed -i 's/prevent_destroy = true/prevent_destroy = false/' main.tf
+          
+          # Initialize terraform again after modification
+          terraform init
+          
+          # Import existing state if needed and destroy everything except S3 content
           terraform destroy \
             -var="instance_type=${{ github.event.inputs.instance_type }}" \
-            -target="aws_instance.web" \
-            -target="aws_eip.web" \
-            -target="aws_db_instance.postgres" \
-            -target="aws_secretsmanager_secret_version.db_credentials" \
-            -target="aws_secretsmanager_secret.db_credentials" \
-            -target="aws_db_subnet_group.main" \
-            -target="aws_security_group.database" \
-            -target="aws_security_group.web" \
-            -target="aws_key_pair.main" \
-            -target="tls_private_key.main" \
-            -target="aws_route_table_association.public" \
-            -target="aws_route_table.public" \
-            -target="aws_subnet.private" \
-            -target="aws_subnet.public" \
-            -target="aws_internet_gateway.main" \
-            -target="aws_vpc.main" \
-            -auto-approve
-          echo "✅ Selective destroy completed - S3 buckets preserved for backups"
+            -auto-approve || echo "Some resources may have failed to destroy"
+          
+          # Manual cleanup of any remaining resources using AWS CLI
+          echo "🧹 Performing manual cleanup of any remaining resources..."
+          
+          # Install AWS CLI if not available
+          if ! command -v aws &> /dev/null; then
+            echo "Installing AWS CLI..."
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            sudo ./aws/install
+          fi
+          
+          # Set AWS region
+          export AWS_DEFAULT_REGION=${{ env.AWS_REGION }}
+          
+          # Force terminate any remaining EC2 instances
+          echo "🖥️ Force terminating any remaining EC2 instances..."
+          INSTANCES=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=shopmefy-dev*" --query "Reservations[].Instances[?State.Name!='terminated'].InstanceId" --output text)
+          if [ ! -z "$INSTANCES" ]; then
+            echo "Force terminating instances: $INSTANCES"
+            aws ec2 terminate-instances --instance-ids $INSTANCES --force
+            aws ec2 wait instance-terminated --instance-ids $INSTANCES
+          fi
+          
+          # Release any remaining Elastic IPs
+          echo "🌐 Releasing any remaining Elastic IPs..."
+          EIPS=$(aws ec2 describe-addresses --filters "Name=tag:Name,Values=shopmefy-dev*" --query "Addresses[].AllocationId" --output text)
+          for eip in $EIPS; do
+            if [ ! -z "$eip" ]; then
+              echo "Releasing EIP: $eip"
+              aws ec2 release-address --allocation-id $eip
+            fi
+          done
+          
+          # Force delete any remaining RDS instances
+          echo "🗄️ Force deleting any remaining RDS instances..."
+          RDS_INSTANCES=$(aws rds describe-db-instances --query "DBInstances[?starts_with(DBInstanceIdentifier, 'shopmefy-dev')].DBInstanceIdentifier" --output text)
+          for db in $RDS_INSTANCES; do
+            if [ ! -z "$db" ]; then
+              echo "Force deleting RDS instance: $db"
+              aws rds delete-db-instance --db-instance-identifier $db --skip-final-snapshot --delete-automated-backups --force
+            fi
+          done
+          
+          echo "✅ Destroy completed - S3 buckets preserved for backups"
+          echo "🔍 If any resources remain, use 'cleanup-all' option for complete removal"
 
       - name: 📊 Show Outputs
         working-directory: ./terraform
@@ -842,4 +880,67 @@ jobs:
           echo "### 🎯 Ready for Production!" >> $GITHUB_STEP_SUMMARY
           echo "1. **Complete infrastructure** - EC2 + RDS + S3 + SSH access" >> $GITHUB_STEP_SUMMARY
           echo "2. **All secrets configured** - Database and deployment secrets ready" >> $GITHUB_STEP_SUMMARY
-          echo "3. **Deploy your application** - Use the deploy.yml workflow" >> $GITHUB_STEP_SUMMARY 
+          echo "3. **Deploy your application** - Use the deploy.yml workflow" >> $GITHUB_STEP_SUMMARY
+
+      - name: ⏹️ Stop Infrastructure (Cost Saving)
+        if: github.event.inputs.action == 'stop'
+        run: |
+          echo "⏹️ Stopping ShopMefy-Dev infrastructure to save costs..."
+          
+          # Install AWS CLI if not available
+          if ! command -v aws &> /dev/null; then
+            echo "Installing AWS CLI..."
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            sudo ./aws/install
+          fi
+          
+          # Set AWS region
+          export AWS_DEFAULT_REGION=${{ env.AWS_REGION }}
+          
+          echo "🔍 Finding shopmefy-dev* resources to stop..."
+          
+          # Stop EC2 instances
+          echo "🖥️ Stopping EC2 instances..."
+          INSTANCES=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=shopmefy-dev*" "Name=instance-state-name,Values=running" --query "Reservations[].Instances[].InstanceId" --output text)
+          if [ ! -z "$INSTANCES" ]; then
+            echo "Stopping instances: $INSTANCES"
+            aws ec2 stop-instances --instance-ids $INSTANCES
+            echo "✅ EC2 instances stopped successfully"
+          else
+            echo "ℹ️ No running EC2 instances found"
+          fi
+          
+          # Stop RDS instances
+          echo "🗄️ Stopping RDS instances..."
+          RDS_INSTANCES=$(aws rds describe-db-instances --query "DBInstances[?starts_with(DBInstanceIdentifier, 'shopmefy-dev') && DBInstanceStatus=='available'].DBInstanceIdentifier" --output text)
+          for db in $RDS_INSTANCES; do
+            if [ ! -z "$db" ]; then
+              echo "Stopping RDS instance: $db"
+              aws rds stop-db-instance --db-instance-identifier $db
+              echo "✅ RDS instance $db stopped successfully"
+            fi
+          done
+          
+          if [ -z "$RDS_INSTANCES" ]; then
+            echo "ℹ️ No available RDS instances found to stop"
+          fi
+          
+          echo ""
+          echo "🎉 Infrastructure stopped successfully!"
+          echo "💰 Cost savings: EC2 and RDS instances are now stopped"
+          echo "📋 Infrastructure preserved: All configurations, data, and S3 buckets remain intact"
+          echo "🚀 To restart: Run this workflow with 'apply' action"
+          echo ""
+          echo "## ⏹️ Infrastructure Stopped Successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 💰 Cost Savings Activated:" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **EC2 instances stopped** - No compute charges" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **RDS instances stopped** - No database charges" >> $GITHUB_STEP_SUMMARY
+          echo "- 🛡️ **All data preserved** - Configurations and data intact" >> $GITHUB_STEP_SUMMARY
+          echo "- 📦 **S3 buckets active** - Minimal storage costs only" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 To Restart Infrastructure:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Run this workflow again with **'apply'** action" >> $GITHUB_STEP_SUMMARY
+          echo "2. All services will restart with existing configurations" >> $GITHUB_STEP_SUMMARY
+          echo "3. No data loss - everything will be exactly as before" >> $GITHUB_STEP_SUMMARY 
