@@ -98,6 +98,10 @@ jobs:
                 source  = "hashicorp/random"
                 version = "~> 3.1"
               }
+              tls = {
+                source  = "hashicorp/tls"
+                version = "~> 4.0"
+              }
             }
           }
           
@@ -346,9 +350,14 @@ jobs:
           # KEY PAIR
           # ===================================
           
+          resource "tls_private_key" "main" {
+            algorithm = "RSA"
+            rsa_bits  = 4096
+          }
+          
           resource "aws_key_pair" "main" {
             key_name   = "${var.project_name}-key"
-            public_key = file("~/.ssh/id_rsa.pub") # You'll need to generate this
+            public_key = tls_private_key.main.public_key_openssh
             
             tags = {
               Name = "${var.project_name}-keypair"
@@ -627,9 +636,15 @@ jobs:
             value       = aws_secretsmanager_secret.db_credentials.arn
           }
           
+          output "ssh_private_key" {
+            description = "SSH private key for connecting to the server"
+            value       = tls_private_key.main.private_key_pem
+            sensitive   = true
+          }
+          
           output "ssh_command" {
             description = "SSH command to connect to the server"
-            value       = "ssh -i ~/.ssh/id_rsa ubuntu@${aws_eip.web.public_ip}"
+            value       = "ssh -i shopmefy_key.pem ubuntu@${aws_eip.web.public_ip}"
           }
           EOF
 
@@ -843,6 +858,7 @@ jobs:
           # Get database credentials from Terraform outputs
           DB_HOST=$(terraform output -raw database_endpoint | cut -d: -f1)
           DB_PASSWORD=$(aws secretsmanager get-secret-value --secret-id $(terraform output -raw secret_manager_arn) --region us-east-1 --query SecretString --output text | jq -r .password)
+          SSH_PRIVATE_KEY=$(terraform output -raw ssh_private_key)
           
           echo "🔄 Attempting automatic secret update with GitHub CLI for DEV environment..."
           
@@ -863,6 +879,7 @@ jobs:
           echo "$EC2_HOST" | gh secret set EC2_HOST --repo ${{ github.repository }} --env dev
           echo "ubuntu" | gh secret set EC2_USER --repo ${{ github.repository }} --env dev
           echo "us-east-1" | gh secret set AWS_REGION --repo ${{ github.repository }} --env dev
+          echo "$SSH_PRIVATE_KEY" | gh secret set EC2_SSH_KEY --repo ${{ github.repository }} --env dev
           
           # Add database secrets
           echo "postgresql://shopmefy:$DB_PASSWORD@$DB_HOST:5432/shopmefy" | gh secret set DATABASE_URL --repo ${{ github.repository }} --env dev
@@ -878,11 +895,12 @@ jobs:
           echo "- ✅ EC2_HOST" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ EC2_USER" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ AWS_REGION" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ EC2_SSH_KEY (Generated automatically)" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ DATABASE_URL" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ DB_NAME" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ DB_USER" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ DB_PASSWORD" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ DB_HOST" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### ⚠️ Still Need Manual Setup:" >> $GITHUB_STEP_SUMMARY
-          echo "- 🔑 **EC2_SSH_KEY**: Generate and add SSH private key to DEV environment" >> $GITHUB_STEP_SUMMARY 
+          echo "### 🎉 All Secrets Configured Automatically!" >> $GITHUB_STEP_SUMMARY
+          echo "No manual setup required - SSH key generated and configured automatically!" >> $GITHUB_STEP_SUMMARY 
