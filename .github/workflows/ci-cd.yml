@@ -1,4 +1,4 @@
-name: CI/CD
+name: 🧪 Test & Build Code
 
 on:
   push:
