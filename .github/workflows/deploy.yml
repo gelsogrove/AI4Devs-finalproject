@@ -59,19 +59,43 @@ jobs:
           node-version: 20
           cache: 'npm'
 
-      - name: 📦 Install Backend Dependencies
+      - name: 📥 Download Backend Build Artifacts
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-build
+          path: ./backend
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: 📥 Download Frontend Build Artifacts
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: ./frontend
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: 📦 Install Backend Dependencies (Manual Deploy Only)
+        if: github.event_name == 'workflow_dispatch'
         working-directory: ./backend
         run: npm ci --production
 
-      - name: 🏗️ Build Backend
+      - name: 🏗️ Build Backend (Manual Deploy Only)
+        if: github.event_name == 'workflow_dispatch'
         working-directory: ./backend
         run: npm run build
 
-      - name: 📦 Install Frontend Dependencies
+      - name: 📦 Install Frontend Dependencies (Manual Deploy Only)
+        if: github.event_name == 'workflow_dispatch'
         working-directory: ./frontend
         run: npm ci
 
-      - name: 🏗️ Build Frontend
+      - name: 🏗️ Build Frontend (Manual Deploy Only)
+        if: github.event_name == 'workflow_dispatch'
         working-directory: ./frontend
         run: npm run build
 
