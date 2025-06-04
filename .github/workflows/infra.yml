@@ -560,15 +560,9 @@ jobs:
           # ===================================
           
           locals {
-            user_data_script = <<-EOF
+            user_data = base64encode(<<-EOF
               #!/bin/bash
               set -e
-              
-              # Environment variables
-              export S3_BUCKET="${aws_s3_bucket.deployments.bucket}"
-              export SECRET_ARN="${aws_secretsmanager_secret.db_credentials.arn}"
-              export AWS_REGION="${var.aws_region}"
-              export PROJECT_NAME="${var.project_name}"
               
               # Update system
               apt-get update
@@ -584,30 +578,65 @@ jobs:
               # Install PM2 globally
               npm install -g pm2
               
+              # Install Docker
+              curl -fsSL https://get.docker.com -o get-docker.sh
+              sh get-docker.sh
+              usermod -aG docker ubuntu
+              
               # Create shopme user
               useradd -m -s /bin/bash shopme
               usermod -aG sudo shopme
+              usermod -aG docker shopme
               
               # Create directories
               mkdir -p /home/shopme/{backend,frontend}
               chown -R shopme:shopme /home/shopme
               
               # Configure AWS CLI for shopme user
-              sudo -u shopme aws configure set region $AWS_REGION
+              sudo -u shopme aws configure set region ${var.aws_region}
+              
+              # Create systemd service for auto-deployment
+              cat > /etc/systemd/system/shopmefy-deploy.service << 'EOL'
+              [Unit]
+              Description=ShopMefy Auto Deploy Service
+              After=network.target
+              
+              [Service]
+              Type=oneshot
+              User=shopme
+              WorkingDirectory=/home/shopme
+              ExecStart=/home/shopme/deploy.sh
+              
+              [Install]
+              WantedBy=multi-user.target
+              EOL
               
               # Create deployment script
               cat > /home/shopme/deploy.sh << 'EOL'
               #!/bin/bash
               set -e
+              
               echo "Starting deployment..."
-              aws s3 sync s3://$S3_BUCKET/backend /home/shopme/backend --delete
-              aws s3 sync s3://$S3_BUCKET/frontend /home/shopme/frontend --delete
+              
+              # Download from S3
+              aws s3 sync s3://${aws_s3_bucket.deployments.bucket}/backend /home/shopme/backend --delete
+              aws s3 sync s3://${aws_s3_bucket.deployments.bucket}/frontend /home/shopme/frontend --delete
+              
+              # Backend deployment
               cd /home/shopme/backend
               npm install --production
               npm run build
+              
+              # PM2 deployment
               pm2 delete backend || true
               pm2 start npm --name backend -- start -- --port 8080
               pm2 save
+              
+              # Frontend deployment (if needed)
+              cd /home/shopme/frontend
+              npm install --production
+              npm run build
+              
               echo "Deployment completed successfully!"
               EOL
               
@@ -644,11 +673,30 @@ jobs:
               systemctl restart nginx
               systemctl enable nginx
               
+              # Enable auto-deployment service
+              systemctl enable shopmefy-deploy.service
+              
               # Setup PM2 startup
               sudo -u shopme pm2 startup systemd -u shopme --hp /home/shopme
               
+              # Create environment file for database connection
+              cat > /home/shopme/.env << 'EOL'
+              NODE_ENV=production
+              PORT=8080
+              DATABASE_URL=postgresql://shopmefy:$(aws secretsmanager get-secret-value --secret-id ${aws_secretsmanager_secret.db_credentials.arn} --region ${var.aws_region} --query SecretString --output text | jq -r .password)@$(aws secretsmanager get-secret-value --secret-id ${aws_secretsmanager_secret.db_credentials.arn} --region ${var.aws_region} --query SecretString --output text | jq -r .host):5432/shopmefy
+              OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
+              HUGGINGFACE_API_KEY=${{ secrets.HUGGINGFACE_API_KEY }}
+              JWT_SECRET=${{ secrets.JWT_SECRET }}
+              FRONTEND_URL=http://${aws_eip.web.public_ip}
+              AWS_REGION=${var.aws_region}
+              AWS_S3_BUCKET=${aws_s3_bucket.deployments.bucket}
+              EOL
+              
+              chown shopme:shopme /home/shopme/.env
+              
               echo "Server setup completed successfully!"
             EOF
+            )
           }
           
           # ===================================
@@ -663,7 +711,7 @@ jobs:
             subnet_id              = aws_subnet.public[0].id
             iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
             
-            user_data = base64encode(local.user_data_script)
+            user_data = local.user_data
             
             root_block_device {
               volume_type = "gp3"
