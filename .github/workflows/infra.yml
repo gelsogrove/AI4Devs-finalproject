@@ -56,7 +56,6 @@ jobs:
   terraform:
     name: 🏗️ Terraform Infrastructure
     runs-on: ubuntu-latest
-    environment: prod
     
     defaults:
       run:
