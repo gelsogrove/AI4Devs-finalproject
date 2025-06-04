@@ -26,7 +26,7 @@ jobs:
   deploy:
     name: 📦 Deploy to AWS EC2
     runs-on: ubuntu-latest
-    environment: prod
+    environment: dev
     # Only run if CI/CD was successful or if manually triggered
     if: |
       github.event_name == 'workflow_dispatch' || 
