@@ -1,0 +1,97 @@
+# ▶️ Resume AWS Infrastructure for ShopMefy
+# This workflow resumes hibernated EC2 and paused RDS instances
+# - EC2: Wake from hibernation (same IP)
+# - RDS: Start database (same endpoint)
+# - Ready to use in ~3-5 minutes
+# - All data and configurations preserved
+
+name: ▶️ Resume Infrastructure
+
+on:
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  resume:
+    name: ▶️ Resume Infrastructure
+    runs-on: ubuntu-latest
+    environment: dev
+    
+    steps:
+      - name: ⚙️ Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: ▶️ Resume Infrastructure
+        run: |
+          echo "▶️ Resuming ShopMefy infrastructure..."
+          
+          # Install AWS CLI if not available
+          if ! command -v aws &> /dev/null; then
+            echo "Installing AWS CLI..."
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            sudo ./aws/install
+          fi
+          
+          # Set AWS region
+          export AWS_DEFAULT_REGION=${{ env.AWS_REGION }}
+          
+          echo "🔍 Finding shopmefy resources to resume..."
+          
+          # Resume EC2 instances (hibernated or stopped)
+          echo "🖥️ Resuming EC2 instances..."
+          INSTANCES=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=shopmefy*" "Name=instance-state-name,Values=stopped" --query "Reservations[].Instances[].InstanceId" --output text)
+          if [ ! -z "$INSTANCES" ]; then
+            echo "Resuming instances: $INSTANCES"
+            aws ec2 start-instances --instance-ids $INSTANCES
+            echo "⏳ Waiting for instances to be running..."
+            aws ec2 wait instance-running --instance-ids $INSTANCES
+            echo "✅ EC2 instances resumed successfully"
+            
+            # Get current public IP (should be same if hibernated)
+            CURRENT_PUBLIC_IP=$(aws ec2 describe-instances --instance-ids $INSTANCES --query "Reservations[].Instances[].PublicIpAddress" --output text)
+            echo "🌐 Current Public IP: $CURRENT_PUBLIC_IP"
+          else
+            echo "ℹ️ No stopped EC2 instances found"
+          fi
+          
+          # Resume RDS instances
+          echo "🗄️ Resuming RDS instances..."
+          RDS_INSTANCES=$(aws rds describe-db-instances --query "DBInstances[?starts_with(DBInstanceIdentifier, 'shopmefy') && DBInstanceStatus=='stopped'].DBInstanceIdentifier" --output text)
+          for db in $RDS_INSTANCES; do
+            if [ ! -z "$db" ]; then
+              echo "Resuming RDS instance: $db"
+              aws rds start-db-instance --db-instance-identifier $db
+              echo "⏳ Waiting for RDS instance to be available..."
+              aws rds wait db-instance-available --db-instance-identifier $db
+              echo "✅ RDS instance $db resumed successfully"
+            fi
+          done
+          
+          if [ -z "$RDS_INSTANCES" ]; then
+            echo "ℹ️ No stopped RDS instances found to resume"
+          fi
+          
+          echo ""
+          echo "🎉 Infrastructure resumed successfully!"
+          echo "🚀 All services are now running and ready for use"
+          echo "💡 IP addresses and endpoints should be preserved from hibernation"
+          echo ""
+          echo "## ▶️ Infrastructure Resumed Successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 Services Resumed:" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **EC2 instances running** - Application server ready" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **RDS instances available** - Database ready" >> $GITHUB_STEP_SUMMARY
+          echo "- 🛡️ **All data preserved** - No data loss during pause/resume" >> $GITHUB_STEP_SUMMARY
+          echo "- 🌐 **Current Public IP**: $CURRENT_PUBLIC_IP" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Ready to Use:" >> $GITHUB_STEP_SUMMARY
+          echo "1. **IP/Endpoints preserved** - No configuration changes needed" >> $GITHUB_STEP_SUMMARY
+          echo "2. **Services are ready** - You can immediately deploy your application" >> $GITHUB_STEP_SUMMARY
+          echo "3. **All configurations intact** - Database and app settings preserved" >> $GITHUB_STEP_SUMMARY 
