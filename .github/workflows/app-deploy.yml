@@ -13,7 +13,7 @@
 # - Public DNS: ec2-52-87-42-172.compute-1.amazonaws.com
 # - S3 Bucket: shopmefy-dev-deployments-12a6b2db
 
-name: 🚀 Deploy ShopMefy Application
+name: 📱 Deploy Application
 
 on:
   workflow_dispatch:
@@ -27,7 +27,7 @@ on:
           - dev
   # Auto-deploy after successful CI/CD on main branch
   workflow_run:
-    workflows: ["CI / CD"]
+    workflows: ["CI/CD"]
     types:
       - completed
     branches:
