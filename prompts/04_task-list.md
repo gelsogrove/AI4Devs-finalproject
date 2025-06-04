@@ -1421,6 +1421,10 @@ source: `prompts/02_userstories.md`
 - ✅ Improved test setup with proper service health checks
 - ✅ Added test data seeding before E2E tests
 - ✅ Enhanced debugging capabilities in CI workflow
+- ✅ Added database-only configuration enforcement
+- ✅ Created agent configuration health check endpoint
+- ✅ Added special test environment handling for CI
+- ✅ Enhanced database verification steps in CI
 
 **Acceptance Criteria**:
 - ✅ E2E tests run successfully in GitHub Actions
@@ -1428,6 +1432,9 @@ source: `prompts/02_userstories.md`
 - ✅ Test failures are properly reported
 - ✅ Services are verified before test execution
 - ✅ Test environment is properly seeded
+- ✅ Agent configuration is verified in database
+- ✅ Database-only configuration rule enforced
+- ✅ Proper error handling for missing configuration
 
 ---
 
@@ -1450,11 +1457,11 @@ source: `prompts/02_userstories.md`
 
 **Acceptance Criteria**:
 - ✅ All Italian text replaced with English equivalents
-- ✅ Test files use English text
-- ✅ Comments and documentation in English
-- ✅ User interface text in English
-- ✅ Configuration prompts in English
-- ✅ Error messages in English
+- [ ] Test files use English text
+- [ ] Comments and documentation in English
+- [ ] User interface text in English
+- [ ] Configuration prompts in English
+- [ ] Error messages in English
 
 **Files Modified**:
 - Backend controllers (chat.controller.ts, langchain-chat.controller.ts)

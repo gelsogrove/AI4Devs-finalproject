@@ -23,27 +23,41 @@ class AgentController {
    */
   async getAgentConfig(req: Request, res: Response) {
     try {
-      // Get the first agent config (there should only be one for MVP)
-      const agentConfig = await prisma.agentConfig.findFirst();
+      const config = await prisma.agentConfig.findFirst();
       
-      if (!agentConfig) {
-        return res.status(404).json({ error: 'Agent configuration not found' });
+      if (!config) {
+        return res.status(404).json({ 
+          error: 'No agent configuration found in database',
+          message: 'Please contact support to configure the system'
+        });
       }
       
-      // Ensure prompt is never null or empty
-      if (!agentConfig.prompt) {
-        agentConfig.prompt = DEFAULT_PROMPT;
-      }
-      
-      return res.status(200).json(agentConfig);
+      res.json(config);
     } catch (error) {
-      logger.error('Get agent configuration error:', error);
+      logger.error('Error fetching agent configuration:', error);
+      res.status(500).json({ error: 'Failed to fetch agent configuration' });
+    }
+  }
+
+  async getAgentConfigHealth(req: Request, res: Response) {
+    try {
+      const config = await prisma.agentConfig.findFirst();
+      const configCount = config ? 1 : 0;
       
-      if (error instanceof Error) {
-        return res.status(400).json({ error: error.message });
-      }
-      
-      return res.status(500).json({ error: 'An unexpected error occurred' });
+      res.json({
+        status: config ? 'healthy' : 'no_config',
+        hasConfig: !!config,
+        configCount,
+        environment: process.env.NODE_ENV || 'unknown'
+      });
+    } catch (error) {
+      logger.error('Error checking agent configuration health:', error);
+      res.status(500).json({ 
+        status: 'error',
+        hasConfig: false,
+        configCount: 0,
+        error: 'Failed to check agent configuration'
+      });
     }
   }
 

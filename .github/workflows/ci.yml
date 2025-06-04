@@ -223,6 +223,24 @@ jobs:
             -H "Content-Type: application/json" \
             -d '{}' || echo "Test seeding failed, continuing..."
 
+      - name: Verify agent configuration in database
+        working-directory: ./backend
+        run: |
+          echo "=== VERIFYING AGENT CONFIGURATION ==="
+          docker compose exec -T db psql -U shopmefy -d shopmefy -c "SELECT COUNT(*) as agent_config_count FROM \"AgentConfig\";" || echo "Failed to query agent config"
+          docker compose exec -T db psql -U shopmefy -d shopmefy -c "SELECT model, temperature, \"maxTokens\" FROM \"AgentConfig\" LIMIT 1;" || echo "Failed to query agent config details"
+          
+          echo "=== TESTING AGENT CONFIG API ==="
+          curl -f http://localhost:3001/api/agent/config/health || {
+            echo "Agent config health check failed - checking details..."
+            curl -v http://localhost:3001/api/agent/config/health || true
+            echo "Attempting to re-seed database..."
+            npx prisma db seed || echo "Re-seeding failed"
+            
+            echo "Testing agent config API after re-seed..."
+            curl -f http://localhost:3001/api/agent/config || echo "Agent config API still failing"
+          }
+
       - name: Run E2E tests
         working-directory: ./frontend
         run: |

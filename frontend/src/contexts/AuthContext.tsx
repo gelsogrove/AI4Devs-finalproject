@@ -12,6 +12,54 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Secure token storage utility
+const secureStorage = {
+  setToken: (token: string) => {
+    // In production, this should be httpOnly cookies
+    // For now, we'll use sessionStorage which is more secure than localStorage
+    sessionStorage.setItem('auth_token', token);
+    // Set expiry time (1 hour)
+    const expiry = new Date().getTime() + (60 * 60 * 1000);
+    sessionStorage.setItem('auth_expiry', expiry.toString());
+  },
+  
+  getToken: (): string | null => {
+    const token = sessionStorage.getItem('auth_token');
+    const expiry = sessionStorage.getItem('auth_expiry');
+    
+    if (!token || !expiry) return null;
+    
+    // Check if token is expired
+    if (new Date().getTime() > parseInt(expiry)) {
+      secureStorage.clearToken();
+      return null;
+    }
+    
+    return token;
+  },
+  
+  clearToken: () => {
+    sessionStorage.removeItem('auth_token');
+    sessionStorage.removeItem('auth_expiry');
+    sessionStorage.removeItem('user_data');
+  },
+  
+  setUser: (user: User) => {
+    sessionStorage.setItem('user_data', JSON.stringify(user));
+  },
+  
+  getUser: (): User | null => {
+    const userData = sessionStorage.getItem('user_data');
+    if (!userData) return null;
+    
+    try {
+      return JSON.parse(userData);
+    } catch {
+      return null;
+    }
+  }
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [auth, setAuth] = useState<AuthState>({
     user: null,
@@ -24,22 +72,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Check for existing auth on mount
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
+    const storedToken = secureStorage.getToken();
+    const storedUser = secureStorage.getUser();
     
     if (storedToken && storedUser) {
-      try {
-        const user = JSON.parse(storedUser);
-        setAuth({
-          user,
-          token: storedToken,
-          isAuthenticated: true
-        });
-      } catch (error) {
-        console.error('Failed to parse stored user', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-      }
+      setAuth({
+        user: storedUser,
+        token: storedToken,
+        isAuthenticated: true
+      });
     }
     
     setIsLoading(false);
@@ -63,9 +104,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated: true
       });
       
-      // Save to localStorage for persistence
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(user));
+      // Save to secure storage
+      secureStorage.setToken(response.token);
+      secureStorage.setUser(user);
       
       toast({
         title: "Login successful",
@@ -91,9 +132,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAuthenticated: false
     });
     
-    // Clear localStorage
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    // Clear secure storage
+    secureStorage.clearToken();
     
     toast({
       title: "Logged out",

@@ -90,7 +90,13 @@ const AgentConfigPage: React.FC = () => {
         console.log("Fetched config:", data); // Debug log
         
         if (!data || !data.prompt) {
-          setError('No agent configuration found in database. Please contact support.');
+          // In test environment, provide a more graceful fallback
+          if (import.meta.env.MODE === 'test' || window.location.hostname === 'localhost') {
+            console.warn('No agent configuration found - test environment detected');
+            setError('Agent configuration not found. This may be expected in test environment.');
+          } else {
+            setError('No agent configuration found in database. Please contact support.');
+          }
           return;
         }
         
