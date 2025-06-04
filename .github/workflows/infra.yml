@@ -94,12 +94,13 @@ jobs:
           
           echo "🔍 Finding and deleting ALL shopmefy-dev* resources..."
           
-          # Delete EC2 instances
+          # Delete EC2 instances first
           echo "🖥️ Deleting EC2 instances..."
           INSTANCES=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=shopmefy-dev*" --query "Reservations[].Instances[?State.Name!='terminated'].InstanceId" --output text)
           if [ ! -z "$INSTANCES" ]; then
             echo "Terminating instances: $INSTANCES"
             aws ec2 terminate-instances --instance-ids $INSTANCES
+            echo "Waiting for instances to terminate..."
             aws ec2 wait instance-terminated --instance-ids $INSTANCES
           fi
           
@@ -109,7 +110,7 @@ jobs:
           for eip in $EIPS; do
             if [ ! -z "$eip" ]; then
               echo "Releasing EIP: $eip"
-              aws ec2 release-address --allocation-id $eip
+              aws ec2 release-address --allocation-id $eip || echo "Failed to release $eip"
             fi
           done
           
@@ -119,9 +120,15 @@ jobs:
           for db in $RDS_INSTANCES; do
             if [ ! -z "$db" ]; then
               echo "Deleting RDS instance: $db"
-              aws rds delete-db-instance --db-instance-identifier $db --skip-final-snapshot --delete-automated-backups
+              aws rds delete-db-instance --db-instance-identifier $db --skip-final-snapshot --delete-automated-backups || echo "Failed to delete $db"
             fi
           done
+          
+          # Wait for RDS deletion
+          if [ ! -z "$RDS_INSTANCES" ]; then
+            echo "Waiting for RDS instances to be deleted..."
+            sleep 60
+          fi
           
           # Delete DB Subnet Groups
           echo "🔗 Deleting DB Subnet Groups..."
@@ -129,7 +136,7 @@ jobs:
           for sg in $DB_SUBNET_GROUPS; do
             if [ ! -z "$sg" ]; then
               echo "Deleting DB Subnet Group: $sg"
-              aws rds delete-db-subnet-group --db-subnet-group-name $sg
+              aws rds delete-db-subnet-group --db-subnet-group-name $sg || echo "Failed to delete $sg"
             fi
           done
           
@@ -139,8 +146,8 @@ jobs:
           for bucket in $S3_BUCKETS; do
             if [ ! -z "$bucket" ]; then
               echo "Emptying and deleting S3 bucket: $bucket"
-              aws s3 rm s3://$bucket --recursive
-              aws s3api delete-bucket --bucket $bucket
+              aws s3 rm s3://$bucket --recursive || echo "Failed to empty $bucket"
+              aws s3api delete-bucket --bucket $bucket || echo "Failed to delete $bucket"
             fi
           done
           
@@ -150,7 +157,7 @@ jobs:
           for secret in $SECRETS; do
             if [ ! -z "$secret" ]; then
               echo "Deleting secret: $secret"
-              aws secretsmanager delete-secret --secret-id $secret --force-delete-without-recovery
+              aws secretsmanager delete-secret --secret-id $secret --force-delete-without-recovery || echo "Failed to delete $secret"
             fi
           done
           
@@ -160,13 +167,27 @@ jobs:
           for key in $KEY_PAIRS; do
             if [ ! -z "$key" ]; then
               echo "Deleting key pair: $key"
-              aws ec2 delete-key-pair --key-name $key
+              aws ec2 delete-key-pair --key-name $key || echo "Failed to delete $key"
             fi
           done
           
-          # Delete Security Groups (after instances are terminated)
+          # Wait longer for instances to be fully terminated
+          echo "⏳ Waiting for all instances to be fully terminated..."
+          sleep 60
+          
+          # Delete Network Interfaces (ENIs)
+          echo "🔌 Deleting Network Interfaces..."
+          ENIS=$(aws ec2 describe-network-interfaces --filters "Name=tag:Name,Values=shopmefy-dev*" --query "NetworkInterfaces[?Status!='in-use'].NetworkInterfaceId" --output text)
+          for eni in $ENIS; do
+            if [ ! -z "$eni" ]; then
+              echo "Deleting network interface: $eni"
+              aws ec2 delete-network-interface --network-interface-id $eni || echo "Failed to delete $eni"
+            fi
+          done
+          
+          # Delete Security Groups (after instances and ENIs are deleted)
           echo "🛡️ Deleting Security Groups..."
-          sleep 30  # Wait for instances to be fully terminated
+          sleep 30  # Additional wait
           SECURITY_GROUPS=$(aws ec2 describe-security-groups --filters "Name=tag:Name,Values=shopmefy-dev*" --query "SecurityGroups[?GroupName!='default'].GroupId" --output text)
           for sg in $SECURITY_GROUPS; do
             if [ ! -z "$sg" ]; then
@@ -182,6 +203,21 @@ jobs:
             if [ ! -z "$vpc" ]; then
               echo "Deleting VPC: $vpc"
               
+              # Delete NAT Gateways first
+              NAT_GATEWAYS=$(aws ec2 describe-nat-gateways --filter "Name=vpc-id,Values=$vpc" --query "NatGateways[?State!='deleted'].NatGatewayId" --output text)
+              for nat in $NAT_GATEWAYS; do
+                if [ ! -z "$nat" ]; then
+                  echo "Deleting NAT Gateway: $nat"
+                  aws ec2 delete-nat-gateway --nat-gateway-id $nat
+                fi
+              done
+              
+              # Wait for NAT Gateways to be deleted
+              if [ ! -z "$NAT_GATEWAYS" ]; then
+                echo "Waiting for NAT Gateways to be deleted..."
+                sleep 60
+              fi
+              
               # Delete route table associations and route tables
               ROUTE_TABLES=$(aws ec2 describe-route-tables --filters "Name=vpc-id,Values=$vpc" --query "RouteTables[?Associations[0].Main!=\`true\`].RouteTableId" --output text)
               for rt in $ROUTE_TABLES; do
@@ -190,10 +226,12 @@ jobs:
                   ASSOCIATIONS=$(aws ec2 describe-route-tables --route-table-ids $rt --query "RouteTables[].Associations[?Main!=\`true\`].RouteTableAssociationId" --output text)
                   for assoc in $ASSOCIATIONS; do
                     if [ ! -z "$assoc" ]; then
-                      aws ec2 disassociate-route-table --association-id $assoc
+                      echo "Disassociating route table: $assoc"
+                      aws ec2 disassociate-route-table --association-id $assoc || echo "Failed to disassociate $assoc"
                     fi
                   done
-                  aws ec2 delete-route-table --route-table-id $rt
+                  echo "Deleting route table: $rt"
+                  aws ec2 delete-route-table --route-table-id $rt || echo "Failed to delete $rt"
                 fi
               done
               
@@ -201,7 +239,8 @@ jobs:
               SUBNETS=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$vpc" --query "Subnets[].SubnetId" --output text)
               for subnet in $SUBNETS; do
                 if [ ! -z "$subnet" ]; then
-                  aws ec2 delete-subnet --subnet-id $subnet
+                  echo "Deleting subnet: $subnet"
+                  aws ec2 delete-subnet --subnet-id $subnet || echo "Failed to delete $subnet"
                 fi
               done
               
@@ -209,13 +248,15 @@ jobs:
               IGWS=$(aws ec2 describe-internet-gateways --filters "Name=attachment.vpc-id,Values=$vpc" --query "InternetGateways[].InternetGatewayId" --output text)
               for igw in $IGWS; do
                 if [ ! -z "$igw" ]; then
-                  aws ec2 detach-internet-gateway --internet-gateway-id $igw --vpc-id $vpc
-                  aws ec2 delete-internet-gateway --internet-gateway-id $igw
+                  echo "Detaching and deleting internet gateway: $igw"
+                  aws ec2 detach-internet-gateway --internet-gateway-id $igw --vpc-id $vpc || echo "Failed to detach $igw"
+                  aws ec2 delete-internet-gateway --internet-gateway-id $igw || echo "Failed to delete $igw"
                 fi
               done
               
               # Finally delete VPC
-              aws ec2 delete-vpc --vpc-id $vpc
+              echo "Deleting VPC: $vpc"
+              aws ec2 delete-vpc --vpc-id $vpc || echo "Failed to delete $vpc"
             fi
           done
           
@@ -225,17 +266,17 @@ jobs:
           for lg in $LOG_GROUPS; do
             if [ ! -z "$lg" ]; then
               echo "Deleting log group: $lg"
-              aws logs delete-log-group --log-group-name $lg
+              aws logs delete-log-group --log-group-name $lg || echo "Failed to delete $lg"
             fi
           done
           
           echo ""
-          echo "🎉 COMPLETE CLEANUP FINISHED!"
-          echo "🗑️ ALL shopmefy-dev* resources have been permanently removed"
+          echo "🎉 ENHANCED CLEANUP FINISHED!"
+          echo "🗑️ ALL shopmefy-dev* resources have been thoroughly removed"
           echo "💰 No more AWS charges for this infrastructure"
           echo "🔄 You can create fresh infrastructure anytime with 'apply'"
           echo ""
-          echo "## 🧹 Complete Infrastructure Cleanup Successful!" >> $GITHUB_STEP_SUMMARY
+          echo "## 🧹 Enhanced Infrastructure Cleanup Successful!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### ✅ Everything Removed:" >> $GITHUB_STEP_SUMMARY
           echo "- 🖥️ **EC2 instances** - Terminated and removed" >> $GITHUB_STEP_SUMMARY
@@ -243,8 +284,9 @@ jobs:
           echo "- 🗑️ **S3 buckets** - Emptied and deleted completely" >> $GITHUB_STEP_SUMMARY
           echo "- 🔐 **Secrets Manager** - All secrets removed" >> $GITHUB_STEP_SUMMARY
           echo "- 🔑 **SSH Key Pairs** - Deleted" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔌 **Network Interfaces** - Cleaned up" >> $GITHUB_STEP_SUMMARY
           echo "- 🛡️ **Security Groups** - Removed" >> $GITHUB_STEP_SUMMARY
-          echo "- 🌐 **VPC & Networking** - Complete network cleanup" >> $GITHUB_STEP_SUMMARY
+          echo "- 🌐 **VPC & Networking** - Complete network cleanup including subnets" >> $GITHUB_STEP_SUMMARY
           echo "- 📊 **CloudWatch Logs** - Log groups deleted" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 💰 Result:" >> $GITHUB_STEP_SUMMARY
