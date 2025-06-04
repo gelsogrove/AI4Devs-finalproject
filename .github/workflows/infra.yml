@@ -825,4 +825,89 @@ jobs:
           echo "- \`S3_BUCKET_NAME\`: $(terraform output -raw s3_bucket_name)" >> $GITHUB_STEP_SUMMARY
           echo "- \`EC2_HOST\`: $(terraform output -raw web_public_ip)" >> $GITHUB_STEP_SUMMARY
           echo "- \`EC2_USER\`: ubuntu" >> $GITHUB_STEP_SUMMARY
-          echo "- \`AWS_REGION\`: us-east-1" >> $GITHUB_STEP_SUMMARY 
+          echo "- \`AWS_REGION\`: us-east-1" >> $GITHUB_STEP_SUMMARY
+
+      - name: 🤖 Auto-Update GitHub Secrets
+        if: github.event.inputs.action == 'apply'
+        run: |
+          # Get Terraform outputs
+          S3_BUCKET=$(terraform output -raw s3_bucket_name)
+          EC2_HOST=$(terraform output -raw web_public_ip)
+          
+          echo "🔄 Creating update script for GitHub Secrets..."
+          
+          # Create a script with the exact values to copy-paste
+          cat > update_secrets.sh << EOF
+          #!/bin/bash
+          # Auto-generated script to update GitHub Secrets
+          # Copy these values to GitHub Repository Settings > Secrets and variables > Actions
+          
+          echo "=== GITHUB SECRETS TO UPDATE ==="
+          echo "S3_BUCKET_NAME=$S3_BUCKET"
+          echo "EC2_HOST=$EC2_HOST"
+          echo "EC2_USER=ubuntu"
+          echo "AWS_REGION=us-east-1"
+          echo ""
+          echo "=== MANUAL STEPS ==="
+          echo "1. Go to: https://github.com/${{ github.repository }}/settings/secrets/actions"
+          echo "2. Update or create these secrets with the values above"
+          echo "3. Generate SSH key pair and add EC2_SSH_KEY secret"
+          echo ""
+          echo "=== SSH KEY GENERATION ==="
+          echo "ssh-keygen -t rsa -b 4096 -f ~/.ssh/shopmefy_key"
+          echo "# Add public key to EC2: ssh-copy-id -i ~/.ssh/shopmefy_key.pub ubuntu@$EC2_HOST"
+          echo "# Add private key content to GitHub Secret: EC2_SSH_KEY"
+          EOF
+          
+          echo "✅ Update script created!"
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🤖 Secrets Ready for Update:" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ S3_BUCKET_NAME: \`$S3_BUCKET\`" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ EC2_HOST: \`$EC2_HOST\`" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ EC2_USER: \`ubuntu\`" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ AWS_REGION: \`us-east-1\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Next Steps:" >> $GITHUB_STEP_SUMMARY
+          echo "1. **Update GitHub Secrets**: [Go to Settings](https://github.com/${{ github.repository }}/settings/secrets/actions)" >> $GITHUB_STEP_SUMMARY
+          echo "2. **Generate SSH Key**: \`ssh-keygen -t rsa -b 4096 -f ~/.ssh/shopmefy_key\`" >> $GITHUB_STEP_SUMMARY
+          echo "3. **Add SSH Key to EC2**: \`ssh-copy-id -i ~/.ssh/shopmefy_key.pub ubuntu@$EC2_HOST\`" >> $GITHUB_STEP_SUMMARY
+          echo "4. **Add Private Key to GitHub Secret**: \`EC2_SSH_KEY\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: 🚀 Auto-Update Secrets with GitHub CLI (Alternative)
+        if: github.event.inputs.action == 'apply'
+        continue-on-error: true
+        run: |
+          # Try to update secrets automatically using GitHub CLI
+          S3_BUCKET=$(terraform output -raw s3_bucket_name)
+          EC2_HOST=$(terraform output -raw web_public_ip)
+          
+          echo "🔄 Attempting automatic secret update with GitHub CLI..."
+          
+          # Install GitHub CLI if not available
+          if ! command -v gh &> /dev/null; then
+            echo "Installing GitHub CLI..."
+            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+            sudo apt update
+            sudo apt install gh -y
+          fi
+          
+          # Authenticate with GitHub token
+          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+          
+          # Update secrets
+          echo "$S3_BUCKET" | gh secret set S3_BUCKET_NAME --repo ${{ github.repository }}
+          echo "$EC2_HOST" | gh secret set EC2_HOST --repo ${{ github.repository }}
+          echo "ubuntu" | gh secret set EC2_USER --repo ${{ github.repository }}
+          echo "us-east-1" | gh secret set AWS_REGION --repo ${{ github.repository }}
+          
+          echo "✅ Secrets updated automatically via GitHub CLI!"
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🎉 Secrets Auto-Updated via GitHub CLI:" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ S3_BUCKET_NAME" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ EC2_HOST" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ EC2_USER" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ AWS_REGION" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ⚠️ Still Need Manual Setup:" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔑 **EC2_SSH_KEY**: Generate and add SSH private key" >> $GITHUB_STEP_SUMMARY 
