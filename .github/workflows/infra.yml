@@ -106,7 +106,29 @@ jobs:
           
           # Release Elastic IPs
           echo "🌐 Releasing Elastic IPs..."
+          # First try to find EIPs by tags
           EIPS=$(aws ec2 describe-addresses --filters "Name=tag:Name,Values=shopmefy-dev*" --query "Addresses[].AllocationId" --output text)
+          # Also find EIPs associated with our instances
+          if [ ! -z "$INSTANCES" ]; then
+            EIP_BY_INSTANCE=$(aws ec2 describe-addresses --filters "Name=instance-id,Values=$INSTANCES" --query "Addresses[].AllocationId" --output text)
+            EIPS="$EIPS $EIP_BY_INSTANCE"
+          fi
+          # Also check for unassociated EIPs that might be ours (be careful with this)
+          echo "Checking for unassociated Elastic IPs..."
+          UNASSOCIATED_EIPS=$(aws ec2 describe-addresses --query "Addresses[?AssociationId==null].AllocationId" --output text)
+          for ueip in $UNASSOCIATED_EIPS; do
+            if [ ! -z "$ueip" ]; then
+              # Get the EIP details to check if it might be ours
+              EIP_TAGS=$(aws ec2 describe-addresses --allocation-ids $ueip --query "Addresses[0].Tags[?Key=='Name'].Value" --output text)
+              if [[ "$EIP_TAGS" == *"shopmefy-dev"* ]]; then
+                echo "Found unassociated EIP with shopmefy-dev tag: $ueip"
+                EIPS="$EIPS $ueip"
+              fi
+            fi
+          done
+          # Remove duplicates and empty values
+          EIPS=$(echo $EIPS | tr ' ' '\n' | sort -u | grep -v '^$' | tr '\n' ' ')
+          
           for eip in $EIPS; do
             if [ ! -z "$eip" ]; then
               echo "Releasing EIP: $eip"
