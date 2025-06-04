@@ -1,5 +1,44 @@
 # Database Schema - ShopMefy
 
+## 🎯 MVP Schema Status
+
+> **⚠️ IMPORTANT**: This document shows the **actual implemented schema** in the MVP vs planned future enhancements. All tables listed below are currently implemented and functional.
+
+### **✅ MVP Implemented Tables** (10 tables)
+
+| Table | Purpose | Status | Records |
+|-------|---------|--------|---------|
+| **Product** | E-commerce product catalog | ✅ **ACTIVE** | ~50 seeded |
+| **Service** | Business services catalog | ✅ **ACTIVE** | ~6 seeded |
+| **FAQ** | Customer support questions | ✅ **ACTIVE** | ~10 seeded |
+| **FAQChunk** | FAQ text chunks for RAG | ✅ **ACTIVE** | Auto-generated |
+| **ServiceChunk** | Service text chunks for RAG | ✅ **ACTIVE** | Auto-generated |
+| **AgentConfig** | AI agent configuration | ✅ **ACTIVE** | 1 config |
+| **User** | Basic user authentication | ✅ **ACTIVE** | Demo users |
+| **Profile** | Business profile info | ✅ **ACTIVE** | 1 profile |
+| **Document** | PDF document management | ✅ **ACTIVE** | Sample docs |
+| **DocumentChunk** | Document text chunks for RAG | ✅ **ACTIVE** | Auto-generated |
+
+### **❌ NOT in MVP - Future Schema** 
+
+| Feature | Tables Needed | Future Phase |
+|---------|---------------|--------------|
+| **Multi-tenancy** | Workspace, WorkspaceUser | Phase 2 |
+| **Advanced Auth** | Role, Permission, UserRole | Phase 2 |
+| **WhatsApp Integration** | Conversation, Message, Contact | Phase 3 |
+| **E-commerce** | Order, OrderItem, Payment | Phase 3 |
+| **GDPR Compliance** | ConsentLog, DataRetention | Phase 3 |
+| **Analytics** | Event, UserSession, Metric | Phase 2 |
+
+### **🔧 MVP Schema Characteristics**
+- **Single-tenant**: No workspace separation
+- **Basic auth**: Simple user table, no JWT validation in MVP
+- **RAG-ready**: All content tables have chunking support
+- **Document processing**: Full PDF upload and text extraction
+- **AI configuration**: Flexible agent prompt and model settings
+
+---
+
 ## Entity Relationship Diagram
 
 ```mermaid

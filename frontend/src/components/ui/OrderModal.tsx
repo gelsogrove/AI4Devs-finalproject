@@ -1,4 +1,4 @@
-import { Calendar, CheckCircle, CreditCard, Package, Truck, X } from 'lucide-react';
+import { CheckCircle, CreditCard, Package, Truck, X } from 'lucide-react';
 import React from 'react';
 
 interface OrderDetails {
@@ -58,14 +58,14 @@ export const OrderModal: React.FC<OrderModalProps> = ({ order, onClose, isVisibl
           {/* Order Number */}
           <div className="text-center mb-6">
             <h3 className="text-3xl font-bold text-green-600">#{order.orderNumber}</h3>
-            <p className="text-gray-600 mt-1">{new Date(order.timestamp).toLocaleString('it-IT')}</p>
+            <p className="text-gray-600 mt-1">{new Date(order.timestamp).toLocaleString('en-US')}</p>
           </div>
 
           {/* Order Items */}
           <div className="mb-6">
-            <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <Package className="w-5 h-5 text-green-600" />
-              Prodotti ordinati
+            <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <Package className="w-5 h-5" />
+              Ordered Products
             </h4>
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="space-y-3">
@@ -81,7 +81,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({ order, onClose, isVisibl
               </div>
               <div className="border-t border-gray-300 mt-4 pt-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-xl font-bold text-gray-800">Totale:</span>
+                  <span className="text-xl font-bold text-gray-800">Total:</span>
                   <span className="text-2xl font-bold text-green-600">€{order.total.toFixed(2)}</span>
                 </div>
               </div>
@@ -91,24 +91,15 @@ export const OrderModal: React.FC<OrderModalProps> = ({ order, onClose, isVisibl
           {/* Delivery & Payment Info */}
           <div className="grid md:grid-cols-2 gap-6 mb-6">
             {/* Delivery */}
-            <div className="bg-blue-50 rounded-lg p-4">
-              <h4 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+              <h4 className="font-semibold text-green-800 mb-2 flex items-center gap-2">
                 <Truck className="w-5 h-5" />
-                Informazioni consegna
+                Delivery Information
               </h4>
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-blue-600" />
-                  <span className="text-blue-700">
-                    <strong>Consegna stimata:</strong> {order.estimatedDelivery}
-                  </span>
-                </div>
-                <p className="text-blue-700">
-                  <strong>Metodo:</strong> {order.shippingMethod}
-                </p>
-                <p className="text-blue-700">
-                  <strong>Indirizzo:</strong> {order.customerInfo.address || 'Da specificare'}
-                </p>
+              <div className="space-y-2 text-sm text-green-700">
+                <p><strong>Estimated Delivery:</strong> {order.estimatedDelivery}</p>
+                <p><strong>Payment Method:</strong> {order.paymentMethod}</p>
+                <p><strong>Shipping Method:</strong> {order.shippingMethod}</p>
               </div>
             </div>
 
@@ -141,12 +132,18 @@ export const OrderModal: React.FC<OrderModalProps> = ({ order, onClose, isVisibl
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-3 justify-center">
+          <div className="text-center">
+            <div className="text-6xl mb-4">🎉</div>
+            <h3 className="text-2xl font-bold text-green-600 mb-2">Perfect! 🎉</h3>
+            <p className="text-gray-600 mb-6">
+              Your order has been successfully processed and will be delivered soon.
+            </p>
+            
             <button
               onClick={onClose}
-              className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+              className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors"
             >
-              Perfetto! 🎉
+              Close
             </button>
           </div>
         </div>

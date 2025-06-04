@@ -3,6 +3,10 @@
 source: `prompts/01_metaprompt.md`
 
 ## Table of Contents
+- [MVP Scope](#mvp-scope)
+  - [What the MVP Actually Does](#what-the-mvp-actually-does)
+  - [What's NOT in MVP](#whats-not-in-mvp-future-phases)
+  - [MVP vs Full Vision](#mvp-vs-full-vision)
 - [Introduction](#introduction)
   - [Short Description](#short-description)
   - [Business Model](#business-model)
@@ -38,6 +42,96 @@ source: `prompts/01_metaprompt.md`
 - [Development Roadmap](#development-roadmap)
 - [Out of Scope Features (MVP)](#out-of-scope-features-mvp)
 - [Minimum Marketable Product (MMP)](#minimum-marketable-product-mmp)
+
+## MVP SCOPE
+
+> **⚠️ IMPORTANT**: This section defines what is **actually implemented** in the current MVP vs the full vision described in this PRD. All tests, code, and documentation should align with this MVP scope.
+
+### What the MVP Actually Does
+
+#### **Core Features** ✅
+- **Basic chat processing** with OpenAI/OpenRouter integration
+- **Product catalog management** (CRUD operations)
+- **Service catalog management** (CRUD operations)
+- **FAQ management** (CRUD operations)
+- **Basic user registration** (no JWT validation, demo tokens only)
+
+#### **Business Management** ✅
+- **Profile management** (company profile, contact info, business details)
+- **Agent configuration** (temperature, maxTokens, topP, model, custom prompts)
+- **Document management** (PDF upload, text extraction, chunking, embeddings)
+
+#### **Frontend Pages** ✅
+- **Dashboard** (overview and metrics)
+- **Products** management interface
+- **Services** management interface
+- **Profile** configuration page
+- **Agent Config** (AI settings and prompt customization)
+- **Documents** (PDF upload & management with RAG)
+- **Chatbot** interface for testing
+- **Login** system (basic, no JWT validation)
+
+#### **Technical Features** ✅
+- **PDF text extraction** and automatic chunking
+- **Embedding generation** (HuggingFace integration)
+- **RAG search** in documents for enhanced responses
+- **File upload** system with validation
+- **PostgreSQL database** with Prisma ORM
+- **API validation** with Zod schemas
+- **Comprehensive logging** system
+- **Error handling** and validation
+
+#### **DevOps & Deployment** ✅
+- **AWS deployment** with Terraform
+- **Infrastructure as Code** setup
+- **Production environment** configuration
+- **Docker containerization**
+- **Environment management**
+
+### What's NOT in MVP (Future Phases)
+
+#### **Authentication & Security** ❌
+- JWT authentication system
+- Protected routes middleware
+- Token validation and refresh
+- Session management
+- Advanced security features
+
+#### **WhatsApp Integration** ❌
+- WhatsApp Business API integration
+- Real-time message processing
+- Webhook handling
+- Message flow automation
+
+#### **Advanced Features** ❌
+- GDPR compliance workflow
+- Workspace management (multi-tenancy)
+- User blocking system
+- Secure token links for sensitive data
+- Payment processing integration
+- Push notification system
+
+#### **Enterprise Features** ❌
+- Multi-channel management
+- Advanced analytics and reporting
+- Custom integrations
+- White-label solutions
+- Advanced role-based permissions
+
+### MVP vs Full Vision
+
+| Feature Category | MVP Status | Full Vision |
+|------------------|------------|-------------|
+| **Chat System** | ✅ Basic AI chat | WhatsApp Business API |
+| **Authentication** | 🔶 Basic (no JWT) | Full JWT + OAuth |
+| **Product Management** | ✅ Complete CRUD | + Inventory tracking |
+| **Document Processing** | ✅ PDF + RAG | + Multiple formats |
+| **Deployment** | ✅ AWS + Terraform | + Multi-region |
+| **Security** | 🔶 Basic validation | + GDPR + Advanced |
+| **Multi-tenancy** | ❌ Single tenant | + Workspace management |
+| **Payments** | ❌ Not implemented | + Multiple gateways |
+
+**Legend**: ✅ Fully implemented | 🔶 Partially implemented | ❌ Not implemented
 
 ## INTRODUCTION
 

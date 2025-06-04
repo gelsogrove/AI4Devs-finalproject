@@ -3,73 +3,37 @@ jest.mock('../../src/utils/openai', () => ({
   aiService: {
     generateChatCompletion: jest.fn().mockImplementation((messages, model, options) => {
       const userMessage = messages.find((msg: any) => msg.role === 'user')?.content?.toLowerCase() || '';
-      const hasSystemFormatting = messages.some((msg: any) => msg.role === 'system' && msg.content?.includes('FORMATTING RULES'));
       
-      // If this is the formatting call (second call), return a simple formatted response
-      if (hasSystemFormatting) {
+      // MVP: Simple AI responses without complex function calling
+      if (userMessage.includes('product') || userMessage.includes('cheese')) {
         return Promise.resolve({
           choices: [
             {
               message: {
                 role: 'assistant',
-                content: 'Ecco i nostri prodotti italiani! 🇮🇹'
+                content: 'Here are our Italian products! We have cheeses, cured meats and much more. 🇮🇹'
               }
             }
           ]
         });
-      }
-      
-      // Handle different types of queries for the initial call
-      if (userMessage.includes('how many products') || userMessage.includes('total')) {
+      } else if (userMessage.includes('service') || userMessage.includes('tasting')) {
         return Promise.resolve({
           choices: [
             {
               message: {
                 role: 'assistant',
-                content: 'We have 3 products in our catalog: cheeses, oils and balsamic vinegars.',
-                tool_calls: [
-                  {
-                    id: 'call_count',
-                    type: 'function',
-                    function: {
-                      name: 'getProducts',
-                      arguments: '{"countOnly": true}'
-                    }
-                  }
-                ]
-              }
-            }
-          ]
-        });
-      } else if (userMessage.includes('cheese')) {
-        return Promise.resolve({
-          choices: [
-            {
-              message: {
-                role: 'assistant',
-                content: 'Yes, we have Italian cheeses!',
-                tool_calls: [
-                  {
-                    id: 'call_cheese',
-                    type: 'function',
-                    function: {
-                      name: 'getProducts',
-                      arguments: '{"category": "Cheese"}'
-                    }
-                  }
-                ]
+                content: 'We offer wine tastings and Italian cooking classes!'
               }
             }
           ]
         });
       } else {
-        // Default response for general product queries
         return Promise.resolve({
           choices: [
             {
               message: {
                 role: 'assistant',
-                content: 'Here are our Italian products! 🇮🇹'
+                content: 'Hello! I\'m Sofia, your assistant for Italian products. How can I help you?'
               }
             }
           ]
@@ -82,93 +46,7 @@ jest.mock('../../src/utils/openai', () => ({
 import { Request, Response } from 'express';
 import chatController from '../../src/controllers/chat.controller';
 
-// Mock the dependencies
-jest.mock('../../src/services/product.service', () => ({
-  getProducts: jest.fn().mockImplementation(async (filters, pagination) => {
-    return {
-      data: [
-        {
-          toDTO: () => ({
-            id: '1',
-            name: 'Parmigiano Reggiano',
-            description: 'Authentic Parmigiano Reggiano aged 24 months.',
-            price: 29.99,
-            imageUrl: 'https://example.com/parmigiano.jpg',
-            category: 'Cheese',
-          }),
-        },
-      ],
-      pagination: {
-        page: 1,
-        limit: 5,
-        total: 1,
-        totalPages: 1,
-      },
-    };
-  }),
-  getCategories: jest.fn().mockResolvedValue(['Cheese', 'Oils', 'Vinegars']),
-}));
-
-jest.mock('../../src/services/service.service', () => ({
-  getServices: jest.fn().mockResolvedValue({
-    data: [
-      {
-        id: '1',
-        name: 'Tasting',
-        description: 'A tasting of our most popular products',
-        price: 25.0,
-        isActive: true,
-      },
-    ],
-    pagination: {
-      page: 1,
-      limit: 5,
-      total: 1,
-      totalPages: 1,
-    },
-  }),
-}));
-
-// Mock availableFunctions
-jest.mock('../../src/services/availableFunctions', () => ({
-  getProducts: jest.fn().mockResolvedValue({
-    total: 1,
-    products: [
-      {
-        id: '1',
-        name: 'Parmigiano Reggiano',
-        description: 'Authentic Parmigiano Reggiano aged 24 months.',
-        price: '29.99',
-        category: 'Cheese',
-        imageUrl: 'https://example.com/parmigiano.jpg',
-      }
-    ]
-  }),
-  getServices: jest.fn().mockResolvedValue({
-    total: 1,
-    services: [
-      {
-        id: '1',
-        name: 'Tasting',
-        description: 'A tasting of our most popular products',
-        price: '25.0',
-        isActive: true,
-      }
-    ]
-  }),
-  getFAQs: jest.fn().mockResolvedValue({
-    total: 1,
-    faqs: [
-      {
-        id: '1',
-        question: 'Shipping Policy?',
-        answer: 'We ship worldwide within 2-3 business days.',
-        category: 'Shipping'
-      }
-    ]
-  })
-}));
-
+// Mock the AgentConfigService for MVP
 jest.mock('../../src/application/services/AgentConfigService', () => {
   return {
     AgentConfigService: jest.fn().mockImplementation(() => {
@@ -178,147 +56,178 @@ jest.mock('../../src/application/services/AgentConfigService', () => {
           maxTokens: 500,
           topP: 0.9,
           model: 'gpt-4-turbo',
-          prompt: 'You are an Italian food shop assistant',
+          prompt: 'You are Sofia, an Italian food shop assistant. Respond in Italian.',
         }),
       };
     }),
   };
 });
 
-describe('ChatController', () => {
+describe('ChatController - MVP Scope', () => {
   let req: Partial<Request>;
   let res: Partial<Response>;
-  let jsonMock: jest.Mock;
+  let jsonMock: jest.MockedFunction<any>;
+  let statusMock: jest.MockedFunction<any>;
 
   beforeEach(() => {
     jsonMock = jest.fn();
+    statusMock = jest.fn().mockReturnThis();
     res = {
       json: jsonMock,
-      status: jest.fn().mockReturnThis(),
+      status: statusMock,
     };
     
     // Set NODE_ENV to test explicitly for all tests
     process.env.NODE_ENV = 'test';
-    // Ensure OPENROUTER_API_KEY is invalid for tests to use the mock path
-    process.env.OPENROUTER_API_KEY = 'YOUR_API_KEY_HERE';
-    
-    // Mock console.error to capture any errors
-    jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    // Restore console.error
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
   });
 
-  describe('processChat', () => {
-    it('should handle basic chat processing without errors', async () => {
+  describe('POST /api/chat - MVP Basic Functionality', () => {
+    it('should handle basic chat message and return AI response', async () => {
       req = {
         body: {
           messages: [
             {
               role: 'user',
-              content: 'Hello',
-            },
-          ],
-        },
-      };
-
-      try {
-        await chatController.processChat(req as Request, res as Response);
-        
-        // Check if response was called
-        expect(jsonMock).toHaveBeenCalled();
-        
-        // Get the argument that was passed to res.json()
-        const responseArg = jsonMock.mock.calls[0][0];
-        
-        // Removed console.log for cleaner test output
-        
-        // Just check that we got some response (either success or error)
-        expect(responseArg).toBeDefined();
-        
-      } catch (error) {
-        throw error;
-      }
-    }, 15000);
-
-    it('should handle Italian queries about products', async () => {
-      req = {
-        body: {
-          messages: [
-            {
-              role: 'user',
-              content: 'What products do you sell?',
-            },
-          ],
-        },
-      };
-
-      await chatController.processChat(req as Request, res as Response);
-
-      // Check if response was called
-      expect(jsonMock).toHaveBeenCalled();
-      
-      // Get the argument that was passed to res.json()
-      const responseArg = jsonMock.mock.calls[0][0];
-      
-      // The chat functionality works correctly with intelligent fallback
-      expect(responseArg).toHaveProperty('message');
-      expect(responseArg.message).toHaveProperty('role', 'assistant');
-      expect(responseArg.message).toHaveProperty('content');
-      expect(typeof responseArg.message.content).toBe('string');
-      expect(responseArg.message.content.length).toBeGreaterThan(0);
-    }, 15000);
-
-    it('should handle Italian queries about cheese products', async () => {
-      req = {
-        body: {
-          messages: [
-            {
-              role: 'user',
-              content: 'Do you have Italian cheeses?',
-            },
-          ],
-        },
+              content: 'Hello, what products do you have?'
+            }
+          ]
+        }
       };
 
       await chatController.processChat(req as Request, res as Response);
 
       expect(jsonMock).toHaveBeenCalled();
-      const responseArg = jsonMock.mock.calls[0][0];
-      
-      // The chat functionality works correctly with intelligent fallback
-      expect(responseArg).toHaveProperty('message');
-      expect(responseArg.message).toHaveProperty('role', 'assistant');
-      expect(responseArg.message).toHaveProperty('content');
-      expect(typeof responseArg.message.content).toBe('string');
-      expect(responseArg.message.content.length).toBeGreaterThan(0);
-    }, 15000);
+      const response = jsonMock.mock.calls[0][0];
+      expect(response).toBeDefined();
+      expect(response.message).toBeDefined();
+      expect(response.message.role).toBe('assistant');
+      expect(response.message.content).toContain('Italian products');
+    });
 
-    it('should handle Italian queries about product count', async () => {
+    it('should handle product-related questions', async () => {
       req = {
         body: {
           messages: [
             {
               role: 'user',
-              content: 'How many products do you have in total?',
-            },
-          ],
-        },
+              content: 'Do you have cheese?'
+            }
+          ]
+        }
       };
 
       await chatController.processChat(req as Request, res as Response);
 
       expect(jsonMock).toHaveBeenCalled();
-      const responseArg = jsonMock.mock.calls[0][0];
-      
-      // The chat functionality works correctly with intelligent fallback
-      expect(responseArg).toHaveProperty('message');
-      expect(responseArg.message).toHaveProperty('role', 'assistant');
-      expect(responseArg.message).toHaveProperty('content');
-      expect(typeof responseArg.message.content).toBe('string');
-      expect(responseArg.message.content.length).toBeGreaterThan(0);
-    }, 15000);
+      const response = jsonMock.mock.calls[0][0];
+      expect(response).toBeDefined();
+      expect(response.message).toBeDefined();
+      expect(response.message.role).toBe('assistant');
+      expect(response.message.content).toMatch(/Italian products|formaggi/i);
+    });
+
+    it('should handle service-related questions', async () => {
+      req = {
+        body: {
+          messages: [
+            {
+              role: 'user',
+              content: 'What services do you offer?'
+            }
+          ]
+        }
+      };
+
+      await chatController.processChat(req as Request, res as Response);
+
+      expect(jsonMock).toHaveBeenCalled();
+      const response = jsonMock.mock.calls[0][0];
+      expect(response).toBeDefined();
+      expect(response.message).toBeDefined();
+      expect(response.message.role).toBe('assistant');
+      expect(response.message.content).toMatch(/wine tastings|cooking classes|degustazioni|corsi/i);
+    });
+
+    it('should handle general greetings', async () => {
+      req = {
+        body: {
+          messages: [
+            {
+              role: 'user',
+              content: 'Hello!'
+            }
+          ]
+        }
+      };
+
+      await chatController.processChat(req as Request, res as Response);
+
+      expect(jsonMock).toHaveBeenCalled();
+      const response = jsonMock.mock.calls[0][0];
+      expect(response).toBeDefined();
+      expect(response.message).toBeDefined();
+      expect(response.message.role).toBe('assistant');
+      expect(response.message.content).toContain('Sofia');
+    });
+
+    it('should validate required messages field', async () => {
+      req = {
+        body: {}
+      };
+
+      await chatController.processChat(req as Request, res as Response);
+
+      expect(statusMock).toHaveBeenCalledWith(400);
+      expect(jsonMock).toHaveBeenCalled();
+      const response = jsonMock.mock.calls[0][0];
+      expect(response.error).toContain('Validation error');
+    });
+
+    it('should handle empty messages array', async () => {
+      req = {
+        body: {
+          messages: []
+        }
+      };
+
+      await chatController.processChat(req as Request, res as Response);
+
+      expect(statusMock).toHaveBeenCalledWith(400);
+      expect(jsonMock).toHaveBeenCalled();
+      const response = jsonMock.mock.calls[0][0];
+      expect(response.error).toContain('No user message found');
+    });
+
+    it('should handle AI service errors gracefully', async () => {
+      // Mock AI service to throw error
+      const { aiService } = require('../../src/utils/openai');
+      aiService.generateChatCompletion.mockRejectedValueOnce(new Error('AI service unavailable'));
+
+      req = {
+        body: {
+          messages: [
+            {
+              role: 'user',
+              content: 'Test message'
+            }
+          ]
+        }
+      };
+
+      await chatController.processChat(req as Request, res as Response);
+
+      expect(jsonMock).toHaveBeenCalled();
+      const response = jsonMock.mock.calls[0][0];
+      expect(response).toBeDefined();
+      expect(response.message).toBeDefined();
+      expect(response.message.role).toBe('assistant');
+    });
   });
+
+  // Note: Agent configuration integration is tested through functional tests
+  // The important aspect is that the chat works, not the internal mock verification
 }); 

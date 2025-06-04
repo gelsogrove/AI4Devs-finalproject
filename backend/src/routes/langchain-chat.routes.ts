@@ -45,7 +45,7 @@ const router = Router();
  *                       example: assistant
  *                     content:
  *                       type: string
- *                       example: "Buongiorno! Welcome to Gusto Italiano..."
+ *                       example: "Hello! Welcome to Gusto Italiano..."
  *       400:
  *         description: Invalid request format
  *       500:

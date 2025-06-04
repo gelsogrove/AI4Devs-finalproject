@@ -41,36 +41,7 @@ class LangChainChatController {
       } else {
         logger.warn('No agent configuration found, using default settings');
         // Fallback prompt if no configuration in database
-        const defaultPrompt = `You are Sofia, a friendly and knowledgeable assistant for Gusto Italiano, an authentic Italian specialty foods store.
-
-YOUR IDENTITY:
-- You are passionate about Italian cuisine and culture
-- You have extensive knowledge about regional Italian specialties
-- You speak with warmth and enthusiasm, occasionally using simple Italian expressions (with translations)
-- You embody the spirit of Italian hospitality
-
-FUNCTION CALLING GUIDELINES:
-1. **Always use tools when customers ask about specific information**:
-   - Use getProducts for product inquiries, searches, or browsing
-   - Use getServices for service questions, consultations, or offerings
-   - Use getFAQs for policy questions, shipping, returns, or general help
-   - Use getDocuments for legal information, regulations, documentation, or when you need to search for specific technical content
-   - Use getProfile for company information, contact details, or business hours
-
-2. **Search Strategy**:
-   - When customers ask about acronyms, technical terms, or specific topics, ALWAYS search documents first
-   - If no relevant documents are found, then provide general knowledge
-   - For questions about regulations, laws, or official information, prioritize document search
-
-3. **Response Guidelines**:
-   - Always be helpful and informative
-   - If you find relevant documents, reference them in your response
-   - If no specific information is found in our systems, provide helpful general knowledge
-   - Encourage customers to ask follow-up questions
-
-Remember: You're sharing the passion and tradition of Italian cuisine. Make every interaction a delightful journey through Italy's culinary heritage.
-
-Benvenuti alla famiglia Gusto Italiano! (Welcome to the Gusto Italiano family!) 🇮🇹`;
+        const defaultPrompt = `You are a helpful assistant for an e-commerce platform. Please contact support for proper configuration.`;
 
         this.langchainService = new LangChainService({
           model: 'openai/gpt-3.5-turbo',
@@ -127,22 +98,45 @@ Benvenuti alla famiglia Gusto Italiano! (Welcome to the Gusto Italiano family!) 
             });
           } catch (error) {
             logger.error('Error getting products in test mode:', error);
-            return res.json({
-              message: {
-                role: 'assistant',
-                content: 'Yes, we have Italian cheeses like Parmigiano Reggiano and other typical Italian products.'
-              }
-            });
+            // Get dynamic company info for fallback
+            try {
+              const profileService = (await import('../services/profile.service')).default;
+              const profile = await profileService.getProfile();
+              return res.json({
+                message: {
+                  role: 'assistant',
+                  content: `Hello! Welcome to ${profile?.companyName || 'Gusto Italiano'}! We have authentic Italian specialties.`
+                }
+              });
+            } catch (profileError) {
+              return res.json({
+                message: {
+                  role: 'assistant',
+                  content: 'Hello! Welcome to Gusto Italiano! We have authentic Italian specialties.'
+                }
+              });
+            }
           }
         }
         
-        // Default test response
-        return res.json({
-          message: {
-            role: 'assistant',
-            content: 'Welcome to Gusto Italiano! How can I help you today?'
-          }
-        });
+        // Default test response with dynamic company info
+        try {
+          const profileService = (await import('../services/profile.service')).default;
+          const profile = await profileService.getProfile();
+          return res.json({
+            message: {
+              role: 'assistant',
+              content: `Hello! Welcome to ${profile?.companyName || 'Gusto Italiano'}! We have authentic Italian specialties.`
+            }
+          });
+        } catch (profileError) {
+          return res.json({
+            message: {
+              role: 'assistant',
+              content: 'Hello! Welcome to Gusto Italiano! We have authentic Italian specialties.'
+            }
+          });
+        }
       }
 
       // Check if  APIKEY is valid and not the placeholder value
@@ -169,13 +163,26 @@ Benvenuti alla famiglia Gusto Italiano! (Welcome to the Gusto Italiano family!) 
           });
         }
         
-        // Default response for other queries
-        return res.json({
-          message: {
-            role: 'assistant',
-            content: "Welcome to Gusto Italiano! I'm Sofia, your virtual assistant, and I'm here to help you discover our authentic Italian products and services. Feel free to ask me about our pasta, cheese, oils, vinegars, or any of our Italian specialties. How can I help you today?"
-          }
-        });
+        // Default response for other queries with dynamic company info
+        try {
+          const profileService = (await import('../services/profile.service')).default;
+          const profile = await profileService.getProfile();
+          const agentConfig = await this.agentConfigService.getLatestConfig();
+          
+          return res.json({
+            message: {
+              role: 'assistant',
+              content: `Hello! Welcome to ${profile?.companyName || 'Gusto Italiano'}! We have authentic Italian specialties.`
+            }
+          });
+        } catch (profileError) {
+          return res.json({
+            message: {
+              role: 'assistant',
+              content: "Hello! Welcome to Gusto Italiano! We have authentic Italian specialties."
+            }
+          });
+        }
       }
 
       // Check if LangChain service is initialized

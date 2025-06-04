@@ -631,7 +631,7 @@ export const availableFunctions = {
         items: orderItems,
         total: parseFloat(total.toFixed(2)),
         currency: 'EUR',
-        estimatedDelivery: deliveryDate.toLocaleDateString('it-IT', {
+        estimatedDelivery: deliveryDate.toLocaleDateString('en-US', {
           weekday: 'long',
           year: 'numeric',
           month: 'long',

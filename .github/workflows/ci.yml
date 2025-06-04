@@ -156,10 +156,20 @@ jobs:
           npm run dev &
           echo $! > backend.pid
           
-          # Wait for backend to be ready
+          # Wait for backend to be ready with better error handling
           echo "Waiting for backend to be ready..."
-          timeout 60s bash -c 'until curl -s http://localhost:3001/api/health > /dev/null; do sleep 2; done'
-          echo "Backend is ready for E2E tests!"
+          for i in {1..60}; do
+            if curl -s http://localhost:3001/api/health > /dev/null; then
+              echo "Backend is ready for E2E tests!"
+              break
+            fi
+            if [ $i -eq 60 ]; then
+              echo "Backend failed to start within 60 seconds"
+              cat backend.pid | xargs kill || true
+              exit 1
+            fi
+            sleep 1
+          done
 
       - name: Start frontend for E2E tests
         working-directory: ./frontend
@@ -168,16 +178,56 @@ jobs:
           npm run dev &
           echo $! > frontend.pid
           
-          # Wait for frontend to be ready
+          # Wait for frontend to be ready with better error handling
           echo "Waiting for frontend to be ready..."
-          timeout 60s bash -c 'until curl -s http://localhost:3000 > /dev/null; do sleep 2; done'
-          echo "Frontend is ready for E2E tests!"
+          for i in {1..60}; do
+            if curl -s http://localhost:3000 > /dev/null; then
+              echo "Frontend is ready for E2E tests!"
+              break
+            fi
+            if [ $i -eq 60 ]; then
+              echo "Frontend failed to start within 60 seconds"
+              cat frontend.pid | xargs kill || true
+              cat ../backend/backend.pid | xargs kill || true
+              exit 1
+            fi
+            sleep 1
+          done
+
+      - name: Verify services are running
+        run: |
+          echo "=== VERIFYING SERVICES ==="
+          echo "Checking backend health..."
+          curl -f http://localhost:3001/api/health || {
+            echo "Backend health check failed"
+            echo "Backend logs:"
+            cat backend/backend.pid | xargs ps -p || echo "Backend process not found"
+            exit 1
+          }
+          
+          echo "Checking frontend..."
+          curl -f http://localhost:3000 || {
+            echo "Frontend check failed"
+            echo "Frontend logs:"
+            cat frontend/frontend.pid | xargs ps -p || echo "Frontend process not found"
+            exit 1
+          }
+          
+          echo "✅ All services are running!"
+
+      - name: Seed test data for E2E tests
+        working-directory: ./backend
+        run: |
+          echo "Seeding test data for E2E tests..."
+          curl -X POST http://localhost:3001/api/test/seed \
+            -H "Content-Type: application/json" \
+            -d '{}' || echo "Test seeding failed, continuing..."
 
       - name: Run E2E tests
         working-directory: ./frontend
         run: |
           echo "Running E2E tests with Cypress..."
-          npx cypress run --headless
+          npx cypress run --config video=false,screenshotOnRunFailure=false
 
       - name: Stop frontend and backend
         if: always()

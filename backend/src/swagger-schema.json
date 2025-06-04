@@ -1310,7 +1310,7 @@
                         },
                         "content": {
                           "type": "string",
-                          "example": "Buongiorno! Welcome to Gusto Italiano. Yes, we have several excellent wines under 20 euros..."
+                          "example": "Hello! Welcome to Gusto Italiano. Yes, we have several excellent wines under 20 euros..."
                         }
                       }
                     }

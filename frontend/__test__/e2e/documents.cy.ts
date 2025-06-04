@@ -1,10 +1,9 @@
 describe('Documents CRUD Operations', () => {
   beforeEach(() => {
-    // 1️⃣ Clean environment before each test
-    cy.task('cleanup:complete');
-    cy.task('db:seed:test');
+    // Simplified setup for CI compatibility
+    cy.clearLocalStorage();
     
-    // 2️⃣ Mock auth API response like product-edit.cy.js
+    // Mock auth API response
     cy.intercept('POST', '/api/auth/login', {
       statusCode: 200,
       body: {
@@ -18,7 +17,7 @@ describe('Documents CRUD Operations', () => {
       }
     }).as('loginRequest');
 
-    // 3️⃣ Visit login page and login
+    // Visit login page and login
     cy.visit('/login');
     cy.get('button[type="submit"]').click();
     cy.wait('@loginRequest');

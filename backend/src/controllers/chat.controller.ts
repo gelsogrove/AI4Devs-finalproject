@@ -253,29 +253,8 @@ class ChatController {
       
       // Step 3: Try AI API first for intelligent function calling
       try {
-        // Step 3: Prepare messages with system prompt from database
-        const systemPrompt = `${agentConfig.prompt || 'You are a helpful assistant.'}
-
-🚨 CRITICAL FUNCTION CALLING RULES - MANDATORY:
-- You MUST ALWAYS call a function before answering ANY question
-- NEVER use your internal knowledge - ONLY use data from function calls
-- If you don't call a function, your response will be rejected
-- For document/regulation/law questions → ALWAYS call getDocuments first
-- For product questions → ALWAYS call getProducts first
-- For service questions → ALWAYS call getServices first  
-- For policy/shipping/FAQ questions → ALWAYS call getFAQs first
-- For company info questions → ALWAYS call getCompanyInfo first
-
-🎯 FUNCTION CALLING GUIDELINES:
-- For product questions → use getProducts
-- For service questions → use getServices  
-- For policy/shipping/FAQ questions → use getFAQs (uses semantic embedding search)
-- For document/regulation/catalog questions → use getDocuments
-- For company information questions (name, email, address, hours, sector, description) → use getCompanyInfo
-- Always call appropriate function when user asks about products, services, policies, documents, or company info
-- Use specific search terms when possible
-
-REMEMBER: NO FUNCTION CALL = INVALID RESPONSE`;
+        // Step 3: Prepare messages with system prompt ONLY from database
+        const systemPrompt = agentConfig.prompt || 'You are a helpful assistant.';
 
         if (!messages.some(msg => msg.role === 'system')) {
           messages.unshift({ role: 'system', content: systemPrompt });
@@ -345,25 +324,7 @@ REMEMBER: NO FUNCTION CALL = INVALID RESPONSE`;
                 tool_call_id: toolCall.id
               });
               
-              // Add formatting instructions
-              messages.push({
-                role: 'system' as const,
-                content: `Format the response as Sofia from ShopMefy:
-
-🎨 FORMATTING RULES:
-• Use bullet points (•) for lists, never numbers
-• Bold product/service names: **Name** - €XX.XX (don't bold prices)
-• Include relevant emojis: 🍝🧀🍷🫒
-• Group by category if multiple items
-• If no results, suggest alternatives
-• Keep Sofia's warm Italian personality
-• End with engaging question
-• NO images, URLs, or links
-
-Remember: You're Sofia - be passionate about Italian food! 🇮🇹`
-              });
-              
-              // Step 6: Get formatted response from AI
+              // Step 6: Get formatted response from AI using only database prompt
               logger.info('🎨 AI: Requesting formatted response...');
               
               const formattedResponse = await aiService.generateChatCompletion(
@@ -430,10 +391,13 @@ Remember: You're Sofia - be passionate about Italian food! 🇮🇹`
       } catch (aiError) {
         logger.error('🚨 AI service failed:', aiError);
         
-        // Simple error response without any automatic fallback
+        // Get dynamic error response from agent configuration
+        const agentConfig = await this.agentConfigService.getLatestConfig();
         const errorResponse = {
           role: 'assistant',
-          content: 'I apologize, but I\'m having trouble processing your request right now. Please try again.'
+          content: agentConfig?.prompt ? 
+            'I apologize, I am experiencing technical difficulties. Please try again in a moment.' :
+            'I apologize, but I\'m having trouble processing your request right now. Please try again.'
         };
         
         const duration = Date.now() - startTime;
@@ -462,22 +426,31 @@ Remember: You're Sofia - be passionate about Italian food! 🇮🇹`
         });
       }
       
-      // Simple error fallback
-      return res.json({ 
-        message: { 
+      // Get dynamic error response from profile/agent config
+      try {
+        const agentConfig = await this.agentConfigService.getLatestConfig();
+        const profileService = (await import('../services/profile.service')).default;
+        const profile = await profileService.getProfile();
+        
+        const errorMessage = {
           role: 'assistant', 
-          content: `Hello! I'm Sofia from ShopMefy! 🇮🇹
+          content: `Hello! I'm Sofia from ${profile?.companyName || 'ShopMefy'}! 🇮🇹
 
-I'm sorry, I'm having a technical issue. Can you try again in a moment?
+I'm here to help you discover our authentic Italian products and services.
 
-In the meantime, I can help you with:
-• **Products** - Our Italian specialties
-• **Services** - Cooking classes and tastings
-• **Information** - Shipping and orders
+In the meantime, I can help you with information about products and services.
 
-What would you like to know?` 
-        } 
-      });
+How can I assist you today?`
+        };
+        
+        return res.json({ message: errorMessage });
+      } catch (configError) {
+        // Fallback to minimal error response
+        return res.status(500).json({ 
+          error: 'Error processing chat message',
+          message: 'Please try again later'
+        });
+      }
     }
   }
 
@@ -509,29 +482,38 @@ What would you like to know?`
   // Debug endpoint for testing availableFunctions
   async testFunctions(req: Request, res: Response) {
     try {
-      // Test getProducts with wine search
-      const wineResults = await availableFunctions.getProducts({ search: 'wine' });
-      
-      // Test getProducts with Barolo search
-      const baroloResults = await availableFunctions.getProducts({ search: 'Barolo' });
-      
-      // Test getProducts with no filters
-      const allResults = await availableFunctions.getProducts({});
-      
-      // Test getFAQs with shipping search
-      const shippingFAQs = await availableFunctions.getFAQs({ search: 'shipping' });
-      
-      // Test getFAQs with no filters
+      // Get dynamic test data from database instead of hardcoded values
+      const allProducts = await availableFunctions.getProducts({});
+      const allServices = await availableFunctions.getServices({});
       const allFAQs = await availableFunctions.getFAQs({});
+      
+      // Use first available product/service for testing if any exist
+      const firstProduct = allProducts.products?.[0];
+      const firstService = allServices.services?.[0];
+      const firstFAQ = allFAQs.faqs?.[0];
+      
+      // Dynamic search tests based on actual data
+      const productSearchResults = firstProduct ? 
+        await availableFunctions.getProducts({ search: firstProduct.name.split(' ')[0] }) : 
+        { products: [], total: 0 };
+        
+      const serviceSearchResults = firstService ?
+        await availableFunctions.getServices({ search: firstService.name.split(' ')[0] }) :
+        { services: [], total: 0 };
+        
+      const faqSearchResults = firstFAQ ?
+        await availableFunctions.getFAQs({ search: firstFAQ.question.split(' ')[0] }) :
+        { faqs: [], total: 0 };
       
       return res.json({
         success: true,
         tests: {
-          wineSearch: wineResults,
-          baroloSearch: baroloResults,
-          allProducts: allResults,
-          shippingFAQs: shippingFAQs,
-          allFAQs: allFAQs
+          allProducts: allProducts,
+          allServices: allServices,
+          allFAQs: allFAQs,
+          productSearch: productSearchResults,
+          serviceSearch: serviceSearchResults,
+          faqSearch: faqSearchResults
         }
       });
       
@@ -555,12 +537,12 @@ What would you like to know?`
     const lowerQuery = query.toLowerCase();
     
     // Check for greetings
-    if (lowerQuery.match(/\b(hello|hi|ciao|buongiorno|good morning|hey)\b/)) {
+    if (lowerQuery.match(/\b(hello|hi|good morning|hey|buongiorno)\b/)) {
       return { intent: 'greeting', confidence: 0.9 };
     }
     
     // Check for thanks
-    if (lowerQuery.match(/\b(thank|thanks|grazie|merci)\b/)) {
+    if (lowerQuery.match(/\b(thank|thanks|thank you)\b/)) {
       return { intent: 'thanks', confidence: 0.9 };
     }
     
@@ -590,14 +572,33 @@ What would you like to know?`
     try {
       logger.info('🧪 Testing OrderCompleted function directly...');
       
+      // Get dynamic test data from database instead of hardcoded values
+      const products = await availableFunctions.getProducts({});
+      const firstProduct = products.products?.[0];
+      const secondProduct = products.products?.[1];
+      
+      if (!firstProduct) {
+        return res.status(400).json({
+          success: false,
+          error: 'No products available in database for testing'
+        });
+      }
+      
+      // Create dynamic test order data based on actual products
       const testOrderData = {
         cartItems: [
-          { product: 'Barolo DOCG', quantity: 3 },
-          { product: 'Gnocchi di Patate', quantity: 2 }
+          { 
+            product: firstProduct.name, 
+            quantity: 2 
+          },
+          ...(secondProduct ? [{ 
+            product: secondProduct.name, 
+            quantity: 1 
+          }] : [])
         ],
         customerInfo: {
           name: 'Test Customer',
-          address: 'Via Roma 123, Milano',
+          address: 'Test Address',
           email: 'test@example.com'
         }
       };

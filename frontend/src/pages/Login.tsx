@@ -46,7 +46,7 @@ const Login = () => {
             </div>
           </div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-shopmefy-600 to-green-600 bg-clip-text text-transparent mb-2">
-            ShopMe
+            ShopMeFy
           </h1>
           <p className="text-gray-600 text-lg">Turn WhatsApp into your complete sales channel</p>
           <div className="flex items-center justify-center gap-2 mt-2">

@@ -146,7 +146,7 @@ export class LangChainService {
       logger.error('Error processing chat with LangChain:', error);
       
       // Fallback response
-      return "Mi dispiace, ho avuto un problema tecnico. (I'm sorry, I had a technical issue.) Please try again or contact our support team. Come posso aiutarti? (How can I help you?)";
+      return "I apologize, but I'm experiencing technical difficulties. Please try again or contact our support team. How can I help you?";
     }
   }
 } 

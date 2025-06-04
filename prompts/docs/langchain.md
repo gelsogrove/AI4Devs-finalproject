@@ -348,7 +348,7 @@ if (response.tool_calls) {
 │  "Certo! Abbiamo questi ottimi vini sotto €20:                               │
 │   • **Chianti Classico** - €18.50 🍷                                         │
 │   • **Pinot Grigio** - €16.90 🍷                                             │
-│   Quale ti interessa di più? Posso aiutarti con altre informazioni!"         │
+│   Which one interests you most? I can help you with more information!"         │
 └─────────────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼

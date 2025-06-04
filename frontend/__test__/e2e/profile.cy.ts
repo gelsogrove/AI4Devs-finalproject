@@ -21,7 +21,7 @@ describe('Profile Management', () => {
         id: '1',
         username: 'gusto_italiano',
         companyName: 'Gusto Italiano',
-        description: 'Authentic Italian food e-commerce platform offering premium products directly from certified Italian producers.',
+        description: 'Authentic Italian food e-commerce platform',
         address: 'Via Roma 123, 00186 Roma, Italy',
         phoneNumber: '+39 06 1234 5678',
         email: 'info@gusto-italiano.com',

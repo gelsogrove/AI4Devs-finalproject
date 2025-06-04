@@ -23,7 +23,7 @@ declare global {
   }
 }
 
-// Aggiungi le proprietà tagsJson ai tipi di input
+// Add tagsJson properties to input types
 declare module '@prisma/client' {
   interface Product {
     tagsJson: string;

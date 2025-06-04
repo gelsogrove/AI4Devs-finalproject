@@ -34,6 +34,19 @@
 - **IF DELETED:** Andrea will be very angry and the system will break
 - **ALWAYS** preserve this file during any script or seed modifications
 
+## 🚨 CRITICAL DATABASE-ONLY CONFIGURATION RULE
+
+⚠️ **NEVER CREATE HARDCODED CONFIGURATION FALLBACKS:**
+- **NEVER** create hardcoded default prompts, models, or agent configurations
+- **NEVER** use fallback values like `DEFAULT_PROMPT` or `initialConfig` in frontend/backend
+- **ALL CONFIGURATION MUST COME FROM DATABASE** - no exceptions
+- **IF DATABASE CONFIG IS MISSING:** show proper error message to user, don't create fallbacks
+- **AGENT PROMPTS:** must always come from `agentConfig` table in database
+- **NO STATIC PROMPTS:** everything must be dynamic from database
+- **ERROR HANDLING:** if config not found, show error - don't invent default values
+- **FRONTEND:** if no config from API, show error state - don't use hardcoded defaults
+- **BACKEND:** if no agent config in DB, return error - don't use fallback prompts
+
 ## ❌ Strict Prohibitions - What Never to Do
 
 ### 🚫 NEVER HARDCODE DATA
@@ -57,6 +70,7 @@
 - **NEVER** use hardcoded conditions like `lowerQuery.includes('vino') || lowerQuery.includes('export')`
 - **DO NOT USE OPENAI** - use **OPENROUTER** instead
 - **NEVER** use the word "hardcode" in the backend code
+- **NEVER** use the a static prompt the promtp hast to arrive from the database agent settings along with temperature, topP, token,model
 
 ## 📚 Architecture Notes
 

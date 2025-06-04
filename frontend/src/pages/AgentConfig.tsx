@@ -4,9 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
 } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,84 +14,6 @@ import { useToast } from '@/components/ui/use-toast';
 import { AI_MODELS, AgentConfig as IAgentConfig } from '@/types/dto';
 import { Brain, HelpCircle, Save, Settings, Sliders } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-
-// Initial default agent configuration with a default prompt
-const DEFAULT_PROMPT = `You are a friendly, knowledgeable assistant for an Italian specialty foods store called 'Gusto Italiano'.
-
-YOUR IDENTITY:
-- You are "Sofia", the virtual assistant for Gusto Italiano
-- You are passionate about authentic Italian cuisine and culture
-- You have extensive knowledge about regional Italian specialties, cooking techniques, and food pairings
-- You speak with warmth and enthusiasm, occasionally using simple Italian expressions (with translations)
-
-YOUR MAIN GOALS:
-1. Help customers find products they'll love based on their preferences and needs
-2. Provide expert information about Italian cuisine, ingredients, cooking methods, and product origins
-3. Deliver exceptional customer service with a personal, engaging touch
-4. Build customer loyalty by creating an authentic Italian shopping experience
-
-PRODUCT KNOWLEDGE:
-- Regional specialties: Tuscany, Sicily, Piedmont, Campania, Emilia-Romagna, Veneto
-- Dietary options: many vegetarian, vegan, gluten-free, and organic products
-- Price ranges: everyday essentials to luxury gourmet items
-- Bestsellers: 36-month aged Parmigiano-Reggiano, white truffle oil, Tuscan EVOO, artisanal pasta
-- New arrivals: limited edition seasonal products rotate monthly
-
-WHEN DISCUSSING PRODUCTS:
-- Recommend complementary items that enhance the dining experience (e.g., suggest specific pasta shapes for certain sauces)
-- Highlight authentic production methods, DOP/IGP certifications, and artisanal craftsmanship
-- Share appropriate serving suggestions, traditional recipes, and regional Italian customs
-- Provide expert pairing recommendations (food and wine combinations)
-- Respond knowledgeably to questions about pricing, shipping, seasonal availability, and returns
-
-CUSTOMER SERVICE GUIDELINES:
-- Be warm and personable, using the customer's name when available
-- Listen carefully to customer preferences and adapt recommendations accordingly
-- Offer alternatives for out-of-stock items or dietary restrictions
-- Handle complaints with genuine concern and provide practical solutions
-- When you don't know something, be honest and offer to find the information from our specialists
-
-FUNCTION CALLING CAPABILITIES:
-You have access to the following functions that you should call when appropriate:
-
-1. getProducts(category?, search?, countOnly?)
-   - Call this function when a user asks about products, wants to browse products, or asks for specific items.
-   - Use the 'search' parameter when a user is looking for specific products (e.g., "Do you have Parmigiano?").
-   - Set 'countOnly' to true when you only need to know if products exist or how many there are.
-   - Examples: "What pasta do you sell?", "Do you have any Tuscan olive oil?"
-
-2. getServices(isActive?, search?)
-   - Call this function when a user asks about services offered by the store.
-   - Use the 'search' parameter to find specific services.
-   - Examples: "What services do you offer?", "Do you provide catering?", "Tell me about your delivery service"
-
-3. getFAQs(category?, search?)
-   - Call this function when a user asks common questions about shipping, returns, or store policies.
-   - Use the 'category' parameter to filter FAQs by category.
-   - Use the 'search' parameter to find specific information.
-   - Examples: "What's your return policy?", "How long does shipping take?", "Do you ship internationally?"
-
-4. getDocuments(search?)
-   - Call this function when a user asks about detailed information, recipes, guides, or documentation.
-   - Use the 'search' parameter to find specific documents or content.
-   - This function searches through uploaded documents, manuals, recipes, and detailed guides.
-   - Examples: "Do you have any recipes?", "Show me cooking instructions", "Any guides about Italian cuisine?", "Tell me about traditional preparation methods"
-
-IMPORTANT: Always use these functions to retrieve accurate, up-to-date information rather than making assumptions about product availability or store policies. When a user asks about products, services, common questions, or detailed information, call the appropriate function before responding.
-
-Remember: Be helpful, informative, and enthusiastic about Italian cuisine and culture. Create an experience that transports customers to Italy through your knowledge and passion. If you don't know an answer, be honest and suggest contacting our specialty food expert at support@gustoitaliano.com.
-
-Buon appetito!`;
-
-const initialConfig: IAgentConfig = {
-  id: '1',
-  temperature: 0.7,
-  maxTokens: 500,
-  topP: 0.9,
-  model: 'gpt-4-turbo',
-  prompt: DEFAULT_PROMPT,
-  updatedAt: new Date().toISOString()
-};
 
 // Help content for parameter explanations
 const helpContent = {
@@ -152,9 +74,10 @@ const helpContent = {
 };
 
 const AgentConfigPage: React.FC = () => {
-  const [config, setConfig] = useState<IAgentConfig>(initialConfig);
+  const [config, setConfig] = useState<IAgentConfig | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Fetch agent configuration on component mount
@@ -162,18 +85,19 @@ const AgentConfigPage: React.FC = () => {
     const fetchAgentConfig = async () => {
       try {
         setIsLoading(true);
+        setError(null);
         const data = await getAgentConfig();
         console.log("Fetched config:", data); // Debug log
         
-        // Ensure prompt is never null or undefined by providing the default
-        const configWithValidPrompt = {
-          ...data,
-          prompt: data.prompt || DEFAULT_PROMPT
-        };
+        if (!data || !data.prompt) {
+          setError('No agent configuration found in database. Please contact support.');
+          return;
+        }
         
-        setConfig(configWithValidPrompt);
+        setConfig(data);
       } catch (error) {
         console.error('Failed to fetch agent configuration:', error);
+        setError('Failed to load agent configuration from database.');
         toast({
           title: "Error",
           description: "Failed to load agent configuration.",
@@ -224,6 +148,15 @@ const AgentConfigPage: React.FC = () => {
   };
 
   const handleSave = async () => {
+    if (!config) {
+      toast({
+        title: "Error",
+        description: "No configuration loaded",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Debug logs
     console.log("Saving config:", config);
     console.log("Prompt value:", config.prompt);
@@ -270,23 +203,19 @@ const AgentConfigPage: React.FC = () => {
     try {
       setIsSaving(true);
       
-      // Ensure prompt is not null or undefined before sending to API
       const configToSave = {
         temperature: config.temperature,
         maxTokens: config.maxTokens,
         topP: config.topP,
         model: config.model,
-        prompt: config.prompt || DEFAULT_PROMPT // Fallback to default if somehow still null
+        prompt: config.prompt
       };
       
       // Send update request to API using the agentApi service
       const updatedConfig = await updateAgentConfig(configToSave);
       
-      // Update local state with response data, ensuring prompt is valid
-      setConfig({
-        ...updatedConfig,
-        prompt: updatedConfig.prompt || DEFAULT_PROMPT
-      });
+      // Update local state with response data
+      setConfig(updatedConfig);
       
       toast({
         title: "Settings saved",
@@ -319,210 +248,236 @@ const AgentConfigPage: React.FC = () => {
         </div>
       </div>
 
-      <form onSubmit={(e) => { 
-        e.preventDefault(); 
-        console.log("Form submitted, prompt value:", config.prompt); // Debug log
-        handleSave(); 
-      }}>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* System Prompt Section */}
-          <div className="lg:col-span-2 animate-scale-in">
-            <Card className="border-0 shadow-md hover:shadow-xl transition-all duration-300">
-              <CardHeader className="pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-purple-100 to-purple-200 rounded-lg flex items-center justify-center">
-                    <Brain className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg font-semibold text-gray-900">System Prompt</CardTitle>
-                    <CardDescription className="text-sm text-gray-500">
-                      This is the prompt that guides your AI assistant's behavior and knowledge base
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Textarea
-                  name="prompt"
-                  value={config.prompt || ''}
-                  onChange={handlePromptChange}
-                  className="min-h-[600px] font-mono text-sm w-full border-gray-200 focus:border-shopmefy-500 focus:ring-shopmefy-500 transition-colors"
-                  placeholder="Enter system prompt..."
-                  required
-                />
-              </CardContent>
-            </Card>
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+              <span className="text-white text-xs">!</span>
+            </div>
+            <div>
+              <h3 className="font-semibold text-red-800">Configuration Error</h3>
+              <p className="text-red-700">{error}</p>
+            </div>
           </div>
-          
-          {/* Model Settings Section */}
-          <div className="lg:col-span-1 space-y-6 animate-scale-in" style={{ animationDelay: '0.1s' }}>
-            <Card className="border-0 shadow-md hover:shadow-xl transition-all duration-300">
-              <CardHeader className="pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center">
-                    <Sliders className="w-5 h-5 text-blue-600" />
+        </div>
+      )}
+
+      {/* Loading State */}
+      {isLoading && (
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-shopmefy-500 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading configuration...</p>
+        </div>
+      )}
+
+      {/* Configuration Form - only show if config is loaded and no error */}
+      {!isLoading && !error && config && (
+        <form onSubmit={(e) => { 
+          e.preventDefault(); 
+          console.log("Form submitted, prompt value:", config.prompt); // Debug log
+          handleSave(); 
+        }}>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* System Prompt Section */}
+            <div className="lg:col-span-2 animate-scale-in">
+              <Card className="border-0 shadow-md hover:shadow-xl transition-all duration-300">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gradient-to-br from-purple-100 to-purple-200 rounded-lg flex items-center justify-center">
+                      <Brain className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg font-semibold text-gray-900">System Prompt</CardTitle>
+                      <CardDescription className="text-sm text-gray-500">
+                        This is the prompt that guides your AI assistant's behavior and knowledge base
+                      </CardDescription>
+                    </div>
                   </div>
-                  <div>
-                    <CardTitle className="text-lg font-semibold text-gray-900">Model Settings</CardTitle>
-                    <CardDescription className="text-sm text-gray-500">
-                      Configure the AI model and its parameters
-                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Textarea
+                    name="prompt"
+                    value={config?.prompt || ''}
+                    onChange={handlePromptChange}
+                    className="min-h-[600px] font-mono text-sm w-full border-gray-200 focus:border-shopmefy-500 focus:ring-shopmefy-500 transition-colors"
+                    placeholder="Enter system prompt..."
+                    required
+                  />
+                </CardContent>
+              </Card>
+            </div>
+            
+            {/* Model Settings Section */}
+            <div className="lg:col-span-1 space-y-6 animate-scale-in" style={{ animationDelay: '0.1s' }}>
+              <Card className="border-0 shadow-md hover:shadow-xl transition-all duration-300">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center">
+                      <Sliders className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg font-semibold text-gray-900">Model Settings</CardTitle>
+                      <CardDescription className="text-sm text-gray-500">
+                        Configure the AI model and its parameters
+                      </CardDescription>
+                    </div>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Model Selection */}
-                <div className="space-y-3">
-                  <Label htmlFor="model" className="text-sm font-medium text-gray-700">Model</Label>
-                  <Select 
-                    name="model"
-                    value={config.model} 
-                    onValueChange={handleModelChange}
-                  >
-                    <SelectTrigger className="border-gray-200 focus:border-shopmefy-500 focus:ring-shopmefy-500">
-                      <SelectValue placeholder="Select a model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {AI_MODELS.map(model => (
-                        <SelectItem key={model} value={model}>
-                          {model}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                {/* Temperature */}
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <Label htmlFor="temperature" className="text-sm font-medium text-gray-700">
-                      Temperature: <span className="font-bold text-shopmefy-600">{config.temperature.toFixed(1)}</span>
-                    </Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full p-0 hover:bg-gray-100">
-                          <HelpCircle className="h-4 w-4 text-gray-400" />
-                          <span className="sr-only">Temperature info</span>
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80 border-0 shadow-xl">
-                        <div className="space-y-2">
-                          <h4 className="font-medium leading-none">{helpContent.temperature.title}</h4>
-                          <div className="text-sm">
-                            {helpContent.temperature.content}
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Model Selection */}
+                  <div className="space-y-3">
+                    <Label htmlFor="model" className="text-sm font-medium text-gray-700">Model</Label>
+                    <Select 
+                      name="model"
+                      value={config?.model} 
+                      onValueChange={handleModelChange}
+                    >
+                      <SelectTrigger className="border-gray-200 focus:border-shopmefy-500 focus:ring-shopmefy-500">
+                        <SelectValue placeholder="Select a model" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {AI_MODELS.map(model => (
+                          <SelectItem key={model} value={model}>
+                            {model}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {/* Temperature */}
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="temperature" className="text-sm font-medium text-gray-700">
+                        Temperature: <span className="font-bold text-shopmefy-600">{config?.temperature.toFixed(1)}</span>
+                      </Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full p-0 hover:bg-gray-100">
+                            <HelpCircle className="h-4 w-4 text-gray-400" />
+                            <span className="sr-only">Temperature info</span>
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80 border-0 shadow-xl">
+                          <div className="space-y-2">
+                            <h4 className="font-medium leading-none">{helpContent.temperature.title}</h4>
+                            <div className="text-sm">
+                              {helpContent.temperature.content}
+                            </div>
                           </div>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div className="relative">
+                      <Input
+                        type="range"
+                        id="temperature"
+                        name="temperature"
+                        min={0}
+                        max={1}
+                        step={0.1}
+                        value={config?.temperature}
+                        onChange={(e) => handleTemperatureChange([parseFloat(e.target.value)])}
+                        disabled={isLoading}
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 leading-relaxed">
+                      Controls randomness: Lower values are more focused and deterministic, higher values are more creative.
+                    </p>
                   </div>
-                  <div className="relative">
+                  
+                  {/* Top P */}
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="top-p" className="text-sm font-medium text-gray-700">
+                        Top P: <span className="font-bold text-shopmefy-600">{config?.topP.toFixed(1)}</span>
+                      </Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full p-0 hover:bg-gray-100">
+                            <HelpCircle className="h-4 w-4 text-gray-400" />
+                            <span className="sr-only">Top P info</span>
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80 border-0 shadow-xl">
+                          <div className="space-y-2">
+                            <h4 className="font-medium leading-none">{helpContent.topP.title}</h4>
+                            <div className="text-sm">
+                              {helpContent.topP.content}
+                            </div>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                     <Input
                       type="range"
-                      id="temperature"
-                      name="temperature"
+                      id="topP"
+                      name="topP"
                       min={0}
                       max={1}
                       step={0.1}
-                      value={config.temperature}
-                      onChange={(e) => handleTemperatureChange([parseFloat(e.target.value)])}
-                      disabled={isLoading}
+                      value={config?.topP}
+                      onChange={(e) => handleTopPChange([parseFloat(e.target.value)])}
                       className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
                     />
+                    <p className="text-xs text-gray-500 leading-relaxed">
+                      Nucleus sampling: Only consider tokens with the top P% probability mass.
+                    </p>
                   </div>
-                  <p className="text-xs text-gray-500 leading-relaxed">
-                    Controls randomness: Lower values are more focused and deterministic, higher values are more creative.
-                  </p>
-                </div>
-                
-                {/* Top P */}
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <Label htmlFor="top-p" className="text-sm font-medium text-gray-700">
-                      Top P: <span className="font-bold text-shopmefy-600">{config.topP.toFixed(1)}</span>
-                    </Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full p-0 hover:bg-gray-100">
-                          <HelpCircle className="h-4 w-4 text-gray-400" />
-                          <span className="sr-only">Top P info</span>
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80 border-0 shadow-xl">
-                        <div className="space-y-2">
-                          <h4 className="font-medium leading-none">{helpContent.topP.title}</h4>
-                          <div className="text-sm">
-                            {helpContent.topP.content}
+                  
+                  {/* Max Tokens */}
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="max-tokens" className="text-sm font-medium text-gray-700">Max Tokens</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full p-0 hover:bg-gray-100">
+                            <HelpCircle className="h-4 w-4 text-gray-400" />
+                            <span className="sr-only">Max Tokens info</span>
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80 border-0 shadow-xl">
+                          <div className="space-y-2">
+                            <h4 className="font-medium leading-none">{helpContent.maxTokens.title}</h4>
+                            <div className="text-sm">
+                              {helpContent.maxTokens.content}
+                            </div>
                           </div>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <Input
+                      id="maxTokens"
+                      name="maxTokens"
+                      type="number"
+                      min={1}
+                      max={4000}
+                      value={config?.maxTokens}
+                      onChange={handleMaxTokensChange}
+                      className="border-gray-200 focus:border-shopmefy-500 focus:ring-shopmefy-500"
+                    />
+                    <p className="text-xs text-gray-500 leading-relaxed">
+                      Maximum number of tokens to generate in a response.
+                    </p>
                   </div>
-                  <Input
-                    type="range"
-                    id="topP"
-                    name="topP"
-                    min={0}
-                    max={1}
-                    step={0.1}
-                    value={config.topP}
-                    onChange={(e) => handleTopPChange([parseFloat(e.target.value)])}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                  />
-                  <p className="text-xs text-gray-500 leading-relaxed">
-                    Nucleus sampling: Only consider tokens with the top P% probability mass.
-                  </p>
-                </div>
-                
-                {/* Max Tokens */}
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <Label htmlFor="max-tokens" className="text-sm font-medium text-gray-700">Max Tokens</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full p-0 hover:bg-gray-100">
-                          <HelpCircle className="h-4 w-4 text-gray-400" />
-                          <span className="sr-only">Max Tokens info</span>
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80 border-0 shadow-xl">
-                        <div className="space-y-2">
-                          <h4 className="font-medium leading-none">{helpContent.maxTokens.title}</h4>
-                          <div className="text-sm">
-                            {helpContent.maxTokens.content}
-                          </div>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <Input
-                    id="maxTokens"
-                    name="maxTokens"
-                    type="number"
-                    min={1}
-                    max={4000}
-                    value={config.maxTokens}
-                    onChange={handleMaxTokensChange}
-                    className="border-gray-200 focus:border-shopmefy-500 focus:ring-shopmefy-500"
-                  />
-                  <p className="text-xs text-gray-500 leading-relaxed">
-                    Maximum number of tokens to generate in a response.
-                  </p>
-                </div>
-                
-                {/* Save Button */}
-                <Button 
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-shopmefy-500 to-shopmefy-600 hover:from-shopmefy-600 hover:to-shopmefy-700 text-white font-medium py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 mt-6"
-                  disabled={isSaving || isLoading}
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  {isLoading ? 'Loading...' : isSaving ? 'Saving...' : 'Save Changes'}
-                </Button>
-              </CardContent>
-            </Card>
+                  
+                  {/* Save Button */}
+                  <Button 
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-shopmefy-500 to-shopmefy-600 hover:from-shopmefy-600 hover:to-shopmefy-700 text-white font-medium py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 mt-6"
+                    disabled={isSaving || isLoading}
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    {isLoading ? 'Loading...' : isSaving ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           </div>
-        </div>
-      </form>
+        </form>
+      )}
     </div>
   );
 };

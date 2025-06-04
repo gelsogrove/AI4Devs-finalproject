@@ -31,7 +31,7 @@ export const OrderToast: React.FC<OrderToastProps> = ({ order, onClose, isVisibl
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <CheckCircle className="w-6 h-6 text-green-600" />
-            <h3 className="font-semibold text-green-800">ORDINE IN ARRIVO</h3>
+            <h3 className="font-semibold text-green-800">ORDER IN ARRIVAL</h3>
           </div>
           <button
             onClick={onClose}
@@ -44,14 +44,14 @@ export const OrderToast: React.FC<OrderToastProps> = ({ order, onClose, isVisibl
         {/* Order Number */}
         <div className="mb-3">
           <p className="text-lg font-bold text-green-800">#{order.orderNumber}</p>
-          <p className="text-sm text-green-600">Ordine confermato con successo!</p>
+          <p className="text-sm text-green-600">Order confirmed successfully!</p>
         </div>
 
         {/* Order Items */}
         <div className="mb-3">
           <h4 className="font-medium text-green-800 mb-2 flex items-center gap-1">
             <Package className="w-4 h-4" />
-            Prodotti ordinati:
+            Ordered Products:
           </h4>
           <div className="space-y-1">
             {order.items.map((item, index) => (
@@ -67,7 +67,7 @@ export const OrderToast: React.FC<OrderToastProps> = ({ order, onClose, isVisibl
           </div>
           <div className="border-t border-green-200 mt-2 pt-2">
             <div className="flex justify-between font-bold text-green-800">
-              <span>Totale:</span>
+              <span>Total:</span>
               <span>€{order.total.toFixed(2)}</span>
             </div>
           </div>
@@ -77,20 +77,20 @@ export const OrderToast: React.FC<OrderToastProps> = ({ order, onClose, isVisibl
         <div className="mb-3">
           <h4 className="font-medium text-green-800 mb-1 flex items-center gap-1">
             <Truck className="w-4 h-4" />
-            Consegna stimata:
+            Estimated Delivery:
           </h4>
           <p className="text-sm text-green-700">{order.estimatedDelivery}</p>
         </div>
 
         {/* Payment Method */}
         <div className="text-sm text-green-600 bg-green-100 rounded p-2">
-          <p><strong>Pagamento:</strong> {order.paymentMethod}</p>
-          <p><strong>Spedizione:</strong> {order.shippingMethod}</p>
+          <p><strong>Payment:</strong> {order.paymentMethod}</p>
+          <p><strong>Shipping:</strong> {order.shippingMethod}</p>
         </div>
 
         {/* Auto-close timer */}
         <div className="mt-3 text-xs text-green-500 text-center">
-          Questo messaggio si chiuderà automaticamente
+          This message will automatically close
         </div>
       </div>
     </div>
