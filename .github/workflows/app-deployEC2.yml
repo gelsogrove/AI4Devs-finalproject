@@ -112,28 +112,23 @@ jobs:
         working-directory: ./frontend
         run: npm run build
 
-      - name: 📤 Upload Backend to S3
-        run: |
-          echo "Uploading backend files to S3..."
-          aws s3 sync ./backend s3://${{ secrets.AWS_S3_BUCKET }}/backend --delete \
-            --exclude "node_modules/*" \
-            --exclude ".git/*" \
-            --exclude "*.log" \
-            --exclude ".env*"
 
-      - name: 📤 Upload Frontend to S3
-        run: |
-          echo "Uploading frontend files to S3..."
-          aws s3 sync ./frontend s3://${{ secrets.AWS_S3_BUCKET }}/frontend --delete \
-            --exclude "node_modules/*" \
-            --exclude ".git/*" \
-            --exclude "*.log" \
-            --exclude ".env*"
 
       - name: 🔑 Prepare SSH Key
         run: |
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ec2_key.pem
           chmod 600 ec2_key.pem
+
+      - name: 📦 Create Deployment Package
+        run: |
+          echo "Creating deployment package..."
+          tar -czf shopmefy-deploy.tar.gz backend frontend
+          ls -la shopmefy-deploy.tar.gz
+
+      - name: 📤 Upload Deployment Package to EC2
+        run: |
+          echo "Uploading deployment package to EC2..."
+          scp -i ec2_key.pem -o StrictHostKeyChecking=no shopmefy-deploy.tar.gz ubuntu@${{ secrets.EC2_HOST }}:/home/ubuntu/
 
       - name: 🚀 Trigger Deployment on EC2
         run: |
@@ -142,22 +137,15 @@ jobs:
             set -e
             echo "🚀 Starting ShopMefy deployment..."
             
-            # Configure AWS credentials
-            export AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}"
-            export AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
-            export AWS_DEFAULT_REGION="us-east-1"
-            
             APP_DIR="/home/ubuntu/shopmefy"
             BACKEND_DIR="$APP_DIR/backend"
             FRONTEND_DIR="$APP_DIR/frontend"
-            S3_BUCKET="${{ secrets.AWS_S3_BUCKET }}"
             
             mkdir -p $APP_DIR
             
-            echo "📦 Downloading from S3..."
-            cd $APP_DIR
-            aws s3 sync s3://$S3_BUCKET/backend ./backend --delete
-            aws s3 sync s3://$S3_BUCKET/frontend ./frontend --delete
+            echo "📦 Extracting deployment package..."
+            cd /home/ubuntu
+            tar -xzf shopmefy-deploy.tar.gz -C $APP_DIR
             
             echo "📦 Installing backend dependencies..."
             cd $BACKEND_DIR
@@ -236,7 +224,7 @@ jobs:
       - name: 🧹 Cleanup
         if: always()
         run: |
-          rm -f ec2_key.pem
+          rm -f ec2_key.pem shopmefy-deploy.tar.gz
 
       - name: 📊 Deployment Summary
         run: |
@@ -246,7 +234,7 @@ jobs:
           echo "- **Environment**: ${{ env.DEPLOY_ENV }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Trigger**: ${{ github.event_name == 'workflow_dispatch' && 'Manual' || 'Automatic (after CI/CD)' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Target Server**: ${{ secrets.EC2_HOST }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **S3 Bucket**: ${{ secrets.AWS_S3_BUCKET }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployment Method**: Direct SCP Transfer" >> $GITHUB_STEP_SUMMARY
           echo "- **Deployment Time**: $(date)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🔗 Access Your Application:" >> $GITHUB_STEP_SUMMARY
