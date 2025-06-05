@@ -62,6 +62,8 @@ data "aws_ami" "ubuntu" {
 resource "random_password" "db_password" {
   length  = 16
   special = true
+  # Exclude characters that are not allowed in RDS passwords
+  override_special = "!#$%&*()-_=+[]{}<>:?"
 }
 
 resource "random_id" "bucket_suffix" {
@@ -193,7 +195,8 @@ resource "aws_key_pair" "main" {
 # ===================================
 
 resource "aws_s3_bucket" "deployments" {
-  bucket = "shopmefy-deployments-${random_id.bucket_suffix.hex}"
+  bucket        = "shopmefy-deployments-${random_id.bucket_suffix.hex}"
+  force_destroy = true  # Allows deletion even if bucket contains objects
   
   tags = {
     Name = "shopmefy-deployments"
@@ -258,7 +261,7 @@ resource "aws_db_instance" "postgres" {
   # Database
   db_name  = "shopmefy"
   username = "shopmefy"
-  password = random_password.db_password.result
+  password = var.db_password != "" ? var.db_password : random_password.db_password.result
   
   # Network
   db_subnet_group_name   = aws_db_subnet_group.main.name

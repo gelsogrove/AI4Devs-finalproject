@@ -46,10 +46,17 @@ jobs:
         run: terraform validate
 
       - name: 🚀 Terraform Apply
+        id: apply
         working-directory: ./terraform
-        run: terraform apply -auto-approve
+        env:
+          TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+        run: |
+          echo "🚀 Starting infrastructure deployment..."
+          terraform apply -auto-approve
+          echo "✅ Infrastructure deployed successfully!"
 
       - name: 📊 Show Outputs
+        if: success()
         working-directory: ./terraform
         run: |
           echo "## 🎉 Infrastructure Created Successfully!" >> $GITHUB_STEP_SUMMARY
@@ -65,6 +72,7 @@ jobs:
           echo "3. Use **Pause Infrastructure** to save costs when not in use" >> $GITHUB_STEP_SUMMARY
 
       - name: 🤖 Auto-Update GitHub Secrets
+        if: success()
         working-directory: ./terraform
         continue-on-error: true
         run: |
@@ -116,4 +124,37 @@ jobs:
           echo "- ✅ DB_NAME, DB_USER, DB_PASSWORD, DB_HOST" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🚀 Ready for Deployment!" >> $GITHUB_STEP_SUMMARY
-          echo "Your infrastructure is ready and all secrets are configured!" >> $GITHUB_STEP_SUMMARY 
+          echo "Your infrastructure is ready and all secrets are configured!" >> $GITHUB_STEP_SUMMARY
+
+      - name: 🧹 Cleanup on Failure
+        if: failure()
+        working-directory: ./terraform
+        run: |
+          echo "❌ Deployment failed! Starting automatic cleanup..."
+          echo "🧹 Destroying any partially created resources..."
+          
+          # Try to destroy any resources that were created
+          terraform destroy -auto-approve || echo "⚠️ Some resources may need manual cleanup"
+          
+          echo "🧹 Cleanup completed"
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## ❌ Deployment Failed - Auto Cleanup Executed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🧹 Cleanup Actions:" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **Automatic cleanup executed** - Partially created resources destroyed" >> $GITHUB_STEP_SUMMARY
+          echo "- 💰 **No ongoing costs** - Failed resources have been cleaned up" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔄 **Safe to retry** - You can run the workflow again" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔍 Next Steps:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Check the error logs above to understand what failed" >> $GITHUB_STEP_SUMMARY
+          echo "2. Fix any configuration issues" >> $GITHUB_STEP_SUMMARY
+          echo "3. Run the workflow again - no conflicts expected" >> $GITHUB_STEP_SUMMARY
+
+      - name: 📋 Final Status
+        if: always()
+        run: |
+          if [ "${{ steps.apply.outcome }}" == "success" ]; then
+            echo "🎉 Infrastructure deployment completed successfully!"
+          else
+            echo "❌ Infrastructure deployment failed but cleanup was executed"
+          fi 

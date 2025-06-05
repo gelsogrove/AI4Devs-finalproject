@@ -20,13 +20,13 @@ output "database_host" {
 
 output "database_password" {
   description = "Database password"
-  value       = random_password.db_password.result
+  value       = var.db_password != "" ? var.db_password : random_password.db_password.result
   sensitive   = true
 }
 
 output "database_url" {
   description = "Complete database URL"
-  value       = "postgresql://shopmefy:${random_password.db_password.result}@${split(":", aws_db_instance.postgres.endpoint)[0]}:5432/shopmefy"
+  value       = "postgresql://shopmefy:${var.db_password != "" ? var.db_password : random_password.db_password.result}@${split(":", aws_db_instance.postgres.endpoint)[0]}:5432/shopmefy"
   sensitive   = true
 }
 
