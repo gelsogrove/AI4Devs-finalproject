@@ -46,7 +46,17 @@ data "aws_ami" "ubuntu" {
   
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-*-amd64-server-*"]
+    values = ["ubuntu/images/hvm-ssd/ubuntu-22.04-lts-amd64-server-*"]
+  }
+  
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+  
+  filter {
+    name   = "root-device-type"
+    values = ["ebs"]
   }
 }
 
@@ -159,7 +169,7 @@ resource "tls_private_key" "main" {
 }
 
 resource "aws_key_pair" "main" {
-  key_name   = "shopmefy-key"
+  key_name   = "shopmefy-key-${random_id.bucket_suffix.hex}"
   public_key = tls_private_key.main.public_key_openssh
   
   tags = {
@@ -227,7 +237,7 @@ resource "aws_db_instance" "postgres" {
   
   # Engine
   engine         = "postgres"
-  engine_version = "15.10"
+  engine_version = "15.7"
   instance_class = "db.t3.micro"
   
   # Storage
@@ -264,7 +274,7 @@ resource "aws_instance" "web" {
   key_name               = aws_key_pair.main.key_name
   vpc_security_group_ids = [aws_security_group.web.id]
   
-  # Enable hibernation for cost savings
+  # Enable hibernation for cost savings (requires EBS-backed AMI)
   hibernation = true
   
   # Basic setup

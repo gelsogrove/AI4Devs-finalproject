@@ -9,7 +9,7 @@ output "web_public_ip" {
 
 output "ssh_command" {
   description = "SSH command to connect to the server"
-  value       = "ssh -i shopmefy_key.pem ubuntu@${aws_eip.web.public_ip}"
+  value       = "ssh -i ${aws_key_pair.main.key_name}.pem ubuntu@${aws_eip.web.public_ip}"
 }
 
 output "database_host" {
