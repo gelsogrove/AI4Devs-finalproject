@@ -95,7 +95,9 @@ jobs:
       - name: 📦 Install Backend Dependencies (Manual Deploy Only)
         if: github.event_name == 'workflow_dispatch'
         working-directory: ./backend
-        run: npm ci --production
+        run: |
+          npm ci
+          npm list @types/multer @types/morgan @types/bcrypt @types/jsonwebtoken @types/fs-extra @types/pdf-parse || echo "Some @types packages missing"
 
       - name: 🏗️ Build Backend (Manual Deploy Only)
         if: github.event_name == 'workflow_dispatch'
