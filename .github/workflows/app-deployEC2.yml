@@ -114,164 +114,47 @@ jobs:
 
 
 
-      - name: 🔑 Prepare SSH Key
+      - name: 📦 Generate ZIP Archives
         run: |
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ec2_key.pem
-          chmod 600 ec2_key.pem
+          echo "Generating ZIP archives using script..."
+          chmod +x scripts/generate-zip-archives.sh
+          ./scripts/generate-zip-archives.sh
+          ls -la *.zip
 
-      - name: 📦 Create Deployment Package
+      - name: 📤 Upload Archives to S3
         run: |
-          echo "Creating deployment package..."
-          tar -czf shopmefy-deploy.tar.gz backend frontend
-          ls -la shopmefy-deploy.tar.gz
+          echo "Uploading backend.zip to S3..."
+          aws s3 cp backend.zip s3://${{ secrets.AWS_S3_BUCKET }}/deployments/backend.zip
+          
+          echo "Uploading frontend.zip to S3..."
+          aws s3 cp frontend.zip s3://${{ secrets.AWS_S3_BUCKET }}/deployments/frontend.zip
+          
+          echo "✅ Upload to S3 completed successfully!"
+          echo "📦 Backend: s3://${{ secrets.AWS_S3_BUCKET }}/deployments/backend.zip"
+          echo "📦 Frontend: s3://${{ secrets.AWS_S3_BUCKET }}/deployments/frontend.zip"
 
-      - name: 🧹 Cleanup Server Before Upload
-        run: |
-          echo "Cleaning up server processes..."
-          ssh -i ec2_key.pem -o StrictHostKeyChecking=no -o ConnectTimeout=30 ubuntu@${{ secrets.EC2_HOST }} '
-            sudo pkill -f npm || true
-            sudo pkill -f node || true
-            pm2 kill || true
-            rm -f /home/ubuntu/shopmefy-deploy.tar.gz || true
-            echo "Server cleanup completed"
-          ' || echo "Cleanup failed, continuing anyway..."
 
-      - name: 📤 Upload Deployment Package to EC2
-        run: |
-          echo "Uploading deployment package to EC2..."
-          # Retry upload with compression and timeout
-          for i in {1..3}; do
-            echo "Upload attempt $i/3..."
-            if scp -i ec2_key.pem -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ConnectTimeout=30 -C shopmefy-deploy.tar.gz ubuntu@${{ secrets.EC2_HOST }}:/home/ubuntu/; then
-              echo "Upload successful!"
-              break
-            else
-              echo "Upload attempt $i failed, retrying..."
-              sleep 10
-            fi
-            if [ $i -eq 3 ]; then
-              echo "All upload attempts failed"
-              exit 1
-            fi
-          done
-
-      - name: 🚀 Trigger Deployment on EC2
-        run: |
-          echo "Connecting to EC2 and triggering deployment..."
-          ssh -i ec2_key.pem -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ConnectTimeout=10 ubuntu@${{ secrets.EC2_HOST }} '
-            set -e
-            echo "🚀 Starting ShopMefy deployment..."
-            
-            echo "🛑 Killing any stuck npm processes..."
-            sudo pkill -f npm || true
-            sudo pkill -f node || true
-            
-            APP_DIR="/home/ubuntu/shopmefy"
-            BACKEND_DIR="$APP_DIR/backend"
-            FRONTEND_DIR="$APP_DIR/frontend"
-            
-            mkdir -p $APP_DIR
-            
-            echo "📦 Extracting deployment package..."
-            cd /home/ubuntu
-            tar -xzf shopmefy-deploy.tar.gz -C $APP_DIR
-            
-            echo "📦 Installing backend dependencies..."
-            cd $BACKEND_DIR
-            timeout 300 npm ci --production || { echo "Backend npm install timed out"; exit 1; }
-            
-            echo "📦 Installing frontend dependencies..."
-            cd $FRONTEND_DIR
-            timeout 600 npm ci --prefer-offline --no-audit --silent || { echo "Frontend npm install timed out"; exit 1; }
-            timeout 300 npm run build || { echo "Frontend build timed out"; exit 1; }
-            
-            echo "⚙️ Setting up environment..."
-            cd $BACKEND_DIR
-            
-            if [ ! -f .env ]; then
-                echo "Creating .env file..."
-                echo "NODE_ENV=production" > .env
-                echo "PORT=8080" >> .env
-                echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env
-                echo "OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}" >> .env
-            fi
-            
-            echo "🗄️ Running database migrations..."
-            npx prisma migrate deploy
-            
-            echo "🛑 Stopping existing processes..."
-            pm2 stop all || true
-            pm2 delete all || true
-            
-            echo "🚀 Starting backend..."
-            pm2 start src/index.js --name "shopmefy-backend" --env production
-            
-            echo "🚀 Starting frontend..."
-            cd $FRONTEND_DIR
-            pm2 serve dist 3000 --name "shopmefy-frontend" --spa
-            
-            pm2 save
-            
-            echo "🔧 Configuring Nginx as reverse proxy..."
-            sudo apt update && sudo apt install -y nginx
-            
-            echo "server {
-              listen 80;
-              
-              location /api {
-                proxy_pass http://localhost:8080;
-                proxy_http_version 1.1;
-                proxy_set_header Upgrade \$http_upgrade;
-                proxy_set_header Connection \"upgrade\";
-                proxy_set_header Host \$host;
-                proxy_cache_bypass \$http_upgrade;
-                proxy_set_header X-Real-IP \$remote_addr;
-                proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-              }
-              
-              location / {
-                proxy_pass http://localhost:3000;
-                proxy_http_version 1.1;
-                proxy_set_header Upgrade \$http_upgrade;
-                proxy_set_header Connection \"upgrade\";
-                proxy_set_header Host \$host;
-                proxy_cache_bypass \$http_upgrade;
-                proxy_set_header X-Real-IP \$remote_addr;
-                proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-              }
-            }" | sudo tee /etc/nginx/sites-available/default
-            
-            sudo nginx -t
-            sudo systemctl restart nginx
-            sudo systemctl enable nginx
-            
-            echo "✅ Deployment completed successfully!"
-            echo "🌐 Application: http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)"
-            echo "🌐 API: http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)/api"
-          '
 
       - name: 🧹 Cleanup
         if: always()
         run: |
-          rm -f ec2_key.pem shopmefy-deploy.tar.gz
+          rm -f backend.zip frontend.zip
 
-      - name: 📊 Deployment Summary
+      - name: 📊 Upload Summary
         run: |
-          echo "## 🎉 Deployment Completed Successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "## 🎉 Upload to S3 Completed Successfully!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📋 Deployment Details:" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Upload Details:" >> $GITHUB_STEP_SUMMARY
           echo "- **Environment**: ${{ env.DEPLOY_ENV }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Trigger**: ${{ github.event_name == 'workflow_dispatch' && 'Manual' || 'Automatic (after CI/CD)' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Target Server**: ${{ secrets.EC2_HOST }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Deployment Method**: Direct SCP Transfer" >> $GITHUB_STEP_SUMMARY
-          echo "- **Deployment Time**: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "- **S3 Bucket**: ${{ secrets.AWS_S3_BUCKET }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Upload Method**: AWS S3" >> $GITHUB_STEP_SUMMARY
+          echo "- **Upload Time**: $(date)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🔗 Access Your Application:" >> $GITHUB_STEP_SUMMARY
-          echo "- **Application**: http://${{ secrets.EC2_HOST }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **API**: http://${{ secrets.EC2_HOST }}/api" >> $GITHUB_STEP_SUMMARY
-          echo "- **Health Check**: http://${{ secrets.EC2_HOST }}/api/health" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Uploaded Files:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Backend**: s3://${{ secrets.AWS_S3_BUCKET }}/deployments/backend.zip" >> $GITHUB_STEP_SUMMARY
+          echo "- **Frontend**: s3://${{ secrets.AWS_S3_BUCKET }}/deployments/frontend.zip" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🛠️ Management Commands:" >> $GITHUB_STEP_SUMMARY
-          echo "- **SSH**: \`ssh -i ~/.ssh/id_rsa ubuntu@${{ secrets.EC2_HOST }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **PM2 Status**: \`sudo -u shopme pm2 list\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Logs**: \`sudo -u shopme pm2 logs backend\`" >> $GITHUB_STEP_SUMMARY 
+          echo "### 🔗 Next Steps:" >> $GITHUB_STEP_SUMMARY
+          echo "- Files are ready for deployment to EC2 instance" >> $GITHUB_STEP_SUMMARY
+          echo "- EC2 can download from S3 and deploy" >> $GITHUB_STEP_SUMMARY 
