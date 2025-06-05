@@ -215,7 +215,7 @@ resource "aws_s3_bucket_public_access_block" "deployments" {
 # ===================================
 
 resource "aws_db_subnet_group" "main" {
-  name       = "shopmefy-db-subnet-group"
+  name       = "shopmefy-db-subnet-group-${random_id.bucket_suffix.hex}"
   subnet_ids = data.aws_subnets.default.ids
   
   tags = {
@@ -228,7 +228,7 @@ resource "aws_db_subnet_group" "main" {
 # ===================================
 
 resource "aws_db_instance" "postgres" {
-  identifier = "shopmefy-db"
+  identifier = "shopmefy-db-${random_id.bucket_suffix.hex}"
   
   # Engine
   engine         = "postgres"
@@ -270,7 +270,7 @@ resource "aws_instance" "web" {
   vpc_security_group_ids = [aws_security_group.web.id]
   
   # Enable hibernation for cost savings (requires EBS-backed AMI)
-  hibernation = true
+  # hibernation = true  # Temporarily disabled for debugging
   
   # Basic setup
   user_data = base64encode(<<-EOF
