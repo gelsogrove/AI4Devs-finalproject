@@ -117,7 +117,7 @@ jobs:
       - name: 📤 Upload Backend to S3
         run: |
           echo "Uploading backend files to S3..."
-          aws s3 sync ./backend s3://${{ secrets.S3_BUCKET_NAME }}/backend --delete \
+          aws s3 sync ./backend s3://${{ secrets.AWS_S3_BUCKET }}/backend --delete \
             --exclude "node_modules/*" \
             --exclude ".git/*" \
             --exclude "*.log" \
@@ -126,7 +126,7 @@ jobs:
       - name: 📤 Upload Frontend to S3
         run: |
           echo "Uploading frontend files to S3..."
-          aws s3 sync ./frontend s3://${{ secrets.S3_BUCKET_NAME }}/frontend --delete \
+          aws s3 sync ./frontend s3://${{ secrets.AWS_S3_BUCKET }}/frontend --delete \
             --exclude "node_modules/*" \
             --exclude ".git/*" \
             --exclude "*.log" \

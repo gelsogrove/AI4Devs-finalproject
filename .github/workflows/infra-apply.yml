@@ -99,7 +99,7 @@ jobs:
           echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
           
           # Update infrastructure secrets in DEV environment
-          echo "$S3_BUCKET" | gh secret set S3_BUCKET_NAME --repo ${{ github.repository }} --env dev
+          echo "$S3_BUCKET" | gh secret set AWS_S3_BUCKET --repo ${{ github.repository }} --env dev
           echo "$EC2_HOST" | gh secret set EC2_HOST --repo ${{ github.repository }} --env dev
           echo "ubuntu" | gh secret set EC2_USER --repo ${{ github.repository }} --env dev
           echo "us-east-1" | gh secret set AWS_REGION --repo ${{ github.repository }} --env dev
@@ -115,7 +115,7 @@ jobs:
           echo "✅ All secrets updated automatically!"
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🎉 GitHub Secrets Auto-Updated:" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ S3_BUCKET_NAME" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ AWS_S3_BUCKET" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ EC2_HOST" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ EC2_USER" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ AWS_REGION" >> $GITHUB_STEP_SUMMARY
