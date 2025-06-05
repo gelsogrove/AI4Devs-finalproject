@@ -163,8 +163,8 @@ jobs:
                 echo "Creating .env file..."
                 echo "NODE_ENV=production" > .env
                 echo "PORT=8080" >> .env
-                echo "DATABASE_URL=postgresql://shopmefy:x%25acuorgCpCyj5U%5D@shopmefy-db-9e11c04f.cy3eqmgqwvsg.us-east-1.rds.amazonaws.com:5432/shopmefy" >> .env
-                echo "OPENROUTER_API_KEY=your_openrouter_key_here" >> .env
+                echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env
+                echo "OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}" >> .env
             fi
             
             echo "🗄️ Running database migrations..."
