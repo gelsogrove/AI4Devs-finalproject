@@ -138,52 +138,95 @@ jobs:
       - name: 🚀 Trigger Deployment on EC2
         run: |
           echo "Connecting to EC2 and triggering deployment..."
-          ssh -i ec2_key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} "
-            echo '🚀 Starting deployment process...'
+          ssh -i ec2_key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} '
+            set -e
+            echo "🚀 Starting ShopMefy deployment..."
             
-            # Run the deployment script that was created by Terraform
-            sudo systemctl start shopmefy-deploy.service
+            APP_DIR="/home/ubuntu/shopmefy"
+            BACKEND_DIR="$APP_DIR/backend"
+            FRONTEND_DIR="$APP_DIR/frontend"
+            S3_BUCKET="${{ secrets.AWS_S3_BUCKET }}"
             
-            # Wait a moment for the service to complete
-            sleep 10
+            mkdir -p $APP_DIR
             
-            # Check if the deployment was successful
-            if sudo systemctl is-active --quiet shopmefy-deploy.service; then
-              echo '✅ Deployment service completed successfully'
-            else
-              echo '❌ Deployment service failed'
-              sudo journalctl -u shopmefy-deploy.service --no-pager -l
-              exit 1
+            echo "📦 Downloading from S3..."
+            cd $APP_DIR
+            aws s3 sync s3://$S3_BUCKET/backend ./backend --delete
+            aws s3 sync s3://$S3_BUCKET/frontend ./frontend --delete
+            
+            echo "📦 Installing backend dependencies..."
+            cd $BACKEND_DIR
+            npm ci --production
+            
+            echo "📦 Installing frontend dependencies..."
+            cd $FRONTEND_DIR
+            npm ci
+            npm run build
+            
+            echo "⚙️ Setting up environment..."
+            cd $BACKEND_DIR
+            
+            if [ ! -f .env ]; then
+                echo "Creating .env file..."
+                echo "NODE_ENV=production" > .env
+                echo "PORT=8080" >> .env
+                echo "DATABASE_URL=postgresql://shopmefy:x%acuorgCpCyj5U]@shopmefy-db-9e11c04f.cy3eqmgqwvsg.us-east-1.rds.amazonaws.com:5432/shopmefy" >> .env
+                echo "OPENROUTER_API_KEY=your_openrouter_key_here" >> .env
             fi
             
-            # Check if PM2 processes are running
-            if sudo -u shopme pm2 list | grep -q 'backend.*online'; then
-              echo '✅ Backend is running via PM2'
-            else
-              echo '❌ Backend is not running, starting manually...'
-              sudo -u shopme bash -c 'cd /home/shopme/backend && pm2 delete backend || true && pm2 start npm --name backend -- start -- --port 8080 && pm2 save'
-            fi
+            echo "🗄️ Running database migrations..."
+            npx prisma migrate deploy
             
-            # Check Nginx status
-            if sudo systemctl is-active --quiet nginx; then
-              echo '✅ Nginx is running'
-            else
-              echo '❌ Nginx is not running, starting...'
-              sudo systemctl start nginx
-            fi
+            echo "🛑 Stopping existing processes..."
+            pm2 stop all || true
+            pm2 delete all || true
             
-            # Final health check
-            echo '🔍 Performing health check...'
-            sleep 5
+            echo "🚀 Starting backend..."
+            pm2 start src/index.js --name "shopmefy-backend" --env production
             
-            if curl -f http://localhost:80/api/health > /dev/null 2>&1; then
-              echo '✅ Application is responding to health checks'
-            else
-              echo '⚠️ Health check failed, but deployment completed. Check application logs.'
-            fi
+            echo "🚀 Starting frontend..."
+            cd $FRONTEND_DIR
+            pm2 serve dist 3000 --name "shopmefy-frontend" --spa
             
-            echo '🎉 Deployment process completed!'
-          "
+            pm2 save
+            
+            echo "🔧 Configuring Nginx as reverse proxy..."
+            sudo apt update && sudo apt install -y nginx
+            
+            echo "server {
+              listen 80;
+              
+              location /api {
+                proxy_pass http://localhost:8080;
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade \$http_upgrade;
+                proxy_set_header Connection \"upgrade\";
+                proxy_set_header Host \$host;
+                proxy_cache_bypass \$http_upgrade;
+                proxy_set_header X-Real-IP \$remote_addr;
+                proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+              }
+              
+              location / {
+                proxy_pass http://localhost:3000;
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade \$http_upgrade;
+                proxy_set_header Connection \"upgrade\";
+                proxy_set_header Host \$host;
+                proxy_cache_bypass \$http_upgrade;
+                proxy_set_header X-Real-IP \$remote_addr;
+                proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+              }
+            }" | sudo tee /etc/nginx/sites-available/default
+            
+            sudo nginx -t
+            sudo systemctl restart nginx
+            sudo systemctl enable nginx
+            
+            echo "✅ Deployment completed successfully!"
+            echo "🌐 Application: http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)"
+            echo "🌐 API: http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)/api"
+          '
 
       - name: 🧹 Cleanup
         if: always()
@@ -202,8 +245,8 @@ jobs:
           echo "- **Deployment Time**: $(date)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🔗 Access Your Application:" >> $GITHUB_STEP_SUMMARY
-          echo "- **Frontend**: http://${{ secrets.EC2_HOST }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Backend API**: http://${{ secrets.EC2_HOST }}/api" >> $GITHUB_STEP_SUMMARY
+          echo "- **Application**: http://${{ secrets.EC2_HOST }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **API**: http://${{ secrets.EC2_HOST }}/api" >> $GITHUB_STEP_SUMMARY
           echo "- **Health Check**: http://${{ secrets.EC2_HOST }}/api/health" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🛠️ Management Commands:" >> $GITHUB_STEP_SUMMARY
