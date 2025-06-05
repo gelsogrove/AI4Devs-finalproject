@@ -133,9 +133,13 @@ jobs:
       - name: 🚀 Trigger Deployment on EC2
         run: |
           echo "Connecting to EC2 and triggering deployment..."
-          ssh -i ec2_key.pem -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=10 ubuntu@${{ secrets.EC2_HOST }} '
+          ssh -i ec2_key.pem -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ConnectTimeout=10 ubuntu@${{ secrets.EC2_HOST }} '
             set -e
             echo "🚀 Starting ShopMefy deployment..."
+            
+            echo "🛑 Killing any stuck npm processes..."
+            sudo pkill -f npm || true
+            sudo pkill -f node || true
             
             APP_DIR="/home/ubuntu/shopmefy"
             BACKEND_DIR="$APP_DIR/backend"
@@ -149,12 +153,12 @@ jobs:
             
             echo "📦 Installing backend dependencies..."
             cd $BACKEND_DIR
-            npm ci --production
+            timeout 300 npm ci --production || { echo "Backend npm install timed out"; exit 1; }
             
             echo "📦 Installing frontend dependencies..."
             cd $FRONTEND_DIR
-            npm ci --prefer-offline --no-audit
-            npm run build
+            timeout 600 npm ci --prefer-offline --no-audit --silent || { echo "Frontend npm install timed out"; exit 1; }
+            timeout 300 npm run build || { echo "Frontend build timed out"; exit 1; }
             
             echo "⚙️ Setting up environment..."
             cd $BACKEND_DIR
