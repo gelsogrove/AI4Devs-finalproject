@@ -69,17 +69,33 @@ resource "random_id" "bucket_suffix" {
 }
 
 # ===================================
-# DEFAULT VPC (Simple!)
+# VPC AND SUBNETS (Create our own!)
 # ===================================
 
 data "aws_vpc" "default" {
   default = true
 }
 
-data "aws_subnets" "default" {
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.default.id]
+# Create subnets in different AZs for RDS requirement
+resource "aws_subnet" "public_1" {
+  vpc_id                  = data.aws_vpc.default.id
+  cidr_block              = "172.31.100.0/24"
+  availability_zone       = data.aws_availability_zones.available.names[0]
+  map_public_ip_on_launch = true
+  
+  tags = {
+    Name = "shopmefy-public-1"
+  }
+}
+
+resource "aws_subnet" "public_2" {
+  vpc_id                  = data.aws_vpc.default.id
+  cidr_block              = "172.31.101.0/24"
+  availability_zone       = data.aws_availability_zones.available.names[1]
+  map_public_ip_on_launch = true
+  
+  tags = {
+    Name = "shopmefy-public-2"
   }
 }
 
@@ -216,7 +232,7 @@ resource "aws_s3_bucket_public_access_block" "deployments" {
 
 resource "aws_db_subnet_group" "main" {
   name       = "shopmefy-db-subnet-group-${random_id.bucket_suffix.hex}"
-  subnet_ids = data.aws_subnets.default.ids
+  subnet_ids = [aws_subnet.public_1.id, aws_subnet.public_2.id]
   
   tags = {
     Name = "shopmefy-db-subnet-group"
@@ -268,6 +284,7 @@ resource "aws_instance" "web" {
   instance_type          = "t3.micro"
   key_name               = aws_key_pair.main.key_name
   vpc_security_group_ids = [aws_security_group.web.id]
+  subnet_id              = aws_subnet.public_1.id
   
   # Enable hibernation for cost savings (requires EBS-backed AMI)
   # hibernation = true  # Temporarily disabled for debugging
