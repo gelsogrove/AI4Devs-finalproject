@@ -394,7 +394,7 @@ jobs:
           echo "🎉 COMPLETE INFRASTRUCTURE DESTRUCTION FINISHED!"
           echo "🗑️ ALL shopmefy-dev* resources have been permanently removed"
           echo "💰 Zero AWS costs - No resources left running"
-          echo "🔄 You can recreate everything with infra-deploy.yml anytime"
+          echo "🔄 You can recreate everything with infra-apply.yml anytime"
           echo ""
           echo "## 🗑️ Complete Infrastructure Destruction Successful!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

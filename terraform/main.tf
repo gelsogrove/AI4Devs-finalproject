@@ -71,34 +71,27 @@ resource "random_id" "bucket_suffix" {
 }
 
 # ===================================
-# VPC AND SUBNETS (Create our own!)
+# VPC AND SUBNETS (Use existing ones!)
 # ===================================
 
 data "aws_vpc" "default" {
   default = true
 }
 
-# Create subnets in different AZs for RDS requirement
-resource "aws_subnet" "public_1" {
-  vpc_id                  = data.aws_vpc.default.id
-  cidr_block              = "172.31.100.0/24"
-  availability_zone       = data.aws_availability_zones.available.names[0]
-  map_public_ip_on_launch = true
-  
-  tags = {
-    Name = "shopmefy-public-1"
+# Use existing subnets instead of creating new ones
+data "aws_subnets" "default" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
   }
 }
 
-resource "aws_subnet" "public_2" {
-  vpc_id                  = data.aws_vpc.default.id
-  cidr_block              = "172.31.101.0/24"
-  availability_zone       = data.aws_availability_zones.available.names[1]
-  map_public_ip_on_launch = true
-  
-  tags = {
-    Name = "shopmefy-public-2"
-  }
+data "aws_subnet" "public_1" {
+  id = data.aws_subnets.default.ids[0]
+}
+
+data "aws_subnet" "public_2" {
+  id = data.aws_subnets.default.ids[1]
 }
 
 # ===================================
@@ -235,7 +228,7 @@ resource "aws_s3_bucket_public_access_block" "deployments" {
 
 resource "aws_db_subnet_group" "main" {
   name       = "shopmefy-db-subnet-group-${random_id.bucket_suffix.hex}"
-  subnet_ids = [aws_subnet.public_1.id, aws_subnet.public_2.id]
+  subnet_ids = [data.aws_subnet.public_1.id, data.aws_subnet.public_2.id]
   
   tags = {
     Name = "shopmefy-db-subnet-group"
@@ -287,7 +280,7 @@ resource "aws_instance" "web" {
   instance_type          = "t3.micro"
   key_name               = aws_key_pair.main.key_name
   vpc_security_group_ids = [aws_security_group.web.id]
-  subnet_id              = aws_subnet.public_1.id
+  subnet_id              = data.aws_subnet.public_1.id
   
   # Enable hibernation for cost savings (requires EBS-backed AMI)
   # hibernation = true  # Temporarily disabled for debugging
