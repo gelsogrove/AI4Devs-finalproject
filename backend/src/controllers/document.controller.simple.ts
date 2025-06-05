@@ -44,10 +44,10 @@ if (!fs.existsSync(uploadDir)) {
 
 // Multer configuration for file upload
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
+  destination: (req: Request, file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => {
     cb(null, uploadDir);
   },
-  filename: (req, file, cb) => {
+  filename: (req: Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => {
     // Generate unique filename
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '-').toLowerCase();
@@ -61,7 +61,7 @@ const upload = multer({
     fileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760'), // 10MB default
     files: 1
   },
-  fileFilter: (req, file, cb) => {
+  fileFilter: (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
     // Validate file type
     if (file.mimetype !== 'application/pdf') {
       return cb(new Error('Only PDF files are allowed'));
