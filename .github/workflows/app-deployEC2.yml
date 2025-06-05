@@ -25,7 +25,7 @@ on:
           - dev
   # Auto-deploy after successful CI/CD on main branch
   workflow_run:
-    workflows: ["CI/CD"]
+    workflows: ["🧪 CI - Test & Build Code"]
     types:
       - completed
     branches:
