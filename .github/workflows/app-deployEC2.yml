@@ -125,10 +125,35 @@ jobs:
           tar -czf shopmefy-deploy.tar.gz backend frontend
           ls -la shopmefy-deploy.tar.gz
 
+      - name: 🧹 Cleanup Server Before Upload
+        run: |
+          echo "Cleaning up server processes..."
+          ssh -i ec2_key.pem -o StrictHostKeyChecking=no -o ConnectTimeout=30 ubuntu@${{ secrets.EC2_HOST }} '
+            sudo pkill -f npm || true
+            sudo pkill -f node || true
+            pm2 kill || true
+            rm -f /home/ubuntu/shopmefy-deploy.tar.gz || true
+            echo "Server cleanup completed"
+          ' || echo "Cleanup failed, continuing anyway..."
+
       - name: 📤 Upload Deployment Package to EC2
         run: |
           echo "Uploading deployment package to EC2..."
-          scp -i ec2_key.pem -o StrictHostKeyChecking=no shopmefy-deploy.tar.gz ubuntu@${{ secrets.EC2_HOST }}:/home/ubuntu/
+          # Retry upload with compression and timeout
+          for i in {1..3}; do
+            echo "Upload attempt $i/3..."
+            if scp -i ec2_key.pem -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ConnectTimeout=30 -C shopmefy-deploy.tar.gz ubuntu@${{ secrets.EC2_HOST }}:/home/ubuntu/; then
+              echo "Upload successful!"
+              break
+            else
+              echo "Upload attempt $i failed, retrying..."
+              sleep 10
+            fi
+            if [ $i -eq 3 ]; then
+              echo "All upload attempts failed"
+              exit 1
+            fi
+          done
 
       - name: 🚀 Trigger Deployment on EC2
         run: |
