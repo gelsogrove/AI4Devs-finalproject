@@ -103,22 +103,3 @@ jobs:
         if: always()
         run: |
           rm -f backend.zip frontend.zip
-
-      - name: 📊 Upload Summary
-        run: |
-          echo "## 🎉 Upload to S3 Completed Successfully!" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📋 Upload Details:" >> $GITHUB_STEP_SUMMARY
-          echo "- **Environment**: ${{ env.UPLOAD_ENV }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Trigger**: ${{ github.event_name == 'workflow_dispatch' && 'Manual' || 'Automatic (after CI/CD)' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **S3 Bucket**: ${{ secrets.AWS_S3_BUCKET }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Upload Method**: AWS S3" >> $GITHUB_STEP_SUMMARY
-          echo "- **Upload Time**: $(date)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📦 Uploaded Files:" >> $GITHUB_STEP_SUMMARY
-          echo "- **Backend**: s3://${{ secrets.AWS_S3_BUCKET }}/deployments/backend.zip" >> $GITHUB_STEP_SUMMARY
-          echo "- **Frontend**: s3://${{ secrets.AWS_S3_BUCKET }}/deployments/frontend.zip" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🔗 Next Steps:" >> $GITHUB_STEP_SUMMARY
-          echo "- Files are ready for deployment to EC2 instance" >> $GITHUB_STEP_SUMMARY
-          echo "- EC2 can download from S3 and deploy" >> $GITHUB_STEP_SUMMARY 
