@@ -13,7 +13,7 @@
 # - Public DNS: ec2-52-87-42-172.compute-1.amazonaws.com
 # - S3 Bucket: shopmefy-dev-deployments-12a6b2db
 
-name: 📱 Deploy on EC2 istance
+name: 📱 CI - Deploy on EC2 istance
 
 on:
   workflow_dispatch:
