@@ -90,8 +90,24 @@ data "aws_subnet" "public_1" {
   id = data.aws_subnets.default.ids[0]
 }
 
-data "aws_subnet" "public_2" {
-  id = data.aws_subnets.default.ids[1]
+# Create a second subnet in a different AZ if only one exists
+resource "aws_subnet" "public_2" {
+  count = length(data.aws_subnets.default.ids) < 2 ? 1 : 0
+  
+  vpc_id            = data.aws_vpc.default.id
+  cidr_block        = "172.31.101.0/24"  # Different CIDR from existing subnet
+  availability_zone = data.aws_availability_zones.available.names[1]  # Different AZ
+  
+  map_public_ip_on_launch = true
+  
+  tags = {
+    Name = "shopmefy-public-subnet-2"
+  }
+}
+
+# Use existing second subnet or the created one
+locals {
+  public_subnet_2_id = length(data.aws_subnets.default.ids) > 1 ? data.aws_subnets.default.ids[1] : aws_subnet.public_2[0].id
 }
 
 # ===================================
@@ -228,7 +244,7 @@ resource "aws_s3_bucket_public_access_block" "deployments" {
 
 resource "aws_db_subnet_group" "main" {
   name       = "shopmefy-db-subnet-group-${random_id.bucket_suffix.hex}"
-  subnet_ids = [data.aws_subnet.public_1.id, data.aws_subnet.public_2.id]
+  subnet_ids = [data.aws_subnet.public_1.id, local.public_subnet_2_id]
   
   tags = {
     Name = "shopmefy-db-subnet-group"
