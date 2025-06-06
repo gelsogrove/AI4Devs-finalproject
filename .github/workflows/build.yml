@@ -1,4 +1,4 @@
-name: 🏗️ Build Application
+name: 🏗️ BUILD - Compile and Package
 
 on:
   workflow_dispatch:
@@ -12,24 +12,22 @@ on:
           - dev
           - prod
   push:
-    branches:
-      - main
+    branches: [ main ]
     paths:
       - 'backend/**'
       - 'frontend/**'
-      - '.github/workflows/build.yml'
 
 env:
   AWS_REGION: us-east-1
+  NODE_VERSION: '20'
 
 jobs:
   build:
-    name: 🏗️ Build and Upload to S3
+    name: 🏗️ Build Application
     runs-on: ubuntu-latest
     environment: dev
     outputs:
       build_version: ${{ steps.version.outputs.BUILD_VERSION }}
-      s3_path: ${{ steps.upload.outputs.S3_PATH }}
     
     steps:
       - name: 🔄 Checkout Code
@@ -38,7 +36,7 @@ jobs:
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
           cache-dependency-path: |
             backend/package-lock.json
@@ -49,7 +47,7 @@ jobs:
         run: |
           BUILD_VERSION="build-$(date +%Y%m%d-%H%M%S)-$(echo $GITHUB_SHA | cut -c1-8)"
           echo "BUILD_VERSION=$BUILD_VERSION" >> $GITHUB_OUTPUT
-          echo "Build version: $BUILD_VERSION"
+          echo "🏷️ Build version: $BUILD_VERSION"
 
       - name: ⚙️ Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -58,16 +56,14 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: 🔧 Build Backend
+      - name: 🏗️ Build Backend
         run: |
           echo "🏗️ Building backend..."
           cd backend
           
-          # Install dependencies
-          echo "📦 Installing backend dependencies..."
-          npm ci --production
+          echo "📦 Installing dependencies..."
+          npm ci
           
-          # Create production .env for build
           echo "⚙️ Creating build .env..."
           cat > .env << EOF
           NODE_ENV=production
@@ -84,38 +80,30 @@ jobs:
           SWAGGER_PASSWORD=placeholder
           EOF
           
-          # Build
-          echo "🏗️ Compiling TypeScript..."
+          echo "🔨 Compiling TypeScript..."
           npm run build
           
-          # Verify build
-          echo "✅ Backend build completed"
+          echo "✅ Backend build completed!"
           ls -la dist/
-          echo "Build size: $(du -sh dist/)"
 
       - name: 🎨 Build Frontend
         run: |
           echo "🏗️ Building frontend..."
           cd frontend
           
-          # Install dependencies
-          echo "📦 Installing frontend dependencies..."
+          echo "📦 Installing dependencies..."
           npm ci
           
-          # Create production .env for build
           echo "⚙️ Creating build .env..."
           echo "VITE_API_URL=placeholder" > .env
           
-          # Build
-          echo "🏗️ Building React application..."
+          echo "🔨 Building React application..."
           npm run build
           
-          # Verify build
-          echo "✅ Frontend build completed"
+          echo "✅ Frontend build completed!"
           ls -la dist/
-          echo "Build size: $(du -sh dist/)"
 
-      - name: 📦 Package Application
+      - name: 📦 Package Build Artifacts
         run: |
           echo "📦 Creating deployment package..."
           
@@ -142,24 +130,6 @@ jobs:
           }
           EOF
           
-          # Create deployment scripts
-          cat > deployment/start-backend.sh << 'EOF'
-          #!/bin/bash
-          cd backend
-          npm ci --production --silent
-          npx prisma migrate deploy
-          npx prisma db seed || echo "Seeding skipped"
-          node dist/index.js
-          EOF
-          
-          cat > deployment/start-frontend.sh << 'EOF'
-          #!/bin/bash
-          cd frontend
-          npx serve -s dist -l 3000
-          EOF
-          
-          chmod +x deployment/*.sh
-          
           # Create archive
           echo "🗜️ Creating deployment archive..."
           tar -czf deployment.tar.gz -C deployment .
@@ -168,21 +138,30 @@ jobs:
           ls -lh deployment.tar.gz
           echo "Package size: $(du -sh deployment.tar.gz)"
 
-      - name: 📤 Upload Build Artifacts
+      - name: ☁️ Upload to S3
+        run: |
+          echo "☁️ Uploading build to S3..."
+          
+          BUILD_VERSION="${{ steps.version.outputs.BUILD_VERSION }}"
+          
+          # Upload versioned build
+          aws s3 cp deployment.tar.gz "s3://${{ secrets.AWS_S3_BUCKET }}/builds/$BUILD_VERSION.tar.gz"
+          
+          # Upload as latest
+          aws s3 cp deployment.tar.gz "s3://${{ secrets.AWS_S3_BUCKET }}/builds/latest.tar.gz"
+          
+          # Upload deployment info
+          aws s3 cp deployment/deployment-info.json "s3://${{ secrets.AWS_S3_BUCKET }}/builds/$BUILD_VERSION-info.json"
+          aws s3 cp deployment/deployment-info.json "s3://${{ secrets.AWS_S3_BUCKET }}/builds/latest-info.json"
+          
+          echo "✅ Build uploaded to S3!"
+
+      - name: 📤 Upload GitHub Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: shopmefy-build-${{ steps.version.outputs.BUILD_VERSION }}
           path: deployment.tar.gz
           retention-days: 30
-          compression-level: 9
-
-      - name: 📤 Upload Latest Build
-        uses: actions/upload-artifact@v4
-        with:
-          name: shopmefy-latest
-          path: deployment.tar.gz
-          retention-days: 7
-          compression-level: 9
 
       - name: 📊 Build Summary
         run: |
@@ -193,13 +172,10 @@ jobs:
           echo "- **Commit**: $GITHUB_SHA" >> $GITHUB_STEP_SUMMARY
           echo "- **Branch**: $GITHUB_REF_NAME" >> $GITHUB_STEP_SUMMARY
           echo "- **Environment**: ${{ github.event.inputs.environment || 'dev' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Artifact**: shopmefy-build-${{ steps.version.outputs.BUILD_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Artifacts:" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ S3: \`s3://${{ secrets.AWS_S3_BUCKET }}/builds/latest.tar.gz\`" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ GitHub Artifacts: \`shopmefy-build-${{ steps.version.outputs.BUILD_VERSION }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🚀 Ready for Deployment:" >> $GITHUB_STEP_SUMMARY
-          echo "Use the **Deploy Application** workflow to deploy this build to EC2." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📦 Package Contents:" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Backend (compiled TypeScript)" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Frontend (built React app)" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Database migrations" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Deployment scripts" >> $GITHUB_STEP_SUMMARY 
+          echo "Use the **DEPLOY** workflow to deploy this build to EC2." >> $GITHUB_STEP_SUMMARY

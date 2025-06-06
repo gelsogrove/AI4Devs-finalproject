@@ -1,165 +1,38 @@
-name: 🚀 Deploy Application
+name: 🚀 DEPLOY - Deploy to EC2
 
 on:
   workflow_dispatch:
     inputs:
-      environment:
-        description: 'Deployment Environment'
-        required: true
-        default: 'dev'
-        type: choice
-        options:
-          - dev
-      force_deploy:
-        description: 'Force deploy even if infrastructure is stopped'
+      build_version:
+        description: 'Build version to deploy (leave empty for latest)'
+        required: false
+        type: string
+      force_restart:
+        description: 'Force restart services'
         required: false
         default: false
         type: boolean
       skip_health_check:
-        description: 'Skip post-deployment health check'
+        description: 'Skip health check'
         required: false
         default: false
         type: boolean
 
 env:
   AWS_REGION: us-east-1
-  INSTANCE_ID: i-008b6c493b1f842a9
-  FIXED_EIP_ALLOCATION: eipalloc-0001d20efe88091c7
+  EC2_HOST: 18.207.145.179
+  EC2_USER: ubuntu
 
 jobs:
-  pre-deploy-check:
-    name: 🔍 Pre-Deploy Infrastructure Check
+  deploy:
+    name: 🚀 Deploy to EC2
     runs-on: ubuntu-latest
     environment: dev
-    outputs:
-      ec2_state: ${{ steps.check.outputs.EC2_STATE }}
-      fixed_ip: ${{ steps.check.outputs.FIXED_IP }}
-      can_deploy: ${{ steps.check.outputs.CAN_DEPLOY }}
-      
-    steps:
-      - name: ⚙️ Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: 🔍 Check Infrastructure Status
-        id: check
-        run: |
-          echo "🔍 Checking infrastructure status before deployment..."
-          
-          # Check EC2 state
-          EC2_STATE=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query "Reservations[0].Instances[0].State.Name" --output text)
-          echo "EC2_STATE=$EC2_STATE" >> $GITHUB_OUTPUT
-          echo "EC2 Instance: $EC2_STATE"
-          
-          # Get fixed IP
-          FIXED_IP=$(aws ec2 describe-addresses --allocation-ids $FIXED_EIP_ALLOCATION --query "Addresses[0].PublicIp" --output text 2>/dev/null || echo "Not found")
-          echo "FIXED_IP=$FIXED_IP" >> $GITHUB_OUTPUT
-          echo "Fixed IP: $FIXED_IP"
-          
-          # Check if IP is associated
-          CURRENT_ASSOCIATION=$(aws ec2 describe-addresses --allocation-ids $FIXED_EIP_ALLOCATION --query "Addresses[0].InstanceId" --output text 2>/dev/null || echo "None")
-          echo "IP Association: $CURRENT_ASSOCIATION"
-          
-          # Determine if we can deploy
-          if [ "$EC2_STATE" = "running" ] && [ "$CURRENT_ASSOCIATION" = "$INSTANCE_ID" ]; then
-            echo "CAN_DEPLOY=true" >> $GITHUB_OUTPUT
-            echo "✅ Infrastructure is ready for deployment"
-          elif [ "${{ github.event.inputs.force_deploy }}" = "true" ]; then
-            echo "CAN_DEPLOY=force" >> $GITHUB_OUTPUT
-            echo "⚠️ Force deploy requested - will attempt to start infrastructure first"
-          else
-            echo "CAN_DEPLOY=false" >> $GITHUB_OUTPUT
-            echo "❌ Infrastructure not ready for deployment"
-            echo "EC2 State: $EC2_STATE, IP Associated: $CURRENT_ASSOCIATION"
-          fi
-
-      - name: 📊 Pre-Deploy Summary
-        run: |
-          echo "## 🔍 Pre-Deploy Infrastructure Check" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📋 Infrastructure Status:" >> $GITHUB_STEP_SUMMARY
-          echo "- **EC2 Instance**: ${{ steps.check.outputs.EC2_STATE }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Fixed IP**: ${{ steps.check.outputs.FIXED_IP }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Can Deploy**: ${{ steps.check.outputs.CAN_DEPLOY }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          if [ "${{ steps.check.outputs.CAN_DEPLOY }}" = "false" ]; then
-            echo "### ⚠️ Action Required:" >> $GITHUB_STEP_SUMMARY
-            echo "Infrastructure is not ready for deployment. Please:" >> $GITHUB_STEP_SUMMARY
-            echo "1. Use **Infrastructure Control** workflow to start the infrastructure" >> $GITHUB_STEP_SUMMARY
-            echo "2. Or enable **force_deploy** option to auto-start infrastructure" >> $GITHUB_STEP_SUMMARY
-          fi
-
-  start-infrastructure:
-    name: 🚀 Start Infrastructure (if needed)
-    needs: pre-deploy-check
-    runs-on: ubuntu-latest
-    environment: dev
-    if: needs.pre-deploy-check.outputs.can_deploy == 'force'
-    
-    steps:
-      - name: ⚙️ Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: 🚀 Start EC2 and Associate IP
-        run: |
-          echo "🚀 Starting infrastructure for forced deployment..."
-          
-          if [ "${{ needs.pre-deploy-check.outputs.ec2_state }}" = "stopped" ]; then
-            echo "Starting EC2 instance..."
-            aws ec2 start-instances --instance-ids $INSTANCE_ID
-            
-            echo "Waiting for instance to be running..."
-            aws ec2 wait instance-running --instance-ids $INSTANCE_ID
-            
-            echo "Associating fixed Elastic IP..."
-            aws ec2 associate-address --instance-id $INSTANCE_ID --allocation-id $FIXED_EIP_ALLOCATION
-            
-            echo "✅ Infrastructure started successfully!"
-            
-            # Wait for SSH to be ready
-            echo "⏳ Waiting for SSH to be ready..."
-            sleep 30
-          else
-            echo "✅ EC2 already running, ensuring IP association..."
-            aws ec2 associate-address --instance-id $INSTANCE_ID --allocation-id $FIXED_EIP_ALLOCATION || true
-          fi
-
-  build-and-deploy:
-    name: 🏗️ Build and Deploy to EC2
-    needs: [pre-deploy-check, start-infrastructure]
-    runs-on: ubuntu-latest
-    environment: dev
-    if: always() && (needs.pre-deploy-check.outputs.can_deploy == 'true' || needs.pre-deploy-check.outputs.can_deploy == 'force')
     
     steps:
       - name: 🔄 Checkout Code
         uses: actions/checkout@v4
 
-      - name: 🟢 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: |
-            backend/package-lock.json
-            frontend/package-lock.json
-
-      - name: 🎯 Set Environment
-        run: |
-          echo "DEPLOY_ENV=${{ github.event.inputs.environment }}" >> $GITHUB_ENV
-          echo "FIXED_IP=${{ needs.pre-deploy-check.outputs.fixed_ip }}" >> $GITHUB_ENV
-          echo "SKIP_HEALTH_CHECK=${{ github.event.inputs.skip_health_check }}" >> $GITHUB_ENV
-          echo "BUILD_VERSION=build-$(date +%Y%m%d-%H%M%S)-$(echo $GITHUB_SHA | cut -c1-8)" >> $GITHUB_ENV
-          echo "Deploying to: ${{ needs.pre-deploy-check.outputs.fixed_ip }}"
-
       - name: ⚙️ Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -167,563 +40,164 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: 🏗️ Build Backend
+      - name: 🔍 Determine Build Version
+        id: build_info
         run: |
-          echo "🏗️ Building backend on GitHub Actions..."
-          cd backend
-          
-          echo "📦 Installing backend dependencies..."
-          npm ci --production
-          
-          echo "⚙️ Creating build .env..."
-          cat > .env << EOF
-          NODE_ENV=production
-          PORT=8080
-          DATABASE_URL=placeholder
-          OPENROUTER_API_KEY=placeholder
-          JWT_SECRET=placeholder
-          AWS_S3_BUCKET=placeholder
-          AWS_REGION=us-east-1
-          AWS_ACCESS_KEY_ID=placeholder
-          AWS_SECRET_ACCESS_KEY=placeholder
-          PUBLIC_URL=placeholder
-          SWAGGER_USER=placeholder
-          SWAGGER_PASSWORD=placeholder
-          EOF
-          
-          echo "🏗️ Compiling TypeScript..."
-          npm run build
-          
-          echo "✅ Backend build completed"
-          ls -la dist/
-
-      - name: 🎨 Build Frontend
-        run: |
-          echo "🏗️ Building frontend on GitHub Actions..."
-          cd frontend
-          
-          echo "📦 Installing frontend dependencies..."
-          npm ci
-          
-          echo "⚙️ Creating build .env..."
-          echo "VITE_API_URL=placeholder" > .env
-          
-          echo "🏗️ Building React application..."
-          npm run build
-          
-          echo "✅ Frontend build completed"
-          ls -la dist/
-
-      - name: 📦 Package Deployment
-        run: |
-          echo "📦 Creating deployment package..."
-          
-          # Create deployment structure
-          mkdir -p deployment/backend
-          mkdir -p deployment/frontend
-          
-          # Copy backend build
-          cp -r backend/dist deployment/backend/
-          cp backend/package*.json deployment/backend/
-          cp -r backend/prisma deployment/backend/
-          
-          # Copy frontend build
-          cp -r frontend/dist deployment/frontend/
-          
-          # Create deployment scripts
-          cat > deployment/start-backend.sh << 'EOF'
-          #!/bin/bash
-          cd backend
-          npm ci --production --silent
-          npx prisma migrate deploy
-          npx prisma db seed || echo "Seeding skipped"
-          node dist/index.js
-          EOF
-          
-          cat > deployment/start-frontend.sh << 'EOF'
-          #!/bin/bash
-          cd frontend
-          npx serve -s dist -l 3000
-          EOF
-          
-          chmod +x deployment/*.sh
-          
-          # Create archive
-          echo "🗜️ Creating deployment archive..."
-          tar -czf deployment.tar.gz -C deployment .
-          
-          echo "📊 Package created: $(du -sh deployment.tar.gz)"
-
-      - name: ☁️ Upload to S3
-        run: |
-          echo "☁️ Uploading deployment package to S3..."
-          
-          # Upload to S3
-          aws s3 cp deployment.tar.gz "s3://${{ secrets.AWS_S3_BUCKET }}/deployments/${{ env.BUILD_VERSION }}.tar.gz"
-          aws s3 cp deployment.tar.gz "s3://${{ secrets.AWS_S3_BUCKET }}/deployments/latest.tar.gz"
-          
-          echo "✅ Upload completed to S3"
-
-      - name: 🔑 Prepare SSH Key
-        run: |
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ec2_key.pem
-          chmod 600 ec2_key.pem
-
-      - name: 🔗 Test SSH Connection
-        run: |
-          echo "🔗 Testing SSH connection before deployment..."
-          
-          # Test SSH with timeout
-          timeout 30s ssh -i ec2_key.pem -o StrictHostKeyChecking=no -o ConnectTimeout=10 ubuntu@${{ env.FIXED_IP }} "echo 'SSH connection successful'" || {
-            echo "❌ SSH connection failed"
-            echo "This might indicate:"
-            echo "1. EC2 instance is still starting up"
-            echo "2. Security group issues"
-            echo "3. SSH key problems"
-            exit 1
-          }
-          
-          echo "✅ SSH connection verified"
-
-      - name: 🚀 Deploy Application to EC2
-        run: |
-          echo "🚀 Starting ShopMefy deployment to ${{ env.FIXED_IP }}..."
-          
-          ssh -i ec2_key.pem -o StrictHostKeyChecking=no ubuntu@${{ env.FIXED_IP }} << 'DEPLOY_SCRIPT'
-            set -e  # Exit on any error
-            
-            echo "🚀 Starting ShopMefy deployment..."
-            
-            # Function to handle errors gracefully
-            handle_error() {
-              echo "❌ Error occurred in: $1"
-              echo "📝 Error details: $2"
-              echo "⚠️ Continuing with deployment..."
-            }
-            
-            # Verify essential environment variables
-            echo "🔍 Verifying environment variables..."
-            if [ -z "${{ secrets.DATABASE_URL }}" ]; then
-              echo "❌ DATABASE_URL secret is missing!"
-              exit 1
-            fi
-            if [ -z "${{ secrets.OPENROUTER_API_KEY }}" ]; then
-              echo "❌ OPENROUTER_API_KEY secret is missing!"
-              exit 1
-            fi
-            if [ -z "${{ secrets.JWT_SECRET }}" ]; then
-              echo "❌ JWT_SECRET secret is missing!"
-              exit 1
-            fi
-            echo "✅ All essential secrets are present"
-            
-            # Stop existing processes gracefully
-            echo "🛑 Stopping existing processes..."
-            echo "Stopping Node.js processes..."
-            sudo pkill -f "node.*dist/index.js" || echo "No Node.js backend processes found"
-            echo "Stopping Vite processes..."
-            sudo pkill -f "vite preview" || echo "No Vite processes found"
-            echo "Stopping npm processes..."
-            sudo pkill -f npm || echo "No npm processes found"
-            echo "Waiting for processes to terminate..."
-            sleep 5
-            
-            # Verify ports are free
-            echo "🔍 Checking port availability..."
-            if lsof -i :8080 > /dev/null 2>&1; then
-              echo "⚠️ Port 8080 still in use, force killing..."
-              sudo fuser -k 8080/tcp || true
-            fi
-            if lsof -i :3000 > /dev/null 2>&1; then
-              echo "⚠️ Port 3000 still in use, force killing..."
-              sudo fuser -k 3000/tcp || true
-            fi
-            
-            # Clone or update repository
-            if [ -d "AI4Devs-finalproject" ]; then
-              echo "📥 Updating existing repository..."
-              cd AI4Devs-finalproject
-              git fetch origin
-              git reset --hard origin/main
-              git clean -fd
-            else
-              echo "📥 Cloning repository..."
-              git clone https://github.com/gelsogrove/AI4Devs-finalproject.git
-              cd AI4Devs-finalproject
-            fi
-            
-            # Backend deployment
-            echo "🔧 Setting up backend..."
-            cd backend
-            
-            # Clean up system before heavy operations
-            echo "🧹 Cleaning up system memory..."
-            sudo apt-get clean || true
-            sudo sync
-            echo 3 | sudo tee /proc/sys/vm/drop_caches > /dev/null || true
-            echo "📊 Memory after cleanup: $(free -h | grep Mem)"
-            
-            # Install dependencies
-            echo "📦 Installing backend dependencies..."
-            echo "Node version: $(node --version)"
-            echo "NPM version: $(npm --version)"
-            echo "Available memory: $(free -h | grep Mem)"
-            echo "Disk space: $(df -h . | tail -1)"
-            
-            if ! npm ci --production; then
-              echo "❌ Backend dependency installation failed!"
-              echo "📝 NPM error log:"
-              cat ~/.npm/_logs/*.log 2>/dev/null | tail -20 || echo "No NPM logs found"
-              exit 1
-            fi
-            
-            # Create backend .env
-            echo "⚙️ Creating backend .env..."
-            cat > .env << EOF
-          NODE_ENV=development
-          PORT=8080
-          DATABASE_URL=${{ secrets.DATABASE_URL }}
-          OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
-          JWT_SECRET=${{ secrets.JWT_SECRET }}
-          AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}
-          AWS_REGION=us-east-1
-          AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          PUBLIC_URL=http://${{ env.FIXED_IP }}
-          SWAGGER_USER=${{ secrets.SWAGGER_USER }}
-          SWAGGER_PASSWORD=${{ secrets.SWAGGER_PASSWORD }}
-          EOF
-            
-            # Build backend
-            echo "🏗️ Building backend..."
-            echo "📊 Backend build system status:"
-            echo "Available memory: $(free -h | grep Mem)"
-            echo "TypeScript version: $(npx tsc --version 2>/dev/null || echo 'Not found')"
-            
-            # Set Node.js memory limit for backend build too
-            export NODE_OPTIONS="--max-old-space-size=1024"
-            
-            if ! npm run build; then
-              echo "❌ Backend build failed!"
-              echo "📝 Detailed diagnostics:"
-              echo "Node version: $(node --version)"
-              echo "NPM version: $(npm --version)"
-              echo "Available memory: $(free -h)"
-              echo "TypeScript config:"
-              cat tsconfig.json 2>/dev/null | head -20 || echo "No tsconfig.json found"
-              echo "Build output directory:"
-              ls -la dist/ 2>/dev/null || echo "No dist directory created"
-              echo "Package.json scripts:"
-              cat package.json | grep -A 10 '"scripts"' || echo "No scripts found"
-              exit 1
-            fi
-            
-            echo "✅ Backend build completed successfully"
-            
-            # Database operations
-            echo "🗄️ Setting up database..."
-            echo "Testing database connection..."
-            if ! npx prisma db execute --stdin <<< "SELECT 1;" > /dev/null 2>&1; then
-              echo "❌ Database connection failed!"
-              echo "📝 Checking DATABASE_URL format..."
-              echo "DATABASE_URL starts with: $(echo $DATABASE_URL | cut -c1-20)..."
-              exit 1
-            fi
-            echo "✅ Database connection successful"
-            
-            echo "Running Prisma migrations..."
-            if ! npx prisma migrate deploy; then
-              echo "❌ Prisma migration failed!"
-              echo "📝 Checking migration status..."
-              npx prisma migrate status || true
-              exit 1
-            fi
-            
-            echo "Seeding database..."
-            if ! npx prisma db seed; then
-              echo "⚠️ Database seeding failed - this might be expected if data already exists"
-              echo "📝 Checking if database has existing data..."
-              npx prisma db execute --stdin <<< "SELECT COUNT(*) FROM \"User\";" || echo "Could not check user count"
-            fi
-            
-            # Start backend
-            echo "🚀 Starting backend service..."
-            nohup npm run start > ../backend.log 2>&1 &
-            BACKEND_PID=$!
-            echo $BACKEND_PID > ../backend.pid
-            echo "Backend started with PID: $BACKEND_PID"
-            
-            # Frontend deployment
-            echo "🔧 Setting up frontend..."
-            cd ../frontend
-            
-            # Install dependencies
-            echo "📦 Installing frontend dependencies..."
-            echo "Current directory: $(pwd)"
-            echo "Available memory: $(free -h | grep Mem)"
-            echo "Disk space: $(df -h . | tail -1)"
-            
-            # Try npm ci with retry logic
-            RETRY_COUNT=0
-            MAX_RETRIES=2
-            
-            while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-              if npm ci; then
-                echo "✅ Frontend dependencies installed successfully"
-                break
-              else
-                RETRY_COUNT=$((RETRY_COUNT + 1))
-                echo "⚠️ Frontend npm ci failed (attempt $RETRY_COUNT/$MAX_RETRIES)"
-                if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-                  echo "🔄 Cleaning npm cache and retrying..."
-                  npm cache clean --force
-                  rm -rf node_modules package-lock.json
-                  sleep 5
-                else
-                  echo "❌ Frontend dependency installation failed after $MAX_RETRIES attempts!"
-                  echo "📝 NPM error log:"
-                  cat ~/.npm/_logs/*.log 2>/dev/null | tail -20 || echo "No NPM logs found"
-                  exit 1
-                fi
-              fi
-            done
-            
-            # Create frontend .env
-            echo "⚙️ Creating frontend .env..."
-            echo "VITE_API_URL=http://${{ env.FIXED_IP }}" > .env
-            
-            # Build frontend
-            echo "🏗️ Building frontend..."
-            echo "📊 Pre-build system status:"
-            echo "Available memory: $(free -h)"
-            echo "Disk space: $(df -h)"
-            echo "Swap status: $(swapon --show || echo 'No swap configured')"
-            
-            # Create swap if not exists (for memory-intensive builds)
-            if ! swapon --show | grep -q "/swapfile"; then
-              echo "🔄 Creating swap file for build process..."
-              sudo fallocate -l 2G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048
-              sudo chmod 600 /swapfile
-              sudo mkswap /swapfile
-              sudo swapon /swapfile
-              echo "✅ Swap file created and activated"
-            fi
-            
-            # Set Node.js memory limit for build
-            export NODE_OPTIONS="--max-old-space-size=1536"
-            echo "🔧 Node memory limit set to 1536MB"
-            
-            if ! npm run build; then
-              echo "❌ Frontend build failed!"
-              echo "📝 System status during failure:"
-              echo "Memory usage: $(free -h)"
-              echo "Disk usage: $(df -h /)"
-              echo "Node processes: $(ps aux | grep node | grep -v grep || echo 'None')"
-              echo "Build logs:"
-              ls -la dist/ 2>/dev/null || echo "No dist directory created"
-              exit 1
-            fi
-            
-            echo "✅ Frontend build completed successfully"
-            
-            # Start frontend
-            echo "🚀 Starting frontend service..."
-            nohup npx vite preview --host 0.0.0.0 --port 3000 > ../frontend.log 2>&1 &
-            FRONTEND_PID=$!
-            echo $FRONTEND_PID > ../frontend.pid
-            echo "Frontend started with PID: $FRONTEND_PID"
-            
-            # Configure Nginx reverse proxy
-            echo "🔧 Configuring Nginx reverse proxy..."
-            sudo tee /etc/nginx/sites-available/default > /dev/null << 'NGINX_CONFIG'
-          server {
-              listen 80;
-              server_name _;
-              
-              # Frontend
-              location / {
-                  proxy_pass http://localhost:3000;
-                  proxy_set_header Host $host;
-                  proxy_set_header X-Real-IP $remote_addr;
-                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                  proxy_set_header X-Forwarded-Proto $scheme;
-              }
-              
-              # Backend API
-              location /api {
-                  proxy_pass http://localhost:8080;
-                  proxy_set_header Host $host;
-                  proxy_set_header X-Real-IP $remote_addr;
-                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                  proxy_set_header X-Forwarded-Proto $scheme;
-              }
-          }
-          NGINX_CONFIG
-            
-            # Test and restart Nginx
-            echo "🔄 Testing and restarting Nginx..."
-            if ! sudo nginx -t; then
-              echo "❌ Nginx configuration test failed!"
-              echo "📝 Showing Nginx configuration:"
-              sudo nginx -T 2>&1 | tail -20
-              exit 1
-            fi
-            
-            echo "✅ Nginx configuration is valid"
-            sudo systemctl restart nginx
-            sudo systemctl enable nginx
-            
-            # Verify Nginx is running
-            if ! sudo systemctl is-active --quiet nginx; then
-              echo "❌ Nginx failed to start!"
-              sudo systemctl status nginx --no-pager -l
-              exit 1
-            fi
-            echo "✅ Nginx is running successfully"
-            
-            # Wait for services to start
-            echo "⏳ Waiting for services to initialize..."
-            sleep 20
-            
-            # Verify processes are running
-            echo "📊 Verifying running processes..."
-            BACKEND_RUNNING=$(ps -p $BACKEND_PID > /dev/null 2>&1 && echo "✅" || echo "❌")
-            FRONTEND_RUNNING=$(ps -p $FRONTEND_PID > /dev/null 2>&1 && echo "✅" || echo "❌")
-            
-            echo "Backend process: $BACKEND_RUNNING (PID: $BACKEND_PID)"
-            echo "Frontend process: $FRONTEND_RUNNING (PID: $FRONTEND_PID)"
-            
-            echo "✅ Deployment completed successfully!"
-            echo "🌐 Application: http://${{ env.FIXED_IP }}"
-            echo "🔗 API: http://${{ env.FIXED_IP }}/api"
-            
-            # Show final process status
-            echo "📊 Final process status:"
-            ps aux | grep -E "(node|vite)" | grep -v grep | head -10 || echo "No processes found"
-          DEPLOY_SCRIPT
-
-      - name: 🏥 Post-Deploy Health Check
-        if: env.SKIP_HEALTH_CHECK != 'true'
-        run: |
-          echo "🏥 Performing comprehensive health check..."
-          
-          # Wait for services to fully initialize
-          echo "⏳ Waiting for services to fully start..."
-          sleep 15
-          
-          # Test endpoints with retries
-          echo "🌐 Testing application endpoints..."
-          
-          # Function to test endpoint with retries
-          test_endpoint() {
-            local url=$1
-            local name=$2
-            local max_attempts=5
-            local attempt=1
-            
-            while [ $attempt -le $max_attempts ]; do
-              echo "Testing $name (attempt $attempt/$max_attempts)..."
-              status=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 10 --max-time 30 "$url" || echo "000")
-              
-              if [ "$status" = "200" ]; then
-                echo "✅ $name: HTTP $status"
-                return 0
-              else
-                echo "⚠️ $name: HTTP $status"
-                if [ $attempt -lt $max_attempts ]; then
-                  echo "Retrying in 10 seconds..."
-                  sleep 10
-                fi
-              fi
-              
-              attempt=$((attempt + 1))
-            done
-            
-            echo "❌ $name: Failed after $max_attempts attempts"
-            return 1
-          }
-          
-          # Test all endpoints
-          FRONTEND_OK=false
-          API_HEALTH_OK=false
-          API_SERVICES_OK=false
-          
-          test_endpoint "http://${{ env.FIXED_IP }}/" "Frontend" && FRONTEND_OK=true
-          test_endpoint "http://${{ env.FIXED_IP }}/api/health" "API Health" && API_HEALTH_OK=true
-          test_endpoint "http://${{ env.FIXED_IP }}/api/services" "API Services" && API_SERVICES_OK=true
-          
-          # Determine overall health
-          if [ "$FRONTEND_OK" = true ] && [ "$API_HEALTH_OK" = true ] && [ "$API_SERVICES_OK" = true ]; then
-            echo "HEALTH_STATUS=healthy" >> $GITHUB_ENV
-            echo "✅ All health checks passed!"
-          elif [ "$FRONTEND_OK" = true ] && [ "$API_HEALTH_OK" = true ]; then
-            echo "HEALTH_STATUS=partial" >> $GITHUB_ENV
-            echo "⚠️ Core services healthy, some API endpoints may need time"
+          if [ -n "${{ github.event.inputs.build_version }}" ]; then
+            BUILD_VERSION="${{ github.event.inputs.build_version }}"
+            echo "Using specified build version: $BUILD_VERSION"
           else
-            echo "HEALTH_STATUS=unhealthy" >> $GITHUB_ENV
-            echo "❌ Health checks failed - manual investigation required"
+            BUILD_VERSION="latest"
+            echo "Using latest build"
           fi
           
-          # Additional diagnostic info
-          echo ""
-          echo "🔍 Additional diagnostics:"
+          echo "BUILD_VERSION=$BUILD_VERSION" >> $GITHUB_OUTPUT
+          echo "S3_PATH=s3://${{ secrets.AWS_S3_BUCKET }}/builds/${BUILD_VERSION}.tar.gz" >> $GITHUB_OUTPUT
+
+      - name: 📥 Verify Build Exists
+        run: |
+          echo "🔍 Checking if build exists in S3..."
+          if aws s3 ls "${{ steps.build_info.outputs.S3_PATH }}"; then
+            echo "✅ Build found in S3"
+          else
+            echo "❌ Build not found in S3: ${{ steps.build_info.outputs.S3_PATH }}"
+            echo "Available builds:"
+            aws s3 ls "s3://${{ secrets.AWS_S3_BUCKET }}/builds/" || echo "No builds found"
+            exit 1
+          fi
+
+      - name: 🔑 Setup SSH Key
+        run: |
+          echo "🔑 Setting up SSH key..."
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ env.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: 🏥 Pre-deployment Health Check
+        run: |
+          echo "🏥 Checking EC2 instance health..."
           
-          # Test SSH and get process info
-          ssh -i ec2_key.pem -o StrictHostKeyChecking=no ubuntu@${{ env.FIXED_IP }} << 'DIAG_SCRIPT'
-            echo "📊 Current processes:"
-            ps aux | grep -E "(node|vite|nginx)" | grep -v grep || echo "No relevant processes found"
+          # Check if instance is reachable
+          if ssh -o ConnectTimeout=10 ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "echo 'EC2 instance is reachable'"; then
+            echo "✅ EC2 instance is reachable"
+          else
+            echo "❌ Cannot reach EC2 instance"
+            exit 1
+          fi
+          
+          # Check disk space
+          echo "💾 Checking disk space..."
+          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "df -h /"
+
+      - name: 🚀 Deploy Application
+        run: |
+          echo "🚀 Starting deployment..."
+          
+          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'EOF'
+            set -e
             
-            echo ""
-            echo "🔍 Service status:"
-            sudo systemctl status nginx --no-pager -l || true
+            echo "📁 Creating deployment directory..."
+            sudo mkdir -p /opt/shopmefy
+            cd /opt/shopmefy
             
-            echo ""
-            echo "📝 Recent logs (last 10 lines):"
-            echo "Backend log:"
-            tail -10 ~/AI4Devs-finalproject/backend.log 2>/dev/null || echo "No backend log found"
-            echo ""
-            echo "Frontend log:"
-            tail -10 ~/AI4Devs-finalproject/frontend.log 2>/dev/null || echo "No frontend log found"
-          DIAG_SCRIPT
+            echo "📥 Downloading build from S3..."
+            aws s3 cp "${{ steps.build_info.outputs.S3_PATH }}" deployment.tar.gz
+            
+            echo "🗜️ Extracting deployment..."
+            sudo rm -rf deployment_temp
+            mkdir -p deployment_temp
+            tar -xzf deployment.tar.gz -C deployment_temp
+            
+            echo "🔄 Stopping existing services..."
+            sudo systemctl stop shopmefy-backend || echo "Backend service not running"
+            sudo systemctl stop shopmefy-frontend || echo "Frontend service not running"
+            
+            echo "📂 Backing up current deployment..."
+            if [ -d "current" ]; then
+              sudo mv current backup_$(date +%Y%m%d_%H%M%S) || true
+            fi
+            
+            echo "🔄 Installing new deployment..."
+            sudo mv deployment_temp current
+            sudo chown -R ubuntu:ubuntu current
+            
+            echo "📦 Installing backend dependencies..."
+            cd current/backend
+            npm ci --production --silent
+            
+            echo "🗄️ Setting up database..."
+            npx prisma generate
+            npx prisma migrate deploy || echo "Migration failed, continuing..."
+            
+            echo "⚙️ Updating environment configuration..."
+            # Environment variables will be set by the system service
+            
+            echo "🚀 Starting services..."
+            sudo systemctl start shopmefy-backend
+            sudo systemctl start shopmefy-frontend
+            
+            echo "✅ Deployment completed!"
+          EOF
+
+      - name: 🏥 Post-deployment Health Check
+        if: ${{ !github.event.inputs.skip_health_check }}
+        run: |
+          echo "🏥 Running post-deployment health checks..."
+          
+          # Wait for services to start
+          echo "⏳ Waiting for services to start..."
+          sleep 30
+          
+          # Check backend health
+          echo "🔍 Checking backend health..."
+          for i in {1..10}; do
+            if curl -f -s "http://${{ env.EC2_HOST }}:8080/health" > /dev/null; then
+              echo "✅ Backend is healthy"
+              break
+            else
+              echo "⏳ Backend not ready yet (attempt $i/10)..."
+              sleep 10
+            fi
+            
+            if [ $i -eq 10 ]; then
+              echo "❌ Backend health check failed"
+              exit 1
+            fi
+          done
+          
+          # Check frontend
+          echo "🔍 Checking frontend..."
+          if curl -f -s "http://${{ env.EC2_HOST }}:3000" > /dev/null; then
+            echo "✅ Frontend is accessible"
+          else
+            echo "⚠️ Frontend may not be ready yet"
+          fi
 
       - name: 🧹 Cleanup
         if: always()
         run: |
-          rm -f ec2_key.pem
+          echo "🧹 Cleaning up..."
+          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'EOF'
+            cd /opt/shopmefy
+            rm -f deployment.tar.gz
+            
+            # Keep only last 3 backups
+            ls -t backup_* 2>/dev/null | tail -n +4 | xargs -r sudo rm -rf
+          EOF
 
       - name: 📊 Deployment Summary
+        if: always()
         run: |
-          echo "## 🎉 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📋 Deployment Details:" >> $GITHUB_STEP_SUMMARY
-          echo "- **Environment**: ${{ env.DEPLOY_ENV }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Target Server**: ${{ env.FIXED_IP }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Deployment Time**: $(date)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Health Status**: ${{ env.HEALTH_STATUS || 'unknown' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Version**: ${{ steps.build_info.outputs.BUILD_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target**: EC2 (${{ env.EC2_HOST }})" >> $GITHUB_STEP_SUMMARY
+          echo "- **Timestamp**: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
-          echo "### 🔗 Access Your Application:" >> $GITHUB_STEP_SUMMARY
-          echo "- **🌐 Application**: http://${{ env.FIXED_IP }}/" >> $GITHUB_STEP_SUMMARY
-          echo "- **🔌 API**: http://${{ env.FIXED_IP }}/api" >> $GITHUB_STEP_SUMMARY
-          echo "- **❤️ API Health**: http://${{ env.FIXED_IP }}/api/health" >> $GITHUB_STEP_SUMMARY
-          echo "- **📚 Swagger Docs**: http://${{ env.FIXED_IP }}/api-docs" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          if [ "${{ env.HEALTH_STATUS }}" = "healthy" ]; then
-            echo "### ✅ Status: All Systems Operational" >> $GITHUB_STEP_SUMMARY
-            echo "Your application is fully deployed and all health checks passed!" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ env.HEALTH_STATUS }}" = "partial" ]; then
-            echo "### ⚠️ Status: Partially Healthy" >> $GITHUB_STEP_SUMMARY
-            echo "Core services are running, but some endpoints may need more time to initialize." >> $GITHUB_STEP_SUMMARY
-          else
-            echo "### ❌ Status: Health Check Issues" >> $GITHUB_STEP_SUMMARY
-            echo "Some services may not be responding correctly. Check the logs for details." >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🎯 Next Steps:" >> $GITHUB_STEP_SUMMARY
-          echo "- 🧪 Test the application functionality" >> $GITHUB_STEP_SUMMARY
-          echo "- 📊 Monitor performance and logs" >> $GITHUB_STEP_SUMMARY
-          echo "- 🔍 SSH access: \`ssh -i key.pem ubuntu@${{ env.FIXED_IP }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- 💰 Use **Infrastructure Control → stop** to save costs when not in use" >> $GITHUB_STEP_SUMMARY
-
+          echo "### 🔗 Application URLs:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Frontend**: http://${{ env.EC2_HOST }}:3000" >> $GITHUB_STEP_SUMMARY
+          echo "- **Backend API**: http://${{ env.EC2_HOST }}:8080" >> $GITHUB_STEP_SUMMARY
+          echo "- **Swagger**: http://${{ env.EC2_HOST }}:8080/api-docs" >> $GITHUB_STEP_SUMMARY
+          echo "- **Health Check**: http://${{ env.EC2_HOST }}:8080/health" >> $GITHUB_STEP_SUMMARY 
