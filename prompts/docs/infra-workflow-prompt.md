@@ -1,198 +1,274 @@
-# Terraform Infrastructure Workflow Generation Prompt
+# Terraform Infrastructure Documentation
 
-## 🚨 CRITICAL ERROR PREVENTION RULES
+## 🏗️ CURRENT INFRASTRUCTURE SETUP
 
-### 1. **Terraform Configuration Validation**
-- ✅ **ALWAYS** validate all resource dependencies before generation
-- ✅ **NEVER** use `templatefile()` - use inline `<<-EOF` heredoc syntax
-- ✅ **ALWAYS** ensure proper resource ordering (VPC → Subnets → Security Groups → EC2/RDS)
-- ✅ **VALIDATE** all variable interpolations use correct syntax: `${var.name}` not `${name}`
-- ✅ **TEST** all provider versions are compatible (AWS ~> 5.0, TLS ~> 4.0, Random ~> 3.1)
+### **ShopMefy AWS Infrastructure**
+The application uses a **simplified AWS infrastructure** with the following components:
 
-### 2. **Resource Dependencies & References**
-- ✅ **EXPLICIT** dependencies: EC2 depends on VPC, Subnets, Security Groups, Key Pair
-- ✅ **DATABASE** dependencies: RDS depends on DB Subnet Group, Security Group, Password
-- ✅ **SECRETS** dependencies: Secrets Manager version depends on secret and RDS instance
-- ✅ **AVOID** circular dependencies in resource references
+## Infrastructure Components
 
-### 3. **Common Error Patterns to AVOID**
-- ❌ **NEVER** reference resources before they're defined
-- ❌ **NEVER** use `file()` function for non-existent files
-- ❌ **NEVER** create complex nested templatefile structures
-- ❌ **NEVER** use undefined variables or outputs
-- ❌ **NEVER** mix resource creation with external file dependencies
+### **1. EC2 Instance** 🖥️
+- **Instance Type**: `t3.small` (2GB RAM, 1 vCPU)
+- **AMI**: Ubuntu 22.04 LTS (latest)
+- **Storage**: 20GB GP3 encrypted EBS volume
+- **Network**: Public subnet with Elastic IP
+- **User Data**: Node.js 20.x + PM2 + Nginx setup
 
-### 4. **AMI Query Best Practices (CRITICAL)**
-- ✅ **USE GENERIC PATTERNS**: `ubuntu/images/hvm-ssd/ubuntu-*-amd64-server-*` not specific versions
-- ✅ **ALWAYS** include `most_recent = true` for AMI data sources
-- ✅ **VERIFY** owner IDs: Canonical = `099720109477`, Amazon = `137112412989`
-- ✅ **MINIMAL FILTERS**: Only use essential filters (name, virtualization-type)
-- ❌ **AVOID** overly specific version filters like `ubuntu-22.04` that may not exist
-- ❌ **AVOID** unnecessary filters like `state = available` (implied by most_recent)
+### **2. RDS PostgreSQL Database** 🗄️
+- **Engine**: PostgreSQL 15.7
+- **Instance**: `db.t3.micro` (1GB RAM)
+- **Storage**: 20GB GP2 with auto-scaling
+- **Network**: Private subnets only
+- **Backup**: 1-day retention, skip final snapshot
 
-### 5. **User Data Simplification Rules**
-- ✅ **KEEP SIMPLE**: Basic package installation only in initial deployment
-- ✅ **AVOID HEREDOC NESTING**: No complex bash scripts with multiple heredoc blocks
-- ✅ **ESCAPE VARIABLES**: Use `\$` for bash variables in Terraform heredoc
-- ✅ **MINIMAL SETUP**: nginx, basic status page, essential packages only
-- ❌ **NO COMPLEX CONFIGS**: Avoid inline nginx config files in user data
+### **3. S3 Bucket** 📦
+- **Purpose**: Document uploads and file storage
+- **Encryption**: AES256 server-side encryption
+- **Versioning**: Enabled for data protection
+- **Access**: Private with restricted bucket policy
 
-## Infrastructure Requirements
+### **4. Networking** 🌐
+- **VPC**: Default VPC (existing)
+- **Subnets**: Uses existing default subnets
+- **Security Groups**: Web (ports 22,80,443,3000,8080) + DB (port 5432)
+- **Elastic IP**: Fixed public IP address
 
-### Core Infrastructure (MANDATORY)
-1. **AWS Provider Setup** - Configure AWS credentials and Terraform with proper versions
-2. **VPC & Networking** - Create VPC, public/private subnets, internet gateway, route tables
-3. **Security Groups** - Web server (SSH, HTTP, HTTPS, 8080) and database security groups  
-4. **SSH Key Generation** - Use TLS provider to generate RSA 4096-bit key pair
-5. **EC2 Instance** - t3.micro Ubuntu with SIMPLE user data (no complex scripts)
-6. **RDS PostgreSQL** - Managed database in private subnets with proper security
-7. **S3 Bucket** - For deployments with versioning and encryption
-8. **Secrets Manager** - Database credentials with proper JSON structure
-9. **Elastic IP** - Static IP for web server
+### **5. SSH Access** 🔑
+- **Key Type**: RSA 4096-bit auto-generated
+- **Storage**: Private key in Terraform output
+- **Access**: SSH to ubuntu user on EC2
 
-### Simplified Approach (TESTED PATTERN)
-10. **User Data** - MINIMAL inline script (apt update, install nginx, basic setup)
-11. **No Complex IAM** - Avoid complex IAM roles that can cause permission errors
-12. **No External Files** - Everything inline in main.tf
-13. **Proper Outputs** - All required outputs with correct sensitivity settings
-14. **Generic AMI Query** - Use flexible patterns that work across regions/time
+## Terraform Configuration
 
-## Workflow Features
-
-### GitHub Actions Integration
-15. **Manual Trigger** - workflow_dispatch with action choice (plan/apply/destroy)
-16. **Instance Type Selection** - t3.micro/small/medium dropdown options
-17. **Environment Targeting** - Use `environment: dev` for secrets consistency
-18. **Terraform Generation** - Single main.tf file with all resources inline
-19. **Error Handling** - Proper error messages and debugging information
-20. **Secrets Auto-Update** - GitHub CLI integration to update environment secrets
-
-### Output & Reporting
-21. **Connection Details** - Public IP, DNS, SSH command, S3 bucket
-22. **Cost Estimation** - Display monthly cost (~$27-30)
-23. **Next Steps** - Clear instructions for deployment workflow
-24. **Secret Status** - List all auto-configured secrets
-
-## Required GitHub Secrets (Environment: dev)
-
-### AWS Infrastructure
-- **AWS_ACCESS_KEY_ID** - AWS access key for Terraform operations
-- **AWS_SECRET_ACCESS_KEY** - AWS secret key for Terraform operations
-
-### Application APIs  
-- **OPENROUTER_API_KEY** - API key for ChatGPT/Claude LLM integration
-- **HUGGINGFACE_API_KEY** - API key for embeddings and document search
-- **JWT_SECRET** - Secret key for authentication tokens
-
-### Auto-Generated by Terraform
-- **S3_BUCKET_NAME** - S3 bucket for deployments
-- **EC2_HOST** - Public IP of EC2 instance
-- **EC2_USER** - SSH username (ubuntu)
-- **EC2_SSH_KEY** - Private SSH key for server access
-- **AWS_REGION** - AWS region (us-east-1)
-- **DATABASE_URL** - Complete PostgreSQL connection string
-- **DB_NAME, DB_USER, DB_PASSWORD, DB_HOST** - Individual database credentials
-
-## Technical Specifications
-
-### Infrastructure Details
-- **Region**: us-east-1 (2 availability zones)
-- **Environment**: Development/Production compatible
-- **VPC CIDR**: 10.0.0.0/16
-- **Public Subnets**: 10.0.1.0/24, 10.0.2.0/24
-- **Private Subnets**: 10.0.10.0/24, 10.0.11.0/24
-
-### Database Configuration
-- **Engine**: PostgreSQL 15.4
-- **Instance**: db.t3.micro
-- **Storage**: 20GB GP2, encrypted, auto-scaling to 100GB
-- **Backup**: 7-day retention, automated maintenance windows
-- **Network**: Private subnets only, security group restricted
-
-### Security & Access
-- **SSH**: RSA 4096-bit keys, auto-generated
-- **Database**: Private access only from EC2 security group
-- **S3**: Encrypted, versioned, private access
-- **Secrets**: AWS Secrets Manager with automatic rotation support
-
-## 🔧 TERRAFORM GENERATION RULES
-
-### File Structure
+### **File Structure**
 ```
 terraform/
-├── main.tf (ALL resources in single file)
-└── (NO external files - everything inline)
+├── main.tf          # All infrastructure resources
+├── variables.tf     # Input variables (region, db_password)
+├── outputs.tf       # Infrastructure outputs
+└── .terraform.lock.hcl  # Provider version lock
 ```
 
-### Resource Order (CRITICAL)
-1. Providers and variables
-2. Data sources (AZs, AMI with generic patterns)
-3. Random resources (password, bucket suffix)
-4. VPC and networking
-5. Security groups
-6. TLS private key and AWS key pair
-7. S3 bucket and configuration
-8. Secrets Manager (secret only)
-9. DB subnet group
-10. RDS instance
-11. Secrets Manager version (AFTER RDS with depends_on)
-12. EC2 instance (depends on all above)
-13. Elastic IP
-14. Outputs
+### **Key Features**
+- ✅ **Single File**: All resources in main.tf
+- ✅ **Default VPC**: Uses existing AWS default VPC
+- ✅ **Auto-Generated**: SSH keys and random passwords
+- ✅ **Minimal Setup**: Essential resources only
+- ✅ **Cost Optimized**: ~$16-17/month running cost
 
-### Testing Strategy
-- **Plan First**: Always run `terraform plan` before `apply`
-- **Incremental**: Start with basic resources, add complexity gradually
-- **Validation**: Use `terraform validate` in workflow
-- **Error Recovery**: Provide clear error messages and troubleshooting steps
+## Resource Dependencies
 
-### Proven AMI Data Source Pattern
+### **Dependency Chain**
+```
+Data Sources (VPC, Subnets, AMI)
+    ↓
+Random Resources (Password, Bucket Suffix)
+    ↓
+Security Groups (Web, Database)
+    ↓
+SSH Key Pair (TLS + AWS Key Pair)
+    ↓
+S3 Bucket + Configuration
+    ↓
+DB Subnet Group
+    ↓
+RDS PostgreSQL Instance
+    ↓
+EC2 Instance
+    ↓
+Elastic IP
+```
+
+## Terraform Commands
+
+### **Infrastructure Lifecycle**
+```bash
+# Initialize Terraform
+terraform init
+
+# Validate configuration
+terraform validate
+
+# Plan infrastructure changes
+terraform plan
+
+# Apply infrastructure
+terraform apply
+
+# Destroy infrastructure
+terraform destroy
+```
+
+### **Get Infrastructure Info**
+```bash
+# Get public IP
+terraform output web_public_ip
+
+# Get SSH command
+terraform output ssh_command
+
+# Get database URL (sensitive)
+terraform output database_url
+
+# Get S3 bucket name
+terraform output s3_bucket_name
+```
+
+## GitHub Secrets Required
+
+### **AWS Access**
+- `AWS_ACCESS_KEY_ID`: AWS access key for Terraform
+- `AWS_SECRET_ACCESS_KEY`: AWS secret key for Terraform
+
+### **Application Configuration**
+- `OPENROUTER_API_KEY`: AI service API key
+- `JWT_SECRET`: Authentication secret
+
+### **Auto-Generated by Terraform**
+- `EC2_HOST`: Public IP of EC2 instance
+- `SSH_PRIVATE_KEY`: Private SSH key for access
+- `DATABASE_URL`: Complete PostgreSQL connection string
+- `S3_BUCKET_NAME`: S3 bucket for uploads
+
+## Cost Estimation
+
+### **Monthly Costs (us-east-1)**
+- **EC2 t3.small**: ~$15.00/month
+- **RDS db.t3.micro**: ~$12.00/month
+- **EBS 20GB**: ~$2.00/month
+- **Elastic IP**: ~$3.60/month (if not attached)
+- **S3 Storage**: ~$0.50/month (minimal usage)
+- **Data Transfer**: ~$1.00/month
+
+**Total**: ~$30-35/month running, ~$5/month hibernated
+
+## Security Configuration
+
+### **Network Security**
+- **SSH**: Key-based authentication only
+- **Database**: Private subnets, security group restricted
+- **Web Traffic**: Nginx reverse proxy
+- **S3**: Private bucket with encryption
+
+### **Application Security**
+- **Environment Variables**: Secrets via .env files
+- **JWT Authentication**: Secure token-based auth
+- **Input Validation**: Express validator middleware
+- **CORS**: Configured for frontend domain
+
+## User Data Setup
+
+### **EC2 Initialization**
+```bash
+#!/bin/bash
+apt-get update
+apt-get install -y nginx curl
+
+# Install Node.js 20.x
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+apt-get install -y nodejs
+
+# Install PM2 globally
+npm install -g pm2
+
+# Configure nginx
+systemctl start nginx
+systemctl enable nginx
+echo "<h1>ShopMefy Server Ready</h1>" > /var/www/html/index.html
+
+# Create app directory
+mkdir -p /home/ubuntu/shopmefy
+chown ubuntu:ubuntu /home/ubuntu/shopmefy
+```
+
+## Terraform Outputs
+
+### **Infrastructure Information**
 ```hcl
-data "aws_ami" "ubuntu" {
-  most_recent = true
-  owners      = ["099720109477"] # Canonical
-  
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-*-amd64-server-*"]
-  }
-  
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
+output "web_public_ip" {
+  description = "Public IP address of the web server"
+  value       = aws_eip.web.public_ip
+}
+
+output "ssh_command" {
+  description = "SSH command to connect to the server"
+  value       = "ssh -i ${aws_key_pair.main.key_name}.pem ubuntu@${aws_eip.web.public_ip}"
+}
+
+output "database_url" {
+  description = "Complete database URL"
+  value       = "postgresql://shopmefy:${random_password.db_password.result}@${split(":", aws_db_instance.postgres.endpoint)[0]}:5432/shopmefy"
+  sensitive   = true
+}
+
+output "s3_bucket_name" {
+  description = "S3 bucket name for deployments"
+  value       = aws_s3_bucket.deployments.bucket
+}
+
+output "ssh_private_key" {
+  description = "SSH private key for connecting to the server"
+  value       = tls_private_key.main.private_key_pem
+  sensitive   = true
 }
 ```
 
-### Proven User Data Pattern
-```hcl
-user_data = base64encode(<<-EOF
-  #!/bin/bash
-  apt-get update
-  apt-get install -y nginx
-  systemctl start nginx
-  systemctl enable nginx
-  echo "<h1>ShopMefy Server Ready</h1>" > /var/www/html/index.html
-EOF
-)
+## Troubleshooting
+
+### **Common Issues**
+1. **AWS Credentials**: Ensure proper IAM permissions for EC2, RDS, S3, VPC
+2. **Region Availability**: Some instance types may not be available in all AZs
+3. **Subnet Conflicts**: Default VPC may have limited subnets
+4. **Security Groups**: Ensure proper port access for application
+
+### **Validation Steps**
+```bash
+# Check Terraform syntax
+terraform validate
+
+# Check AWS credentials
+aws sts get-caller-identity
+
+# Check resource plan
+terraform plan
+
+# Check state
+terraform show
 ```
 
-## 🎯 SUCCESS CRITERIA
+## Next Steps After Infrastructure
 
-### Workflow Must Pass These Tests
-1. ✅ `terraform init` - Downloads providers successfully
-2. ✅ `terraform validate` - Configuration is syntactically correct
-3. ✅ `terraform plan` - Shows expected resources without errors
-4. ✅ AMI query returns results in us-east-1
-5. ✅ All resource dependencies resolved correctly
-6. ✅ No circular dependency errors
-7. ✅ All outputs defined and accessible
+### **1. Configure GitHub Secrets**
+- Add AWS credentials to GitHub repository
+- Add application secrets (OPENROUTER_API_KEY, JWT_SECRET)
 
-### Common Failure Points to Check
-- ❌ AMI query returns no results (use generic patterns)
-- ❌ Unterminated template strings (avoid nested heredoc)
-- ❌ Circular dependencies (RDS endpoint in secrets before RDS creation)
-- ❌ Missing depends_on declarations
-- ❌ Invalid resource references
-- ❌ Provider version conflicts
+### **2. Run Deployment**
+- Trigger deploy.yml workflow
+- Monitor deployment logs
+- Verify application health
+
+### **3. Access Application**
+- Frontend: `http://{EC2_HOST}/`
+- Backend API: `http://{EC2_HOST}/api`
+- SSH: `ssh -i key.pem ubuntu@{EC2_HOST}`
+
+## Infrastructure Benefits
+
+### **Simplified Architecture**
+- ✅ Single EC2 instance for both frontend and backend
+- ✅ Managed RDS for database reliability
+- ✅ S3 for file storage and uploads
+- ✅ Elastic IP for consistent access
+
+### **Cost Optimization**
+- ✅ Right-sized instances (t3.small for app, t3.micro for DB)
+- ✅ Minimal storage allocation with auto-scaling
+- ✅ Default VPC to avoid NAT gateway costs
+- ✅ Single AZ deployment for development
+
+### **Development Friendly**
+- ✅ Easy SSH access for debugging
+- ✅ Direct git-based deployment
+- ✅ Real-time log monitoring
+- ✅ Quick infrastructure recreation
 

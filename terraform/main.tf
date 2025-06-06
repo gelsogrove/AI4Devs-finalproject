@@ -143,10 +143,18 @@ resource "aws_security_group" "web" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   
-  # Node.js App
+  # Node.js Backend
   ingress {
     from_port   = 8080
     to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  
+  # React Frontend
+  ingress {
+    from_port   = 3000
+    to_port     = 3000
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -293,7 +301,7 @@ resource "aws_db_instance" "postgres" {
 
 resource "aws_instance" "web" {
   ami                    = data.aws_ami.ubuntu.id
-  instance_type          = "t3.micro"
+  instance_type          = "t3.small"
   key_name               = aws_key_pair.main.key_name
   vpc_security_group_ids = [aws_security_group.web.id]
   subnet_id              = data.aws_subnet.public_1.id
@@ -305,10 +313,23 @@ resource "aws_instance" "web" {
   user_data = base64encode(<<-EOF
     #!/bin/bash
     apt-get update
-    apt-get install -y nginx nodejs npm
+    apt-get install -y nginx curl
+    
+    # Install Node.js 20.x
+    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+    apt-get install -y nodejs
+    
+    # Install PM2 globally
+    npm install -g pm2
+    
+    # Configure nginx
     systemctl start nginx
     systemctl enable nginx
     echo "<h1>ShopMefy Server Ready</h1>" > /var/www/html/index.html
+    
+    # Create app directory
+    mkdir -p /home/ubuntu/shopmefy
+    chown ubuntu:ubuntu /home/ubuntu/shopmefy
   EOF
   )
   

@@ -1,6 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import fs from 'fs';
-import path from 'path';
+import { storageService } from '../src/services/storage.service';
 
 const prisma = new PrismaClient();
 
@@ -377,14 +376,8 @@ Welcome to the Gusto Italiano family! 🇮🇹`,
 
   // Seed documents
   try {
-    const uploadsDir = path.join(__dirname, '..', 'uploads', 'documents');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-
     // Always create the international-transportation-law.pdf document record
     const legacyFilename = 'international-transportation-law.pdf';
-    const legacyPath = path.join(uploadsDir, legacyFilename);
     
     // Create comprehensive document content about International Transportation Law
     const documentContent = `International Transportation Law - Legal Framework and Regulations
@@ -440,15 +433,21 @@ International transportation requires extensive documentation including:
 Technology and Digital Transformation:
 Electronic documentation and digital platforms are increasingly important in international transportation, with initiatives like electronic bills of lading and digital customs procedures streamlining operations while maintaining legal validity.`;
 
-    // Create the document record (file will be copied by reset script)
+    // Create a mock PDF buffer for the document
+    const pdfBuffer = Buffer.from('Mock PDF content for seeding');
+    
+    // Upload the file using StorageService
+    const uploadResult = await storageService.uploadFile(pdfBuffer, legacyFilename, 'application/pdf');
+    
+    // Create the document record
     const document = await prisma.document.create({
       data: {
         filename: legacyFilename,
         originalName: 'international-transportation-law.pdf',
         title: 'International Transportation Law',
         mimeType: 'application/pdf',
-        size: 137879, // Correct size of the actual PDF file
-        uploadPath: legacyPath,
+        size: pdfBuffer.length,
+        uploadPath: uploadResult.path,
         status: 'COMPLETED',
         metadata: JSON.stringify({
           pages: 1,
