@@ -283,7 +283,7 @@ jobs:
             rm backend/backend.pid
           fi
 
-      - name: Stop Docker Compose
+      - name: Stop Docker Compos
         if: always()
         run: |
           echo "Stopping Docker Compose services..."
