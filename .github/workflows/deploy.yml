@@ -140,7 +140,17 @@ jobs:
             # Install required tools
             echo "🔧 Installing required tools..."
             sudo apt-get update -qq
-            sudo apt-get install -y unzip curl
+            sudo apt-get install -y unzip curl postgresql postgresql-contrib
+            
+            # Setup PostgreSQL
+            echo "🗄️ Setting up PostgreSQL..."
+            sudo systemctl start postgresql
+            sudo systemctl enable postgresql
+            
+            # Create database and user
+            sudo -u postgres psql -c "CREATE USER shopmefy WITH PASSWORD 'shopmefy';" || echo "User already exists"
+            sudo -u postgres psql -c "CREATE DATABASE shopmefy OWNER shopmefy;" || echo "Database already exists"
+            sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE shopmefy TO shopmefy;" || echo "Privileges already granted"
             
             # Install AWS CLI if not present
             echo "🔧 Installing AWS CLI..."
