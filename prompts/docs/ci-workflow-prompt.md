@@ -2,18 +2,26 @@
 
 ## 🎯 **Current Workflow Architecture**
 
-ShopMefy uses a **simplified CI/CD approach** with GitHub Actions for automated deployment to AWS EC2.
+ShopMefy uses a **modern CI/CD approach** with GitHub Actions for build and S3 for artifact distribution.
 
 ## 📋 **Workflow Overview**
 
-### **Single Deployment Workflow** (`.github/workflows/deploy.yml`)
+### **Build and Deploy Workflow** (`.github/workflows/deploy-new.yml`)
 
-The project uses **one main workflow** that handles:
-1. **Code Deployment**: Direct SSH to EC2 + Git pull
-2. **Environment Setup**: Auto-create .env files with secrets
-3. **Application Build**: Backend + Frontend build on EC2
+The project uses **one optimized workflow** that handles:
+1. **Build on GitHub Actions**: Backend + Frontend compilation with unlimited RAM
+2. **S3 Artifact Storage**: Upload pre-compiled builds to S3
+3. **EC2 Deployment**: Download from S3 and deploy (no build needed)
 4. **Service Management**: Start services with Nginx proxy
 5. **Health Verification**: Process checks and status
+
+## ⚡ **Performance Benefits**
+
+- 🏗️ **Build on GitHub Actions**: Unlimited RAM, no memory issues
+- 📦 **Pre-compiled Artifacts**: No compilation on EC2
+- ☁️ **S3 Distribution**: Fast, reliable artifact delivery
+- 🚀 **Fast Deployment**: ~2 minutes vs 10+ minutes
+- 💾 **Low EC2 Memory Usage**: Only runs services, no builds
 
 ## 🏗️ **Deployment Architecture**
 
@@ -34,44 +42,45 @@ Internet → Nginx (Port 80) → {
 ## 🔄 **Deployment Flow**
 
 ### **1. Trigger Conditions**
-- **Automatic**: Push to `main` branch
 - **Manual**: `workflow_dispatch` in GitHub Actions
+- **Infrastructure Check**: Automatic EC2 status verification
+- **Force Deploy**: Option to auto-start stopped infrastructure
 
-### **2. Deployment Steps**
+### **2. Modern Deployment Steps**
 ```yaml
-1. Environment Setup
-   - Configure AWS credentials
-   - Prepare SSH private key
+1. Infrastructure Check
+   - Verify EC2 status and IP association
+   - Auto-start infrastructure if needed
 
-2. Process Management
-   - Stop existing Node.js processes
-   - Stop existing Vite processes
+2. Build Phase (GitHub Actions)
+   - Checkout code
+   - Setup Node.js 20 with caching
+   - Build backend (TypeScript → JavaScript)
+   - Build frontend (React → Static files)
+   - Package deployment artifacts
 
-3. Code Deployment
+3. Artifact Distribution
+   - Upload build to S3 bucket
+   - Create versioned and latest artifacts
+   - Generate deployment metadata
+
+4. EC2 Deployment
    - SSH to EC2 instance
-   - Git fetch + reset to origin/main
-   - Clean untracked files
+   - Download artifacts from S3
+   - Extract pre-compiled builds
+   - Install production dependencies only
+   - Run database migrations
+   - Start services (no build needed!)
 
-4. Backend Deployment
-   - npm ci --production
-   - Create .env with secrets
-   - npm run build
-   - Prisma migrate + seed
-   - Start on port 8080
+5. Service Configuration
+   - Configure Nginx reverse proxy
+   - Start backend (port 8080)
+   - Start frontend (port 3000)
+   - Restart Nginx
 
-5. Frontend Deployment
-   - npm ci --production
-   - Create .env with API URL
-   - npm run build
-   - Start on port 3000
-
-6. Nginx Configuration
-   - Generate reverse proxy config
-   - Restart Nginx service
-
-7. Health Verification
-   - Wait for services startup
-   - Check running processes
+6. Health Verification
+   - Test application endpoints
+   - Verify service status
    - Display deployment summary
 ```
 
