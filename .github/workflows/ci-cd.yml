@@ -88,29 +88,6 @@ jobs:
           echo "Building frontend..."
           npm run build
 
-      - name: 📦 Upload Backend Build Artifacts
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-build
-          path: |
-            backend/dist/
-            backend/package.json
-            backend/package-lock.json
-            backend/prisma/
-          retention-days: 1
-
-      - name: 📦 Upload Frontend Build Artifacts  
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-build
-          path: |
-            frontend/dist/
-            frontend/package.json
-            frontend/package-lock.json
-          retention-days: 1
-
       - name: Run backend unit tests
         working-directory: ./backend
         run: |
@@ -288,3 +265,26 @@ jobs:
         run: |
           echo "Stopping Docker Compose services..."
           docker compose down 
+
+      - name: 📦 Upload Backend Build Artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-build
+          path: |
+            backend/dist/
+            backend/package.json
+            backend/package-lock.json
+            backend/prisma/
+          retention-days: 7
+
+      - name: 📦 Upload Frontend Build Artifacts  
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: |
+            frontend/dist/
+            frontend/package.json
+            frontend/package-lock.json
+          retention-days: 7 
