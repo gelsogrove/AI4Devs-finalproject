@@ -12,6 +12,12 @@ on:
           - status
           - start
           - stop
+          - start-and-deploy
+      skip_health_check:
+        description: Skip health check after start
+        required: false
+        default: false
+        type: boolean
 
 env:
   AWS_REGION: us-east-1
@@ -23,11 +29,16 @@ jobs:
     name: 🏗️ Infrastructure Control
     runs-on: ubuntu-latest
     environment: dev
+    outputs:
+      ec2_state: ${{ steps.status.outputs.EC2_STATE }}
+      fixed_ip: ${{ steps.status.outputs.FIXED_IP }}
+      should_deploy: ${{ steps.check_deploy.outputs.should_deploy }}
     
     steps:
       - name: 🎯 Set Action
         run: |
           echo "ACTION=${{ github.event.inputs.action }}" >> $GITHUB_ENV
+          echo "SKIP_HEALTH_CHECK=${{ github.event.inputs.skip_health_check }}" >> $GITHUB_ENV
           echo "Infrastructure action: ${{ github.event.inputs.action }}"
 
       - name: ⚙️ Configure AWS Credentials
@@ -49,11 +60,15 @@ jobs:
           EIP_EXISTS=$(aws ec2 describe-addresses --filters "Name=instance-id,Values=$INSTANCE_ID" --query "Addresses[0].AllocationId" --output text 2>/dev/null || echo "None")
           echo "EIP_EXISTS=$EIP_EXISTS" >> $GITHUB_OUTPUT
           
+          FIXED_IP=$(aws ec2 describe-addresses --allocation-ids $FIXED_EIP_ALLOCATION --query "Addresses[0].PublicIp" --output text 2>/dev/null || echo "Not found")
+          echo "FIXED_IP=$FIXED_IP" >> $GITHUB_OUTPUT
+          echo "Fixed IP Address: $FIXED_IP"
+          
           if [ "$EIP_EXISTS" != "None" ] && [ "$EIP_EXISTS" != "null" ]; then
             EIP_ADDRESS=$(aws ec2 describe-addresses --allocation-ids $EIP_EXISTS --query "Addresses[0].PublicIp" --output text)
             echo "Elastic IP: $EIP_ADDRESS (Allocation: $EIP_EXISTS)"
           else
-            echo "Elastic IP: Not allocated"
+            echo "Elastic IP: Not allocated to instance"
           fi
           
           RDS_STATE=$(aws rds describe-db-instances --db-instance-identifier shopmefy-db-b070a7e8 --query "DBInstances[0].DBInstanceStatus" --output text 2>/dev/null || echo "not-found")
@@ -61,7 +76,7 @@ jobs:
           echo "RDS Database: $RDS_STATE"
 
       - name: 🚀 Start Infrastructure
-        if: env.ACTION == 'start'
+        if: env.ACTION == 'start' || env.ACTION == 'start-and-deploy'
         run: |
           echo "🚀 Starting infrastructure..."
           
@@ -77,9 +92,25 @@ jobs:
             
             FIXED_IP=$(aws ec2 describe-addresses --allocation-ids $FIXED_EIP_ALLOCATION --query "Addresses[0].PublicIp" --output text)
             echo "✅ Infrastructure started! Fixed IP: $FIXED_IP"
-            echo "🌐 Application available at: http://$FIXED_IP"
+            echo "🌐 Application will be available at: http://$FIXED_IP"
+            
+            # Wait for SSH to be ready
+            echo "⏳ Waiting for SSH to be ready..."
+            sleep 30
+            
+          elif [ "${{ steps.status.outputs.EC2_STATE }}" == "running" ]; then
+            echo "✅ EC2 instance is already running"
+            
+            # Ensure IP is associated
+            CURRENT_ASSOCIATION=$(aws ec2 describe-addresses --allocation-ids $FIXED_EIP_ALLOCATION --query "Addresses[0].InstanceId" --output text 2>/dev/null || echo "None")
+            if [ "$CURRENT_ASSOCIATION" != "$INSTANCE_ID" ]; then
+              echo "🔗 Re-associating fixed Elastic IP to instance..."
+              aws ec2 associate-address --instance-id $INSTANCE_ID --allocation-id $FIXED_EIP_ALLOCATION
+            fi
           else
-            echo "⚠️ EC2 instance is already ${{ steps.status.outputs.EC2_STATE }}"
+            echo "⚠️ EC2 instance is in state: ${{ steps.status.outputs.EC2_STATE }}"
+            echo "Cannot start from this state. Please check AWS console."
+            exit 1
           fi
 
       - name: 🛑 Stop Infrastructure
@@ -89,7 +120,10 @@ jobs:
           
           if [ "${{ steps.status.outputs.EC2_STATE }}" == "running" ]; then
             echo "Disassociating Elastic IP (keeping it allocated)..."
-            aws ec2 disassociate-address --association-id $(aws ec2 describe-addresses --allocation-ids $FIXED_EIP_ALLOCATION --query "Addresses[0].AssociationId" --output text)
+            ASSOCIATION_ID=$(aws ec2 describe-addresses --allocation-ids $FIXED_EIP_ALLOCATION --query "Addresses[0].AssociationId" --output text 2>/dev/null || echo "None")
+            if [ "$ASSOCIATION_ID" != "None" ] && [ "$ASSOCIATION_ID" != "null" ]; then
+              aws ec2 disassociate-address --association-id $ASSOCIATION_ID
+            fi
             
             echo "Stopping EC2 instance..."
             aws ec2 stop-instances --instance-ids $INSTANCE_ID
@@ -105,42 +139,281 @@ jobs:
             echo "⚠️ EC2 instance is already ${{ steps.status.outputs.EC2_STATE }}"
           fi
 
+      - name: 🔍 Check Deploy Requirement
+        id: check_deploy
+        if: env.ACTION == 'start-and-deploy'
+        run: |
+          echo "should_deploy=true" >> $GITHUB_OUTPUT
+          echo "🚀 Deploy will be triggered after infrastructure start"
+
+      - name: 🏥 Health Check
+        if: (env.ACTION == 'start' || env.ACTION == 'start-and-deploy') && env.SKIP_HEALTH_CHECK != 'true'
+        run: |
+          echo "🏥 Performing basic health check..."
+          
+          FIXED_IP=$(aws ec2 describe-addresses --allocation-ids $FIXED_EIP_ALLOCATION --query "Addresses[0].PublicIp" --output text)
+          
+          # Test SSH connectivity
+          echo "🔑 Testing SSH connectivity..."
+          timeout 30s ssh -i <(echo "${{ secrets.SSH_PRIVATE_KEY }}") -o StrictHostKeyChecking=no -o ConnectTimeout=10 ubuntu@$FIXED_IP "echo 'SSH connection successful'" || {
+            echo "⚠️ SSH connection failed - this is expected if this is the first start"
+          }
+          
+          # Test basic HTTP connectivity (if services are running)
+          echo "🌐 Testing HTTP connectivity..."
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 10 http://$FIXED_IP/ || echo "000")
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "✅ Application is responding (HTTP $HTTP_STATUS)"
+          else
+            echo "⚠️ Application not responding (HTTP $HTTP_STATUS) - deployment may be needed"
+          fi
+
       - name: 📊 Final Status Report
         run: |
           echo "## 📊 Infrastructure Status Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🖥️ EC2 Instance ($INSTANCE_ID)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status**: ${{ steps.status.outputs.EC2_STATE }}" >> $GITHUB_STEP_SUMMARY
+          
+          # Get current state after actions
+          CURRENT_EC2_STATE=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query "Reservations[0].Instances[0].State.Name" --output text)
+          echo "- **Status**: $CURRENT_EC2_STATE" >> $GITHUB_STEP_SUMMARY
           echo "- **Type**: t3.small" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          
           echo "### 🌐 Elastic IP" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ steps.status.outputs.EIP_EXISTS }}" != "None" ] && [ "${{ steps.status.outputs.EIP_EXISTS }}" != "null" ]; then
-            echo "- **Status**: Allocated (${{ steps.status.outputs.EIP_EXISTS }})" >> $GITHUB_STEP_SUMMARY
+          FIXED_IP=$(aws ec2 describe-addresses --allocation-ids $FIXED_EIP_ALLOCATION --query "Addresses[0].PublicIp" --output text)
+          echo "- **Fixed IP**: $FIXED_IP" >> $GITHUB_STEP_SUMMARY
+          echo "- **Allocation ID**: $FIXED_EIP_ALLOCATION" >> $GITHUB_STEP_SUMMARY
+          
+          CURRENT_ASSOCIATION=$(aws ec2 describe-addresses --allocation-ids $FIXED_EIP_ALLOCATION --query "Addresses[0].InstanceId" --output text 2>/dev/null || echo "None")
+          if [ "$CURRENT_ASSOCIATION" = "$INSTANCE_ID" ]; then
+            echo "- **Status**: ✅ Associated to EC2" >> $GITHUB_STEP_SUMMARY
           else
-            echo "- **Status**: Not allocated" >> $GITHUB_STEP_SUMMARY
+            echo "- **Status**: 🔒 Preserved (not associated)" >> $GITHUB_STEP_SUMMARY
           fi
           echo "" >> $GITHUB_STEP_SUMMARY
+          
           echo "### 🗄️ RDS Database" >> $GITHUB_STEP_SUMMARY
           echo "- **Status**: ${{ steps.status.outputs.RDS_STATE }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Type**: db.t3.micro (PostgreSQL)" >> $GITHUB_STEP_SUMMARY
           echo "- **Note**: RDS cannot be stopped (always running)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 💰 Cost Savings" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ steps.status.outputs.EC2_STATE }}" == "stopped" ]; then
+          
+          echo "### 💰 Cost Analysis" >> $GITHUB_STEP_SUMMARY
+          if [ "$CURRENT_EC2_STATE" = "stopped" ]; then
             echo "- **EC2**: ~$15/month saved ✅" >> $GITHUB_STEP_SUMMARY
-            echo "- **Elastic IP**: ~$3.6/month (kept allocated for fixed IP)" >> $GITHUB_STEP_SUMMARY
-            echo "- **Total Savings**: ~$15/month" >> $GITHUB_STEP_SUMMARY
+            echo "- **RDS**: ~$12.5/month (always running)" >> $GITHUB_STEP_SUMMARY
+            echo "- **Elastic IP**: ~$3.6/month (preserved)" >> $GITHUB_STEP_SUMMARY
+            echo "- **Total Monthly Cost**: ~$16.1/month" >> $GITHUB_STEP_SUMMARY
           else
-            echo "- **Current Cost**: ~$30/month (running)" >> $GITHUB_STEP_SUMMARY
-            echo "- **Potential Savings**: ~$15/month (if stopped)" >> $GITHUB_STEP_SUMMARY
+            echo "- **EC2**: ~$15/month (running)" >> $GITHUB_STEP_SUMMARY
+            echo "- **RDS**: ~$12.5/month (always running)" >> $GITHUB_STEP_SUMMARY
+            echo "- **Elastic IP**: ~$0/month (associated)" >> $GITHUB_STEP_SUMMARY
+            echo "- **Total Monthly Cost**: ~$27.5/month" >> $GITHUB_STEP_SUMMARY
           fi
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🎯 Actions Available" >> $GITHUB_STEP_SUMMARY
-          echo "- **Start**: Associates fixed IP and starts EC2" >> $GITHUB_STEP_SUMMARY
-          echo "- **Stop**: Disassociates IP (keeps allocated) and stops EC2" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status**: Shows current state" >> $GITHUB_STEP_SUMMARY
+          
+          echo "### 🎯 Available Actions" >> $GITHUB_STEP_SUMMARY
+          echo "- **start**: Start EC2 and associate fixed IP" >> $GITHUB_STEP_SUMMARY
+          echo "- **stop**: Stop EC2 and preserve fixed IP" >> $GITHUB_STEP_SUMMARY
+          echo "- **start-and-deploy**: Start infrastructure and deploy application" >> $GITHUB_STEP_SUMMARY
+          echo "- **status**: Show current infrastructure state" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🔒 Fixed IP Configuration" >> $GITHUB_STEP_SUMMARY
-          echo "- **Allocation ID**: $FIXED_EIP_ALLOCATION" >> $GITHUB_STEP_SUMMARY
-          FIXED_IP=$(aws ec2 describe-addresses --allocation-ids $FIXED_EIP_ALLOCATION --query "Addresses[0].PublicIp" --output text 2>/dev/null || echo "Not found")
-          echo "- **IP Address**: $FIXED_IP" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "$CURRENT_EC2_STATE" = "running" ]; then
+            echo "### 🌐 Access URLs" >> $GITHUB_STEP_SUMMARY
+            echo "- **Application**: http://$FIXED_IP/" >> $GITHUB_STEP_SUMMARY
+            echo "- **API**: http://$FIXED_IP/api" >> $GITHUB_STEP_SUMMARY
+            echo "- **Swagger**: http://$FIXED_IP/api-docs" >> $GITHUB_STEP_SUMMARY
+            echo "- **SSH**: \`ssh -i key.pem ubuntu@$FIXED_IP\`" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  deploy-application:
+    name: 🚀 Deploy Application
+    needs: infrastructure-control
+    runs-on: ubuntu-latest
+    environment: dev
+    if: needs.infrastructure-control.outputs.should_deploy == 'true' && needs.infrastructure-control.outputs.ec2_state != 'stopped'
+    
+    steps:
+      - name: 🎯 Setup Deploy Environment
+        run: |
+          echo "FIXED_IP=${{ needs.infrastructure-control.outputs.fixed_ip }}" >> $GITHUB_ENV
+          echo "Deploying to: ${{ needs.infrastructure-control.outputs.fixed_ip }}"
+
+      - name: 🔑 Prepare SSH Key
+        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ec2_key.pem
+          chmod 600 ec2_key.pem
+
+      - name: 🚀 Deploy to EC2
+        run: |
+          echo "Connecting to EC2 and starting deployment..."
+          ssh -i ec2_key.pem -o StrictHostKeyChecking=no ubuntu@${{ env.FIXED_IP }} << 'DEPLOY_SCRIPT'
+            echo "🚀 Starting ShopMefy deployment..."
+            
+            # Stop existing processes
+            echo "🛑 Stopping existing processes..."
+            sudo pkill -f "node.*dist/index.js" || true
+            sudo pkill -f "vite preview" || true
+            sudo pkill -f npm || true
+            
+            # Clone or update repository
+            if [ -d "AI4Devs-finalproject" ]; then
+              echo "📥 Updating existing repository..."
+              cd AI4Devs-finalproject
+              git fetch origin
+              git reset --hard origin/main
+              git clean -fd
+            else
+              echo "📥 Cloning repository..."
+              git clone https://github.com/gelsogrove/AI4Devs-finalproject.git
+              cd AI4Devs-finalproject
+            fi
+            
+            # Backend setup
+            echo "🔧 Setting up backend..."
+            cd backend
+            npm ci --production
+            
+            # Create backend .env
+            echo "⚙️ Creating backend .env..."
+            echo "NODE_ENV=development" > .env
+            echo "PORT=8080" >> .env
+            echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env
+            echo "OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}" >> .env
+            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+            echo "AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}" >> .env
+            echo "AWS_REGION=us-east-1" >> .env
+            echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> .env
+            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> .env
+            echo "PUBLIC_URL=http://${{ env.FIXED_IP }}" >> .env
+            echo "SWAGGER_USER=${{ secrets.SWAGGER_USER }}" >> .env
+            echo "SWAGGER_PASSWORD=${{ secrets.SWAGGER_PASSWORD }}" >> .env
+            
+            # Build backend
+            echo "🏗️ Building backend..."
+            npm run build
+            
+            # Database setup
+            echo "🗄️ Setting up database..."
+            npx prisma migrate deploy
+            npx prisma db seed
+            
+            # Start backend
+            echo "🚀 Starting backend..."
+            nohup npm run start > ../backend.log 2>&1 &
+            echo $! > ../backend.pid
+            
+            # Frontend setup
+            echo "🔧 Setting up frontend..."
+            cd ../frontend
+            npm ci
+            
+            # Create frontend .env
+            echo "⚙️ Creating frontend .env..."
+            echo "VITE_API_URL=http://${{ env.FIXED_IP }}" > .env
+            
+            # Build frontend
+            echo "🏗️ Building frontend..."
+            npm run build
+            
+            # Start frontend with preview
+            echo "🚀 Starting frontend..."
+            nohup npx vite preview --host 0.0.0.0 --port 3000 > ../frontend.log 2>&1 &
+            echo $! > ../frontend.pid
+            
+            # Configure Nginx reverse proxy
+            echo "🔧 Configuring Nginx reverse proxy..."
+            sudo rm -f /etc/nginx/sites-available/default
+            echo "server {" | sudo tee /etc/nginx/sites-available/default
+            echo "    listen 80;" | sudo tee -a /etc/nginx/sites-available/default
+            echo "    server_name _;" | sudo tee -a /etc/nginx/sites-available/default
+            echo "" | sudo tee -a /etc/nginx/sites-available/default
+            echo "    location / {" | sudo tee -a /etc/nginx/sites-available/default
+            echo "        proxy_pass http://localhost:3000;" | sudo tee -a /etc/nginx/sites-available/default
+            echo "        proxy_set_header Host \$host;" | sudo tee -a /etc/nginx/sites-available/default
+            echo "        proxy_set_header X-Real-IP \$remote_addr;" | sudo tee -a /etc/nginx/sites-available/default
+            echo "    }" | sudo tee -a /etc/nginx/sites-available/default
+            echo "" | sudo tee -a /etc/nginx/sites-available/default
+            echo "    location /api {" | sudo tee -a /etc/nginx/sites-available/default
+            echo "        proxy_pass http://localhost:8080;" | sudo tee -a /etc/nginx/sites-available/default
+            echo "        proxy_set_header Host \$host;" | sudo tee -a /etc/nginx/sites-available/default
+            echo "        proxy_set_header X-Real-IP \$remote_addr;" | sudo tee -a /etc/nginx/sites-available/default
+            echo "    }" | sudo tee -a /etc/nginx/sites-available/default
+            echo "}" | sudo tee -a /etc/nginx/sites-available/default
+            
+            # Test and restart Nginx
+            echo "🔄 Restarting Nginx..."
+            sudo nginx -t
+            sudo systemctl restart nginx
+            sudo systemctl enable nginx
+            
+            # Wait for services to start
+            echo "⏳ Waiting for services to start..."
+            sleep 15
+            
+            echo "✅ Deployment completed successfully!"
+            echo "🌐 Application: http://${{ env.FIXED_IP }}"
+            echo "🔗 API: http://${{ env.FIXED_IP }}/api"
+            
+            # Show process status
+            echo "📊 Process status:"
+            ps aux | grep -E "(node|vite)" | grep -v grep || echo "No processes found"
+          DEPLOY_SCRIPT
+
+      - name: 🏥 Post-Deploy Health Check
+        run: |
+          echo "🏥 Performing post-deployment health check..."
+          
+          # Wait a bit more for services to fully start
+          sleep 10
+          
+          # Test application endpoints
+          echo "🌐 Testing application endpoints..."
+          
+          # Test frontend
+          FRONTEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 15 http://${{ env.FIXED_IP }}/ || echo "000")
+          echo "Frontend status: $FRONTEND_STATUS"
+          
+          # Test API health
+          API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 15 http://${{ env.FIXED_IP }}/api/health || echo "000")
+          echo "API health status: $API_STATUS"
+          
+          # Test API services endpoint
+          SERVICES_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 15 http://${{ env.FIXED_IP }}/api/services || echo "000")
+          echo "API services status: $SERVICES_STATUS"
+          
+          # Summary
+          if [ "$FRONTEND_STATUS" = "200" ] && [ "$API_STATUS" = "200" ]; then
+            echo "✅ All health checks passed!"
+            echo "HEALTH_STATUS=healthy" >> $GITHUB_ENV
+          else
+            echo "⚠️ Some health checks failed - application may need time to fully start"
+            echo "HEALTH_STATUS=partial" >> $GITHUB_ENV
+          fi
+
+      - name: 🧹 Cleanup
+        if: always()
+        run: |
+          rm -f ec2_key.pem
+
+      - name: 📊 Deployment Summary
+        run: |
+          echo "## 🎉 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Deployment Details:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target Server**: ${{ env.FIXED_IP }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployment Time**: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Health Status**: ${{ env.HEALTH_STATUS || 'unknown' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 Access Your Application:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Application**: http://${{ env.FIXED_IP }}/" >> $GITHUB_STEP_SUMMARY
+          echo "- **API**: http://${{ env.FIXED_IP }}/api" >> $GITHUB_STEP_SUMMARY
+          echo "- **API Health**: http://${{ env.FIXED_IP }}/api/health" >> $GITHUB_STEP_SUMMARY
+          echo "- **Swagger Docs**: http://${{ env.FIXED_IP }}/api-docs" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🎯 Next Steps:" >> $GITHUB_STEP_SUMMARY
+          echo "- Test the application functionality" >> $GITHUB_STEP_SUMMARY
+          echo "- Monitor logs if needed: \`ssh -i key.pem ubuntu@${{ env.FIXED_IP }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Use **stop** action to save costs when not in use" >> $GITHUB_STEP_SUMMARY

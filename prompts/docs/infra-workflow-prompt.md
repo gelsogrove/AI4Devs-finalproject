@@ -1,9 +1,56 @@
-# Terraform Infrastructure Documentation
+# Infrastructure Management Documentation
 
-## 🏗️ CURRENT INFRASTRUCTURE SETUP
+## 🏗️ **IMPROVED INFRASTRUCTURE SETUP**
 
 ### **ShopMefy AWS Infrastructure**
-The application uses a **simplified AWS infrastructure** with the following components:
+The application uses an **enhanced AWS infrastructure management** with intelligent workflows and comprehensive monitoring.
+
+## Enhanced Workflow Architecture
+
+### **1. Infrastructure Control Workflow** (`infra-control.yml`)
+**Intelligent infrastructure management with integrated deployment:**
+
+#### **Available Actions:**
+- **`status`**: Show current infrastructure state and costs
+- **`start`**: Start EC2 and associate fixed IP
+- **`stop`**: Stop EC2 and preserve fixed IP (save ~$15/month)
+- **`start-and-deploy`**: Start infrastructure AND deploy application in one action
+
+#### **Key Features:**
+- ✅ **Pre-flight checks**: Validates infrastructure state before actions
+- ✅ **Health monitoring**: Tests SSH and HTTP connectivity after start
+- ✅ **Cost tracking**: Real-time cost analysis and savings calculation
+- ✅ **Fixed IP management**: Automatic association/disassociation
+- ✅ **Integrated deployment**: Can start infrastructure and deploy in one workflow
+
+#### **Smart Outputs:**
+```yaml
+outputs:
+  ec2_state: ${{ steps.status.outputs.EC2_STATE }}
+  fixed_ip: ${{ steps.status.outputs.FIXED_IP }}
+  should_deploy: ${{ steps.check_deploy.outputs.should_deploy }}
+```
+
+### **2. Enhanced Deploy Workflow** (`deploy.yml`)
+**Intelligent deployment with infrastructure validation:**
+
+#### **Available Options:**
+- **`environment`**: Target environment (dev)
+- **`force_deploy`**: Auto-start infrastructure if stopped
+- **`skip_health_check`**: Skip post-deployment health validation
+
+#### **Multi-Job Architecture:**
+1. **`pre-deploy-check`**: Validates infrastructure readiness
+2. **`start-infrastructure`**: Auto-starts if force_deploy enabled
+3. **`deploy`**: Deploys application with comprehensive health checks
+
+#### **Advanced Features:**
+- ✅ **Infrastructure validation**: Checks EC2 state and IP association before deploy
+- ✅ **Force deployment**: Can auto-start stopped infrastructure
+- ✅ **SSH connectivity test**: Validates connection before deployment
+- ✅ **Comprehensive health checks**: Tests multiple endpoints with retries
+- ✅ **Detailed diagnostics**: Process monitoring and log analysis
+- ✅ **Graceful error handling**: Proper cleanup and error reporting
 
 ## Infrastructure Components
 
@@ -11,7 +58,7 @@ The application uses a **simplified AWS infrastructure** with the following comp
 - **Instance Type**: `t3.small` (2GB RAM, 1 vCPU)
 - **AMI**: Ubuntu 22.04 LTS (latest)
 - **Storage**: 20GB GP3 encrypted EBS volume
-- **Network**: Public subnet with Elastic IP
+- **Network**: Public subnet with fixed Elastic IP
 - **User Data**: Node.js 20.x + PM2 + Nginx setup
 
 ### **2. RDS PostgreSQL Database** 🗄️
@@ -31,244 +78,228 @@ The application uses a **simplified AWS infrastructure** with the following comp
 - **VPC**: Default VPC (existing)
 - **Subnets**: Uses existing default subnets
 - **Security Groups**: Web (ports 22,80,443,3000,8080) + DB (port 5432)
-- **Elastic IP**: Fixed public IP address
+- **Elastic IP**: Fixed public IP address (`18.207.145.179`)
 
 ### **5. SSH Access** 🔑
 - **Key Type**: RSA 4096-bit auto-generated
-- **Storage**: Private key in Terraform output
+- **Storage**: Private key in GitHub Secrets
 - **Access**: SSH to ubuntu user on EC2
 
-## Terraform Configuration
+## Enhanced Workflow Usage
 
-### **File Structure**
+### **Quick Actions via GitHub UI:**
+
+#### **Start Infrastructure:**
 ```
-terraform/
-├── main.tf          # All infrastructure resources
-├── variables.tf     # Input variables (region, db_password)
-├── outputs.tf       # Infrastructure outputs
-└── .terraform.lock.hcl  # Provider version lock
-```
-
-### **Key Features**
-- ✅ **Single File**: All resources in main.tf
-- ✅ **Default VPC**: Uses existing AWS default VPC
-- ✅ **Auto-Generated**: SSH keys and random passwords
-- ✅ **Minimal Setup**: Essential resources only
-- ✅ **Cost Optimized**: ~$16-17/month running cost
-
-## Resource Dependencies
-
-### **Dependency Chain**
-```
-Data Sources (VPC, Subnets, AMI)
-    ↓
-Random Resources (Password, Bucket Suffix)
-    ↓
-Security Groups (Web, Database)
-    ↓
-SSH Key Pair (TLS + AWS Key Pair)
-    ↓
-S3 Bucket + Configuration
-    ↓
-DB Subnet Group
-    ↓
-RDS PostgreSQL Instance
-    ↓
-EC2 Instance
-    ↓
-Elastic IP
+GitHub → Actions → Infrastructure Control → Run workflow
+Action: start
 ```
 
-## Terraform Commands
+#### **Stop Infrastructure (Save Money):**
+```
+GitHub → Actions → Infrastructure Control → Run workflow
+Action: stop
+```
 
-### **Infrastructure Lifecycle**
+#### **Start and Deploy in One Action:**
+```
+GitHub → Actions → Infrastructure Control → Run workflow
+Action: start-and-deploy
+```
+
+#### **Deploy to Running Infrastructure:**
+```
+GitHub → Actions → Deploy Application → Run workflow
+Environment: dev
+```
+
+#### **Force Deploy (Auto-start if needed):**
+```
+GitHub → Actions → Deploy Application → Run workflow
+Environment: dev
+Force deploy: true
+```
+
+### **Local Management Script:**
+
+#### **Installation:**
 ```bash
-# Initialize Terraform
-terraform init
-
-# Validate configuration
-terraform validate
-
-# Plan infrastructure changes
-terraform plan
-
-# Apply infrastructure
-terraform apply
-
-# Destroy infrastructure
-terraform destroy
+chmod +x scripts/infra-manager.sh
 ```
 
-### **Get Infrastructure Info**
+#### **Usage:**
 ```bash
-# Get public IP
-terraform output web_public_ip
+# Check current status
+./scripts/infra-manager.sh status
 
-# Get SSH command
-terraform output ssh_command
+# Start infrastructure locally
+./scripts/infra-manager.sh start
 
-# Get database URL (sensitive)
-terraform output database_url
+# Stop infrastructure locally
+./scripts/infra-manager.sh stop
 
-# Get S3 bucket name
-terraform output s3_bucket_name
+# Test application health
+./scripts/infra-manager.sh test
+
+# Trigger GitHub Actions
+./scripts/infra-manager.sh github-start
+./scripts/infra-manager.sh github-deploy
+./scripts/infra-manager.sh github-start-deploy
 ```
 
-## GitHub Secrets Required
+## Cost Optimization Strategy
 
-### **AWS Access**
-- `AWS_ACCESS_KEY_ID`: AWS access key for Terraform
-- `AWS_SECRET_ACCESS_KEY`: AWS secret key for Terraform
+### **Monthly Cost Breakdown:**
+```
+Infrastructure Running:
+├── EC2 t3.small: ~$15.00/month
+├── RDS db.t3.micro: ~$12.50/month
+├── Elastic IP (associated): ~$0.00/month
+├── EBS 20GB: ~$2.00/month
+└── S3 + Data Transfer: ~$1.50/month
+Total: ~$31.00/month
 
-### **Application Configuration**
-- `OPENROUTER_API_KEY`: AI service API key
-- `JWT_SECRET`: Authentication secret
+Infrastructure Stopped:
+├── EC2 t3.small: ~$0.00/month (SAVED)
+├── RDS db.t3.micro: ~$12.50/month (always running)
+├── Elastic IP (preserved): ~$3.60/month
+├── EBS 20GB: ~$2.00/month
+└── S3 + Data Transfer: ~$1.50/month
+Total: ~$19.60/month
 
-### **Auto-Generated by Terraform**
-- `EC2_HOST`: Public IP of EC2 instance
-- `SSH_PRIVATE_KEY`: Private SSH key for access
-- `DATABASE_URL`: Complete PostgreSQL connection string
-- `S3_BUCKET_NAME`: S3 bucket for uploads
+Monthly Savings: ~$11.40 (37% reduction)
+```
 
-## Cost Estimation
+### **Smart Cost Management:**
+- ✅ **Auto-stop**: Use GitHub Actions to stop when not needed
+- ✅ **Fixed IP**: Preserved during stop/start cycles
+- ✅ **RDS Always-On**: Database remains available (cannot be stopped)
+- ✅ **Quick Restart**: Infrastructure ready in ~2 minutes
 
-### **Monthly Costs (us-east-1)**
-- **EC2 t3.small**: ~$15.00/month
-- **RDS db.t3.micro**: ~$12.00/month
-- **EBS 20GB**: ~$2.00/month
-- **Elastic IP**: ~$3.60/month (if not attached)
-- **S3 Storage**: ~$0.50/month (minimal usage)
-- **Data Transfer**: ~$1.00/month
+## Health Monitoring & Diagnostics
 
-**Total**: ~$30-35/month running, ~$5/month hibernated
-
-## Security Configuration
-
-### **Network Security**
-- **SSH**: Key-based authentication only
-- **Database**: Private subnets, security group restricted
-- **Web Traffic**: Nginx reverse proxy
-- **S3**: Private bucket with encryption
-
-### **Application Security**
-- **Environment Variables**: Secrets via .env files
-- **JWT Authentication**: Secure token-based auth
-- **Input Validation**: Express validator middleware
-- **CORS**: Configured for frontend domain
-
-## User Data Setup
-
-### **EC2 Initialization**
+### **Automated Health Checks:**
 ```bash
-#!/bin/bash
-apt-get update
-apt-get install -y nginx curl
+# Frontend availability
+GET http://FIXED_IP/ → Expected: 200
 
-# Install Node.js 20.x
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-apt-get install -y nodejs
+# API health endpoint
+GET http://FIXED_IP/api/health → Expected: 200
 
-# Install PM2 globally
-npm install -g pm2
+# API services endpoint
+GET http://FIXED_IP/api/services → Expected: 200
 
-# Configure nginx
-systemctl start nginx
-systemctl enable nginx
-echo "<h1>ShopMefy Server Ready</h1>" > /var/www/html/index.html
-
-# Create app directory
-mkdir -p /home/ubuntu/shopmefy
-chown ubuntu:ubuntu /home/ubuntu/shopmefy
+# Swagger documentation
+GET http://FIXED_IP/api-docs → Expected: 200
 ```
 
-## Terraform Outputs
+### **Diagnostic Information:**
+- **Process monitoring**: Node.js and Vite processes
+- **Service status**: Nginx, database connectivity
+- **Log analysis**: Backend and frontend logs
+- **SSH connectivity**: Connection validation
+- **Resource usage**: Memory and CPU monitoring
 
-### **Infrastructure Information**
-```hcl
-output "web_public_ip" {
-  description = "Public IP address of the web server"
-  value       = aws_eip.web.public_ip
-}
+## Troubleshooting Guide
 
-output "ssh_command" {
-  description = "SSH command to connect to the server"
-  value       = "ssh -i ${aws_key_pair.main.key_name}.pem ubuntu@${aws_eip.web.public_ip}"
-}
+### **Common Issues & Solutions:**
 
-output "database_url" {
-  description = "Complete database URL"
-  value       = "postgresql://shopmefy:${random_password.db_password.result}@${split(":", aws_db_instance.postgres.endpoint)[0]}:5432/shopmefy"
-  sensitive   = true
-}
-
-output "s3_bucket_name" {
-  description = "S3 bucket name for deployments"
-  value       = aws_s3_bucket.deployments.bucket
-}
-
-output "ssh_private_key" {
-  description = "SSH private key for connecting to the server"
-  value       = tls_private_key.main.private_key_pem
-  sensitive   = true
-}
-```
-
-## Troubleshooting
-
-### **Common Issues**
-1. **AWS Credentials**: Ensure proper IAM permissions for EC2, RDS, S3, VPC
-2. **Region Availability**: Some instance types may not be available in all AZs
-3. **Subnet Conflicts**: Default VPC may have limited subnets
-4. **Security Groups**: Ensure proper port access for application
-
-### **Validation Steps**
+#### **1. Infrastructure Not Starting:**
 ```bash
-# Check Terraform syntax
-terraform validate
-
 # Check AWS credentials
 aws sts get-caller-identity
 
-# Check resource plan
-terraform plan
+# Check instance state
+aws ec2 describe-instances --instance-ids i-008b6c493b1f842a9
 
-# Check state
-terraform show
+# Use local script for detailed status
+./scripts/infra-manager.sh status
 ```
 
-## Next Steps After Infrastructure
+#### **2. Deploy Failing:**
+```bash
+# Force deploy with auto-start
+GitHub Actions → Deploy Application → force_deploy: true
 
-### **1. Configure GitHub Secrets**
-- Add AWS credentials to GitHub repository
-- Add application secrets (OPENROUTER_API_KEY, JWT_SECRET)
+# Or start infrastructure first
+GitHub Actions → Infrastructure Control → start
+```
 
-### **2. Run Deployment**
-- Trigger deploy.yml workflow
-- Monitor deployment logs
-- Verify application health
+#### **3. Application Not Responding:**
+```bash
+# Test health endpoints
+./scripts/infra-manager.sh test
 
-### **3. Access Application**
-- Frontend: `http://{EC2_HOST}/`
-- Backend API: `http://{EC2_HOST}/api`
-- SSH: `ssh -i key.pem ubuntu@{EC2_HOST}`
+# Check logs via SSH
+ssh -i key.pem ubuntu@18.207.145.179
+tail -f ~/AI4Devs-finalproject/backend.log
+tail -f ~/AI4Devs-finalproject/frontend.log
+```
 
-## Infrastructure Benefits
+#### **4. Database Connection Issues:**
+```bash
+# Test database connectivity
+ssh -i key.pem ubuntu@18.207.145.179
+cd ~/AI4Devs-finalproject/backend
+npx prisma db push
+```
 
-### **Simplified Architecture**
-- ✅ Single EC2 instance for both frontend and backend
-- ✅ Managed RDS for database reliability
-- ✅ S3 for file storage and uploads
-- ✅ Elastic IP for consistent access
+## Security & Best Practices
 
-### **Cost Optimization**
-- ✅ Right-sized instances (t3.small for app, t3.micro for DB)
-- ✅ Minimal storage allocation with auto-scaling
-- ✅ Default VPC to avoid NAT gateway costs
-- ✅ Single AZ deployment for development
+### **Security Features:**
+- ✅ **SSH Key-based authentication**: No password access
+- ✅ **Private database subnets**: RDS not publicly accessible
+- ✅ **Security groups**: Restricted port access
+- ✅ **Encrypted storage**: EBS volumes encrypted
+- ✅ **S3 encryption**: Server-side encryption enabled
 
-### **Development Friendly**
-- ✅ Easy SSH access for debugging
-- ✅ Direct git-based deployment
-- ✅ Real-time log monitoring
-- ✅ Quick infrastructure recreation
+### **Operational Best Practices:**
+- ✅ **Infrastructure as Code**: All resources defined in Terraform
+- ✅ **Automated deployments**: GitHub Actions workflows
+- ✅ **Health monitoring**: Comprehensive endpoint testing
+- ✅ **Cost optimization**: Smart stop/start management
+- ✅ **Fixed IP**: Consistent access point
+- ✅ **Backup strategy**: Database automated backups
+
+## Integration with CI/CD
+
+### **Workflow Dependencies:**
+```mermaid
+graph TD
+    A[Code Push] --> B[CI/CD Tests]
+    B --> C{Infrastructure Running?}
+    C -->|Yes| D[Deploy Application]
+    C -->|No| E[Start Infrastructure]
+    E --> D
+    D --> F[Health Check]
+    F --> G[Deployment Complete]
+    
+    H[Manual Stop] --> I[Stop Infrastructure]
+    I --> J[Cost Savings Active]
+```
+
+### **Automated Triggers:**
+- **Manual deployment**: `workflow_dispatch` for controlled releases
+- **Infrastructure control**: Separate workflow for start/stop operations
+- **Health monitoring**: Automatic validation after deployments
+- **Cost optimization**: Easy stop/start for development cycles
+
+## Future Enhancements
+
+### **Planned Improvements:**
+- 🔄 **Auto-scaling**: Implement based on usage patterns
+- 📊 **Monitoring**: CloudWatch integration for metrics
+- 🔒 **SSL/TLS**: HTTPS with Let's Encrypt certificates
+- 🌍 **CDN**: CloudFront for static asset delivery
+- 📱 **Notifications**: Slack/email alerts for deployments
+- 🔄 **Blue-Green**: Zero-downtime deployment strategy
+
+### **Development Workflow:**
+1. **Development**: Local testing and validation
+2. **Staging**: Deploy to stopped infrastructure for testing
+3. **Production**: Start infrastructure and deploy
+4. **Monitoring**: Health checks and performance monitoring
+5. **Cost Control**: Stop infrastructure when not needed
+
+This enhanced infrastructure management provides a robust, cost-effective, and developer-friendly deployment solution for ShopMefy.
 
