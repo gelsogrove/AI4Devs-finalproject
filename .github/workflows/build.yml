@@ -100,60 +100,49 @@ jobs:
             exit 1
           fi
 
-      - name: 📦 Package Deployment Artifacts
+      - name: 📦 Package Backend Artifacts
         run: |
-          echo "📦 Creating deployment package from downloaded artifacts..."
+          echo "📦 Creating backend.zip..."
           
-          # Create deployment structure
-          mkdir -p deployment/backend
-          mkdir -p deployment/frontend
+          # Create backend archive directly
+          cd backend-artifacts
+          zip -r ../backend.zip .
+          cd ..
           
-          # Copy backend artifacts
-          cp -r backend-artifacts/* deployment/backend/
-          
-          # Copy frontend artifacts
-          cp -r frontend-artifacts/* deployment/frontend/
-          
-          # Create deployment info
-          cat > deployment/deployment-info.json << EOF
-          {
-            "version": "${{ env.BUILD_VERSION }}",
-            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-            "commit": "$GITHUB_SHA",
-            "branch": "$GITHUB_REF_NAME",
-            "environment": "${{ github.event.inputs.environment || 'dev' }}",
-            "source": "artifacts-from-ci",
-            "workflow_run_id": "${{ env.WORKFLOW_RUN_ID }}"
-          }
-          EOF
-          
-          # Create archive
-          echo "🗜️ Creating deployment archive..."
-          tar -czf deployment.tar.gz -C deployment .
-          
-          echo "📊 Package created: $(du -sh deployment.tar.gz)"
-          echo "📋 Contents:"
-          tar -tzf deployment.tar.gz | head -20
+          echo "📊 Backend package created: $(du -sh backend.zip)"
 
-      - name: ☁️ Upload Build to S3
+      - name: 📦 Package Frontend Artifacts
         run: |
-          echo "☁️ Uploading build artifacts to S3..."
+          echo "📦 Creating frontend.zip..."
           
-          # Upload versioned build
-          aws s3 cp deployment.tar.gz "s3://${{ secrets.AWS_S3_BUCKET }}/deployments/${{ env.BUILD_VERSION }}.tar.gz"
+          # Create frontend archive directly
+          cd frontend-artifacts
+          zip -r ../frontend.zip .
+          cd ..
           
-          # Upload as latest
-          aws s3 cp deployment.tar.gz "s3://${{ secrets.AWS_S3_BUCKET }}/deployments/latest.tar.gz"
+          echo "📊 Frontend package created: $(du -sh frontend.zip)"
+
+      - name: ☁️ Upload Backend to S3
+        run: |
+          echo "☁️ Uploading backend.zip to S3..."
           
-          # Upload deployment info
-          aws s3 cp deployment/deployment-info.json "s3://${{ secrets.AWS_S3_BUCKET }}/deployments/${{ env.BUILD_VERSION }}-info.json"
-          aws s3 cp deployment/deployment-info.json "s3://${{ secrets.AWS_S3_BUCKET }}/deployments/latest-info.json"
+          # Upload latest backend (overwrites previous)
+          aws s3 cp backend.zip "s3://${{ secrets.AWS_S3_BUCKET }}/deployments/backend.zip"
           
-          echo "✅ Upload completed to S3!"
+          echo "✅ Backend upload completed!"
+
+      - name: ☁️ Upload Frontend to S3
+        run: |
+          echo "☁️ Uploading frontend.zip to S3..."
+          
+          # Upload latest frontend (overwrites previous)
+          aws s3 cp frontend.zip "s3://${{ secrets.AWS_S3_BUCKET }}/deployments/frontend.zip"
+          
+          echo "✅ Frontend upload completed!"
 
       - name: 📊 Build Summary
         run: |
-          echo "## 📦 Build Package Created!" >> $GITHUB_STEP_SUMMARY
+          echo "## 📦 Build Packages Created!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📋 Build Details:" >> $GITHUB_STEP_SUMMARY
           echo "- **Version**: ${{ env.BUILD_VERSION }}" >> $GITHUB_STEP_SUMMARY
@@ -162,9 +151,9 @@ jobs:
           echo "- **Environment**: ${{ github.event.inputs.environment || 'dev' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Source**: Downloaded from CI artifacts (Run ID: ${{ env.WORKFLOW_RUN_ID }})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📦 S3 Artifacts:" >> $GITHUB_STEP_SUMMARY
-          echo "- **Versioned**: \`s3://${{ secrets.AWS_S3_BUCKET }}/deployments/${{ env.BUILD_VERSION }}.tar.gz\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Latest**: \`s3://${{ secrets.AWS_S3_BUCKET }}/deployments/latest.tar.gz\`" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 S3 Artifacts (Latest Only):" >> $GITHUB_STEP_SUMMARY
+          echo "- **Backend**: \`s3://${{ secrets.AWS_S3_BUCKET }}/deployments/backend.zip\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Frontend**: \`s3://${{ secrets.AWS_S3_BUCKET }}/deployments/frontend.zip\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🚀 Ready for Deployment:" >> $GITHUB_STEP_SUMMARY
-          echo "Use the **DEPLOY** workflow to deploy this build to EC2." >> $GITHUB_STEP_SUMMARY
+          echo "Use the **DEPLOY** workflow to deploy these packages to EC2." >> $GITHUB_STEP_SUMMARY
