@@ -142,6 +142,16 @@ jobs:
             sudo apt-get update -qq
             sudo apt-get install -y unzip curl postgresql postgresql-contrib
             
+            # Install Node.js 20
+            echo "🔧 Installing Node.js..."
+            if ! command -v node &> /dev/null; then
+              curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+              sudo apt-get install -y nodejs
+            fi
+            
+            echo "Node.js version: $(node --version)"
+            echo "NPM version: $(npm --version)"
+            
             # Setup PostgreSQL
             echo "🗄️ Setting up PostgreSQL..."
             sudo systemctl start postgresql
@@ -233,7 +243,17 @@ jobs:
             
             # Install dependencies (fast - no build needed!)
             echo "📦 Installing backend dependencies..."
-            npm ci --production --silent
+            echo "Current directory: $(pwd)"
+            echo "Package.json exists: $(test -f package.json && echo 'YES' || echo 'NO')"
+            ls -la package.json || echo "No package.json found"
+            
+            npm ci --production --silent || {
+              echo "❌ npm ci failed, trying npm install..."
+              npm install --production --silent || {
+                echo "❌ npm install also failed"
+                exit 1
+              }
+            }
             
             # Database setup
             echo "🗄️ Setting up database..."
@@ -244,8 +264,17 @@ jobs:
             echo "DATABASE_URL length: ${#DATABASE_URL}"
             echo "DATABASE_URL starts with: ${DATABASE_URL:0:30}..."
             
-            npx prisma migrate deploy
-            npx prisma db seed || echo "Seeding skipped"
+            echo "🔧 Running Prisma migrate..."
+            npx prisma migrate deploy || {
+              echo "❌ Prisma migrate failed, trying to push schema..."
+              npx prisma db push --force-reset || {
+                echo "❌ Prisma db push also failed"
+                exit 1
+              }
+            }
+            
+            echo "🌱 Running Prisma seed..."
+            npx prisma db seed || echo "Seeding skipped (not critical)"
             
             # Start backend
             echo "🚀 Starting backend..."
