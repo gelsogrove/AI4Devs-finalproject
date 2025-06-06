@@ -6,12 +6,12 @@ import morgan from 'morgan';
 import path from 'path';
 import swaggerUi from 'swagger-ui-express';
 import {
-  apiRateLimiter,
-  authRateLimiter,
-  corsSecurityCheck,
-  sanitizeInput,
-  securityHeaders,
-  securityLogger
+    apiRateLimiter,
+    authRateLimiter,
+    corsSecurityCheck,
+    sanitizeInput,
+    securityHeaders,
+    securityLogger
 } from './middlewares/security.middleware';
 import routes from './routes';
 import swaggerSpec from './swagger';
@@ -50,7 +50,7 @@ export function setupServer() {
   // CORS with security check
   app.use(corsSecurityCheck);
   app.use(cors({
-    origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
+    origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://34.225.214.21'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
