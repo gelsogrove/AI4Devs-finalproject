@@ -14,7 +14,7 @@ on:
 env:
   AWS_REGION: us-east-1
   INSTANCE_ID: i-008b6c493b1f842a9
-  FIXED_EIP_ALLOCATION: eipalloc-0001d20efe88091c7
+  FIXED_EIP_ALLOCATION: eipalloc-057707935c2c32dbb
 
 jobs:
   infra-control:
