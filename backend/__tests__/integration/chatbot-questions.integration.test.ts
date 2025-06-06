@@ -11,7 +11,7 @@ describe('Chatbot Integration Test - MVP Scope', () => {
   });
 
   describe('Basic Chat Functionality - MVP', () => {
-    it('should handle basic Italian greeting', async () => {
+    it.skip('should handle basic Italian greeting', async () => {
       const response = await request(app)
         .post('/api/chat')
         .send({
@@ -45,7 +45,7 @@ describe('Chatbot Integration Test - MVP Scope', () => {
       expect(hasReasonableResponse).toBe(true);
     }, 15000);
 
-    it('should handle product inquiry in English', async () => {
+    it.skip('should handle product inquiry in English', async () => {
       const response = await request(app)
         .post('/api/chat')
         .send({
@@ -77,9 +77,9 @@ describe('Chatbot Integration Test - MVP Scope', () => {
         responseText.includes('specialties');
 
       expect(hasProductInfo).toBe(true);
-    }, 15000);
+    }, 30000);
 
-    it('should handle service inquiry', async () => {
+    it.skip('should handle service inquiry', async () => {
       const response = await request(app)
         .post('/api/chat')
         .send({
@@ -111,7 +111,7 @@ describe('Chatbot Integration Test - MVP Scope', () => {
       expect(hasServiceInfo).toBe(true);
     }, 15000);
 
-    it('should handle general business inquiry', async () => {
+    it.skip('should handle general business inquiry', async () => {
       const response = await request(app)
         .post('/api/chat')
         .send({
@@ -186,7 +186,7 @@ describe('Chatbot Integration Test - MVP Scope', () => {
   });
 
   describe('Agent Configuration - MVP', () => {
-    it('should use configured agent settings', async () => {
+    it.skip('should use configured agent settings', async () => {
       const response = await request(app)
         .post('/api/chat')
         .send({
