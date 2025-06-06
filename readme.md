@@ -22,9 +22,8 @@
 ShopMefy is a multilingual SaaS platform (Italian, English, Spanish) that transforms WhatsApp into a complete sales and customer service channel. **Current MVP** focuses on AI-powered product management, document processing with RAG, and business administration tools with AWS deployment capability.
 
 ### **0.4. Project URL:**
-**Production**: http://34.225.214.21  
-**API**: http://34.225.214.21/api  
-**API Docs**: http://34.225.214.21/api-docs
+http://34.225.214.21  
+ 
 
 ### 0.5. Repository URL or compressed file
 https://github.com/gelsogrove/AI4Devs-finalproject

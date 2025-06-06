@@ -80,7 +80,7 @@ class AuthController {
       }
       
       // Special case for test account
-      if (email === 'test@example.com' && password === 'password123') {
+      if (email === 'test@example.com' && password === 'ShopMefy$Secure') {
         logger.info('Using special case for test account');
         
         return res.status(200).json({

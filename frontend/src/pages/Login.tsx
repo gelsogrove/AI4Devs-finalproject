@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
   const [email, setEmail] = useState('test@example.com');
-  const [password, setPassword] = useState('password123');
+  const [password, setPassword] = useState('ShopMefy$Secure');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { login } = useAuth();
@@ -126,7 +126,7 @@ const Login = () => {
             <p className="text-sm text-gray-600 font-medium mb-2">🚀 Demo Credentials</p>
             <div className="space-y-1 text-xs text-gray-500">
               <p><strong>Email:</strong> test@example.com</p>
-              <p><strong>Password:</strong> password123</p>
+              <p><strong>Password:</strong> ShopMefy$Secure</p>
             </div>
             <p className="text-xs text-shopmefy-600 mt-2">Ready to explore your Italian food store!</p>
           </div>

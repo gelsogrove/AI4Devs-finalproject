@@ -309,7 +309,7 @@ async function main() {
   await prisma.user.create({
     data: {
       email: 'admin@shopmefy.com',
-      password: 'password123',
+      password: 'ShopMefy$Secure',
       firstName: 'Admin',
       lastName: 'User',
       isActive: true

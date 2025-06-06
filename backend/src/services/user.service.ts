@@ -18,8 +18,8 @@ const users: User[] = [
   {
     id: '1',
     email: 'test@example.com',
-    // This is the hashed version of 'password123' 
-    password: '$2b$10$dWd6JwUQUl47jP.4kUelweOfYTU/7PF8VJZIq5LGiTSLp0og/JwOu',
+    // This is the hashed version of 'ShopMefy$Secure' 
+    password: '$2b$10$gpeW/MyEhPVDkaTfG4kxkOL4qqzqCbdKvK9lWsWMZGumydu8pokVy',
     firstName: 'Test',
     lastName: 'User',
     isActive: true,
