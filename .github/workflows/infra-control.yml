@@ -1,0 +1,146 @@
+name: 🏗️ Infrastructure Control
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Infrastructure Action
+        required: true
+        default: status
+        type: choice
+        options:
+          - status
+          - start
+          - stop
+
+env:
+  AWS_REGION: us-east-1
+  INSTANCE_ID: i-008b6c493b1f842a9
+  FIXED_EIP_ALLOCATION: eipalloc-0001d20efe88091c7
+
+jobs:
+  infrastructure-control:
+    name: 🏗️ Infrastructure Control
+    runs-on: ubuntu-latest
+    environment: dev
+    
+    steps:
+      - name: 🎯 Set Action
+        run: |
+          echo "ACTION=${{ github.event.inputs.action }}" >> $GITHUB_ENV
+          echo "Infrastructure action: ${{ github.event.inputs.action }}"
+
+      - name: ⚙️ Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 📊 Check Current Status
+        id: status
+        run: |
+          echo "🔍 Checking infrastructure status..."
+          
+          EC2_STATE=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query "Reservations[0].Instances[0].State.Name" --output text)
+          echo "EC2_STATE=$EC2_STATE" >> $GITHUB_OUTPUT
+          echo "EC2 Instance ($INSTANCE_ID): $EC2_STATE"
+          
+          EIP_EXISTS=$(aws ec2 describe-addresses --filters "Name=instance-id,Values=$INSTANCE_ID" --query "Addresses[0].AllocationId" --output text 2>/dev/null || echo "None")
+          echo "EIP_EXISTS=$EIP_EXISTS" >> $GITHUB_OUTPUT
+          
+          if [ "$EIP_EXISTS" != "None" ] && [ "$EIP_EXISTS" != "null" ]; then
+            EIP_ADDRESS=$(aws ec2 describe-addresses --allocation-ids $EIP_EXISTS --query "Addresses[0].PublicIp" --output text)
+            echo "Elastic IP: $EIP_ADDRESS (Allocation: $EIP_EXISTS)"
+          else
+            echo "Elastic IP: Not allocated"
+          fi
+          
+          RDS_STATE=$(aws rds describe-db-instances --db-instance-identifier shopmefy-db-b070a7e8 --query "DBInstances[0].DBInstanceStatus" --output text 2>/dev/null || echo "not-found")
+          echo "RDS_STATE=$RDS_STATE" >> $GITHUB_OUTPUT
+          echo "RDS Database: $RDS_STATE"
+
+      - name: 🚀 Start Infrastructure
+        if: env.ACTION == 'start'
+        run: |
+          echo "🚀 Starting infrastructure..."
+          
+          if [ "${{ steps.status.outputs.EC2_STATE }}" == "stopped" ]; then
+            echo "Starting EC2 instance..."
+            aws ec2 start-instances --instance-ids $INSTANCE_ID
+            
+            echo "Waiting for instance to be running..."
+            aws ec2 wait instance-running --instance-ids $INSTANCE_ID
+            
+            echo "Associating fixed Elastic IP to instance..."
+            aws ec2 associate-address --instance-id $INSTANCE_ID --allocation-id $FIXED_EIP_ALLOCATION
+            
+            FIXED_IP=$(aws ec2 describe-addresses --allocation-ids $FIXED_EIP_ALLOCATION --query "Addresses[0].PublicIp" --output text)
+            echo "✅ Infrastructure started! Fixed IP: $FIXED_IP"
+            echo "🌐 Application available at: http://$FIXED_IP"
+          else
+            echo "⚠️ EC2 instance is already ${{ steps.status.outputs.EC2_STATE }}"
+          fi
+
+      - name: 🛑 Stop Infrastructure
+        if: env.ACTION == 'stop'
+        run: |
+          echo "🛑 Stopping infrastructure..."
+          
+          if [ "${{ steps.status.outputs.EC2_STATE }}" == "running" ]; then
+            echo "Disassociating Elastic IP (keeping it allocated)..."
+            aws ec2 disassociate-address --association-id $(aws ec2 describe-addresses --allocation-ids $FIXED_EIP_ALLOCATION --query "Addresses[0].AssociationId" --output text)
+            
+            echo "Stopping EC2 instance..."
+            aws ec2 stop-instances --instance-ids $INSTANCE_ID
+            
+            echo "Waiting for instance to be stopped..."
+            aws ec2 wait instance-stopped --instance-ids $INSTANCE_ID
+            
+            FIXED_IP=$(aws ec2 describe-addresses --allocation-ids $FIXED_EIP_ALLOCATION --query "Addresses[0].PublicIp" --output text)
+            echo "✅ Infrastructure stopped successfully!"
+            echo "🔒 Fixed IP preserved: $FIXED_IP"
+            echo "💰 You are now saving ~$15/month on compute costs!"
+          else
+            echo "⚠️ EC2 instance is already ${{ steps.status.outputs.EC2_STATE }}"
+          fi
+
+      - name: 📊 Final Status Report
+        run: |
+          echo "## 📊 Infrastructure Status Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🖥️ EC2 Instance ($INSTANCE_ID)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ steps.status.outputs.EC2_STATE }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Type**: t3.small" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🌐 Elastic IP" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.status.outputs.EIP_EXISTS }}" != "None" ] && [ "${{ steps.status.outputs.EIP_EXISTS }}" != "null" ]; then
+            echo "- **Status**: Allocated (${{ steps.status.outputs.EIP_EXISTS }})" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Status**: Not allocated" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🗄️ RDS Database" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ steps.status.outputs.RDS_STATE }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Type**: db.t3.micro (PostgreSQL)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Note**: RDS cannot be stopped (always running)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 💰 Cost Savings" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.status.outputs.EC2_STATE }}" == "stopped" ]; then
+            echo "- **EC2**: ~$15/month saved ✅" >> $GITHUB_STEP_SUMMARY
+            echo "- **Elastic IP**: ~$3.6/month (kept allocated for fixed IP)" >> $GITHUB_STEP_SUMMARY
+            echo "- **Total Savings**: ~$15/month" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Current Cost**: ~$30/month (running)" >> $GITHUB_STEP_SUMMARY
+            echo "- **Potential Savings**: ~$15/month (if stopped)" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🎯 Actions Available" >> $GITHUB_STEP_SUMMARY
+          echo "- **Start**: Associates fixed IP and starts EC2" >> $GITHUB_STEP_SUMMARY
+          echo "- **Stop**: Disassociates IP (keeps allocated) and stops EC2" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: Shows current state" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔒 Fixed IP Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "- **Allocation ID**: $FIXED_EIP_ALLOCATION" >> $GITHUB_STEP_SUMMARY
+          FIXED_IP=$(aws ec2 describe-addresses --allocation-ids $FIXED_EIP_ALLOCATION --query "Addresses[0].PublicIp" --output text 2>/dev/null || echo "Not found")
+          echo "- **IP Address**: $FIXED_IP" >> $GITHUB_STEP_SUMMARY
