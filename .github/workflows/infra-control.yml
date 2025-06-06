@@ -1,4 +1,4 @@
-name: 🏗️ Infrastructure Start/Stop
+name: 🏗️  04 -Start/Stop
 
 on:
   workflow_dispatch:
