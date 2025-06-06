@@ -2,7 +2,7 @@ name: 📦 02 - BUILD - Download Artifacts and Upload to S3
 
 on:
   workflow_run:
-    workflows: ["🧪 CI - Continuous Integration"]
+    workflows: ["🧪 01 - CI - Continuous Integration"]
     types:
       - completed
     branches: [main]
