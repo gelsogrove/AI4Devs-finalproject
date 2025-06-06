@@ -17,7 +17,7 @@
     "db:push": "prisma db push"
   },
   "prisma": {
-    "seed": "ts-node --transpile-only --project tsconfig.seed.json prisma/seed.ts"
+    "seed": "ts-node --transpile-only prisma/seed.ts"
   },
   "keywords": [],
   "author": "",
