@@ -2,28 +2,6 @@ name: 🚀 03 - DEPLOY - SSH and Deploy to EC2
 
 on:
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Deployment Environment'
-        required: true
-        default: 'dev'
-        type: choice
-        options:
-          - dev
-      force_deploy:
-        description: 'Force deploy even if infrastructure is stopped'
-        required: false
-        default: false
-        type: boolean
-      skip_health_check:
-        description: 'Skip post-deployment health check'
-        required: false
-        default: false
-        type: boolean
-      build_version:
-        description: 'Specific build version to deploy (leave empty for latest)'
-        required: false
-        type: string
 
 env:
   AWS_REGION: us-east-1
@@ -67,12 +45,9 @@ jobs:
           if [ "$EC2_STATE" = "running" ] && [ "$CURRENT_ASSOCIATION" = "$INSTANCE_ID" ]; then
             echo "CAN_DEPLOY=true" >> $GITHUB_OUTPUT
             echo "✅ Infrastructure is ready for deployment"
-          elif [ "${{ github.event.inputs.force_deploy }}" = "true" ]; then
-            echo "CAN_DEPLOY=force" >> $GITHUB_OUTPUT
-            echo "⚠️ Force deploy requested - will attempt to start infrastructure first"
           else
-            echo "CAN_DEPLOY=false" >> $GITHUB_OUTPUT
-            echo "❌ Infrastructure not ready for deployment"
+            echo "CAN_DEPLOY=start_needed" >> $GITHUB_OUTPUT
+            echo "🚀 Infrastructure needs to be started - will start automatically"
           fi
 
   start-infrastructure:
@@ -80,7 +55,7 @@ jobs:
     needs: pre-deploy-check
     runs-on: ubuntu-latest
     environment: dev
-    if: needs.pre-deploy-check.outputs.can_deploy == 'force'
+    if: needs.pre-deploy-check.outputs.can_deploy == 'start_needed'
     
     steps:
       - name: ⚙️ Configure AWS Credentials
@@ -116,7 +91,7 @@ jobs:
     needs: [pre-deploy-check, start-infrastructure]
     runs-on: ubuntu-latest
     environment: dev
-    if: always() && (needs.pre-deploy-check.outputs.can_deploy == 'true' || needs.pre-deploy-check.outputs.can_deploy == 'force')
+    if: always() && (needs.pre-deploy-check.outputs.can_deploy == 'true' || needs.pre-deploy-check.outputs.can_deploy == 'start_needed')
     
     steps:
       - name: 🎯 Set Environment Variables
@@ -161,6 +136,11 @@ jobs:
             rm -rf shopmefy-deployment
             mkdir -p shopmefy-deployment
             cd shopmefy-deployment
+            
+            # Install required tools
+            echo "🔧 Installing required tools..."
+            sudo apt-get update -qq
+            sudo apt-get install -y unzip curl
             
             # Install AWS CLI if not present
             echo "🔧 Installing AWS CLI..."
@@ -288,7 +268,6 @@ jobs:
           DEPLOY_SCRIPT
 
       - name: 🏥 Health Check
-        if: github.event.inputs.skip_health_check != 'true'
         run: |
           echo "🏥 Performing health check..."
           sleep 15
@@ -318,7 +297,7 @@ jobs:
           echo "### 📋 Deployment Details:" >> $GITHUB_STEP_SUMMARY
           echo "- **Version**: ${{ env.DEPLOY_VERSION }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Target**: ${{ env.FIXED_IP }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Environment**: ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: production" >> $GITHUB_STEP_SUMMARY
           echo "- **Source**: S3 deployment package" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🌐 Access URLs:" >> $GITHUB_STEP_SUMMARY
