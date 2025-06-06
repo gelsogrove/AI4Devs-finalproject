@@ -168,19 +168,38 @@ jobs:
             mkdir -p shopmefy-deployment
             cd shopmefy-deployment
             
+            # Install AWS CLI if not present
+            echo "🔧 Installing AWS CLI..."
+            if ! command -v aws &> /dev/null; then
+              curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+              unzip -q awscliv2.zip
+              sudo ./aws/install
+              rm -rf aws awscliv2.zip
+            fi
+            
+            # Configure AWS credentials
+            echo "⚙️ Configuring AWS credentials..."
+            aws configure set aws_access_key_id "${{ secrets.AWS_ACCESS_KEY_ID }}"
+            aws configure set aws_secret_access_key "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+            aws configure set default.region "${{ env.AWS_REGION }}"
+            
             # Download from S3
             echo "📥 Downloading from S3..."
-            aws s3 cp "s3://${{ secrets.AWS_S3_BUCKET }}/deployments/${{ env.S3_FILE }}" deployment.tar.gz
+            aws s3 cp "s3://${{ secrets.AWS_S3_BUCKET }}/deployments/backend.zip" backend.zip
+            aws s3 cp "s3://${{ secrets.AWS_S3_BUCKET }}/deployments/frontend.zip" frontend.zip
             
             # Extract
             echo "📦 Extracting deployment..."
-            tar -xzf deployment.tar.gz
+            mkdir -p backend frontend
             
-            # Show deployment info
-            if [ -f deployment-info.json ]; then
-              echo "📋 Deployment info:"
-              cat deployment-info.json
-            fi
+            echo "📦 Extracting backend..."
+            unzip -q backend.zip -d backend/
+            
+            echo "📦 Extracting frontend..."
+            unzip -q frontend.zip -d frontend/
+            
+            echo "📋 Deployment structure:"
+            ls -la backend/ frontend/
             
             # Setup backend
             echo "🔧 Setting up backend..."
