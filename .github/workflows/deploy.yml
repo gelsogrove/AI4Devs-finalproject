@@ -104,7 +104,7 @@ jobs:
             
             # Create frontend .env
             echo "⚙️ Creating frontend .env..."
-            echo "VITE_API_URL=http://${{ secrets.EC2_HOST }}/api" > .env
+            echo "VITE_API_URL=http://${{ secrets.EC2_HOST }}" > .env
             
             # Build frontend
             echo "🏗️ Building frontend..."
