@@ -199,10 +199,17 @@ jobs:
             cd backend
             
             # Create production .env
+            # Check if DATABASE_URL is set, otherwise use default
+            DB_URL="${{ secrets.DATABASE_URL }}"
+            if [ -z "$DB_URL" ]; then
+              echo "⚠️ DATABASE_URL secret not set, using localhost default"
+              DB_URL="postgresql://shopmefy:shopmefy@localhost:5432/shopmefy"
+            fi
+            
             cat > .env << EOF
           NODE_ENV=production
           PORT=8080
-          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          DATABASE_URL=$DB_URL
           OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
           JWT_SECRET=${{ secrets.JWT_SECRET }}
           AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}
