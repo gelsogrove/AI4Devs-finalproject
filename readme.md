@@ -22,7 +22,9 @@
 ShopMefy is a multilingual SaaS platform (Italian, English, Spanish) that transforms WhatsApp into a complete sales and customer service channel. **Current MVP** focuses on AI-powered product management, document processing with RAG, and business administration tools with AWS deployment capability.
 
 ### **0.4. Project URL:**
-WIP
+**Production**: http://34.225.214.21  
+**API**: http://34.225.214.21/api  
+**API Docs**: http://34.225.214.21/api-docs
 
 ### 0.5. Repository URL or compressed file
 https://github.com/gelsogrove/AI4Devs-finalproject
@@ -195,6 +197,39 @@ npm run test:unit
 
 # Run end-to-end tests
 npm run test:e2e
+```
+
+### Production Deployment
+
+**🌐 Live Application**: http://34.225.214.21
+
+#### AWS Infrastructure
+- **EC2 Instance**: t3.small (Ubuntu 22.04)
+- **Database**: RDS PostgreSQL
+- **Storage**: S3 bucket for file uploads
+- **Public IP**: 34.225.214.21 (Elastic IP)
+
+#### Demo Credentials
+- **Email**: test@example.com
+- **Password**: password123
+
+#### Manual Deployment
+The application uses manual deployment to save AWS resources:
+
+1. Go to **GitHub Actions** → **🚀 Deploy to EC2**
+2. Click **Run workflow** → Select **dev** → **Run workflow**
+3. Monitor deployment progress in Actions tab
+
+#### Infrastructure Management
+```bash
+# Deploy infrastructure (one-time setup)
+cd terraform
+terraform init
+terraform plan
+terraform apply
+
+# Destroy infrastructure (when needed)
+terraform destroy
 ```
 
 ### API Documentation

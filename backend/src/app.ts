@@ -106,11 +106,35 @@ export function setupServer() {
   // console.log('Setting up routes...');
   // console.log('Routes object:', typeof routes);
   
-  // Swagger Documentation with rate limiting
-  app.use('/api-docs', apiRateLimiter, swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  // Swagger Documentation with Basic Authentication
+  const swaggerAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const auth = req.headers.authorization;
+    
+    if (!auth || !auth.startsWith('Basic ')) {
+      res.setHeader('WWW-Authenticate', 'Basic realm="Swagger Documentation"');
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
+    const credentials = Buffer.from(auth.slice(6), 'base64').toString('utf-8');
+    const [username, password] = credentials.split(':');
+    
+    // Use environment variables for Swagger credentials
+    const swaggerUser = process.env.SWAGGER_USER || 'admin';
+    const swaggerPass = process.env.SWAGGER_PASSWORD || 'admin123';
+    
+    if (username === swaggerUser && password === swaggerPass) {
+      next();
+    } else {
+      res.setHeader('WWW-Authenticate', 'Basic realm="Swagger Documentation"');
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+  };
   
-  // Serve Swagger specification as JSON
-  app.get('/api-docs.json', apiRateLimiter, (_req, res) => {
+  // Swagger Documentation with authentication and rate limiting
+  app.use('/api-docs', apiRateLimiter, swaggerAuth, swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  
+  // Serve Swagger specification as JSON (also protected)
+  app.get('/api-docs.json', apiRateLimiter, swaggerAuth, (_req, res) => {
     res.json(swaggerSpec);
   });
   
