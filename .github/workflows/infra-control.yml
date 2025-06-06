@@ -1,4 +1,4 @@
-name: 🏗️ Stop and Play Infra
+name: 🏗️ Infrastructure Start/Stop
 
 on:
   workflow_dispatch:
@@ -10,21 +10,11 @@ on:
         options:
           - start
           - stop
-          - restart
-          - status
-          - backup
-          - restore
-      backup_name:
-        description: 'Backup name (for restore action)'
-        required: false
-        type: string
 
 env:
   AWS_REGION: us-east-1
   INSTANCE_ID: i-008b6c493b1f842a9
   FIXED_EIP_ALLOCATION: eipalloc-0001d20efe88091c7
-  EC2_HOST: 52.7.57.53
-  EC2_USER: ubuntu
 
 jobs:
   infra-control:
@@ -33,9 +23,6 @@ jobs:
     environment: dev
     
     steps:
-      - name: 🔄 Checkout Code
-        uses: actions/checkout@v4
-
       - name: ⚙️ Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -57,16 +44,6 @@ jobs:
           EIP_STATUS=$(aws ec2 describe-addresses --allocation-ids $FIXED_EIP_ALLOCATION --query "Addresses[0].PublicIp" --output text 2>/dev/null || echo "Not found")
           echo "EIP_STATUS=$EIP_STATUS" >> $GITHUB_OUTPUT
           echo "Elastic IP: $EIP_STATUS"
-          
-          # EIP Association
-          EIP_ASSOCIATION=$(aws ec2 describe-addresses --allocation-ids $FIXED_EIP_ALLOCATION --query "Addresses[0].InstanceId" --output text 2>/dev/null || echo "None")
-          echo "EIP_ASSOCIATION=$EIP_ASSOCIATION" >> $GITHUB_OUTPUT
-          echo "IP Association: $EIP_ASSOCIATION"
-          
-          # RDS Status (if exists)
-          RDS_STATUS=$(aws rds describe-db-instances --query "DBInstances[?DBInstanceIdentifier=='shopmefy-db'].DBInstanceStatus" --output text 2>/dev/null || echo "Not found")
-          echo "RDS_STATUS=$RDS_STATUS" >> $GITHUB_OUTPUT
-          echo "RDS Database: $RDS_STATUS"
 
       - name: 🚀 Start Infrastructure
         if: github.event.inputs.action == 'start'
@@ -86,12 +63,15 @@ jobs:
             
           # Ensure EIP is associated
           echo "Associating Elastic IP..."
-            aws ec2 associate-address --instance-id $INSTANCE_ID --allocation-id $FIXED_EIP_ALLOCATION
+          aws ec2 associate-address --instance-id $INSTANCE_ID --allocation-id $FIXED_EIP_ALLOCATION
           echo "✅ Elastic IP associated"
             
-            # Wait for SSH to be ready
-            echo "⏳ Waiting for SSH to be ready..."
-            sleep 30
+          # Wait for SSH to be ready
+          echo "⏳ Waiting for SSH to be ready..."
+          sleep 30
+          
+          FIXED_IP=$(aws ec2 describe-addresses --allocation-ids $FIXED_EIP_ALLOCATION --query "Addresses[0].PublicIp" --output text)
+          echo "🌐 Infrastructure ready at: http://$FIXED_IP"
 
       - name: 🛑 Stop Infrastructure
         if: github.event.inputs.action == 'stop'
@@ -99,199 +79,52 @@ jobs:
           echo "🛑 Stopping infrastructure..."
           
           if [ "${{ steps.status.outputs.EC2_STATE }}" = "running" ]; then
+            echo "Disassociating Elastic IP (keeping it allocated)..."
+            ASSOCIATION_ID=$(aws ec2 describe-addresses --allocation-ids $FIXED_EIP_ALLOCATION --query "Addresses[0].AssociationId" --output text 2>/dev/null || echo "None")
+            if [ "$ASSOCIATION_ID" != "None" ] && [ "$ASSOCIATION_ID" != "null" ]; then
+              aws ec2 disassociate-address --association-id $ASSOCIATION_ID
+            fi
+            
             echo "Stopping EC2 instance..."
             aws ec2 stop-instances --instance-ids $INSTANCE_ID
             
             echo "Waiting for instance to be stopped..."
             aws ec2 wait instance-stopped --instance-ids $INSTANCE_ID
             echo "✅ EC2 instance stopped"
+            echo "💰 You are now saving ~$15/month on compute costs!"
           else
             echo "✅ EC2 instance already stopped"
           fi
 
-      - name: 🔄 Restart Infrastructure
-        if: github.event.inputs.action == 'restart'
-        run: |
-          echo "🔄 Restarting infrastructure..."
-          
-          if [ "${{ steps.status.outputs.EC2_STATE }}" = "running" ]; then
-            echo "Stopping EC2 instance..."
-            aws ec2 stop-instances --instance-ids $INSTANCE_ID
-            aws ec2 wait instance-stopped --instance-ids $INSTANCE_ID
-          fi
-          
-          echo "Starting EC2 instance..."
-          aws ec2 start-instances --instance-ids $INSTANCE_ID
-          aws ec2 wait instance-running --instance-ids $INSTANCE_ID
-          
-          echo "Associating Elastic IP..."
-          aws ec2 associate-address --instance-id $INSTANCE_ID --allocation-id $FIXED_EIP_ALLOCATION
-          
-          echo "✅ Infrastructure restarted"
-          sleep 30
-
-      - name: 🔑 Setup SSH Key
-        if: github.event.inputs.action != 'status' && steps.status.outputs.EC2_STATE == 'running'
-        run: |
-          echo "🔑 Setting up SSH key..."
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ env.EC2_HOST }} >> ~/.ssh/known_hosts
-
-      - name: 💾 Create Backup
-        if: github.event.inputs.action == 'backup'
-        run: |
-          echo "💾 Creating infrastructure backup..."
-          
-          if [ "${{ steps.status.outputs.EC2_STATE }}" != "running" ]; then
-            echo "❌ EC2 instance must be running to create backup"
-            exit 1
-          fi
-          
-          BACKUP_NAME="backup-$(date +%Y%m%d-%H%M%S)"
-          echo "Creating backup: $BACKUP_NAME"
-          
-          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << EOF
-            set -e
-            
-            echo "💾 Creating application backup..."
-            sudo mkdir -p /opt/backups
-            
-            # Backup application
-            if [ -d "/opt/shopmefy/current" ]; then
-              sudo tar -czf "/opt/backups/app-$BACKUP_NAME.tar.gz" -C /opt/shopmefy current
-              echo "✅ Application backup created"
-            fi
-            
-            # Backup database (if PostgreSQL is local)
-            if command -v pg_dump >/dev/null 2>&1; then
-              sudo -u postgres pg_dump shopmefy > "/opt/backups/db-$BACKUP_NAME.sql" 2>/dev/null || echo "Database backup skipped"
-            fi
-            
-            # List backups
-            echo "📋 Available backups:"
-            ls -la /opt/backups/
-          EOF
-          
-          # Upload backup to S3
-          echo "☁️ Uploading backup to S3..."
-          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "sudo tar -czf - -C /opt/backups ." | aws s3 cp - "s3://${{ secrets.AWS_S3_BUCKET }}/backups/$BACKUP_NAME.tar.gz"
-          
-          echo "✅ Backup completed: $BACKUP_NAME"
-
-      - name: 🔄 Restore Backup
-        if: github.event.inputs.action == 'restore'
-        run: |
-          echo "🔄 Restoring from backup..."
-          
-          if [ -z "${{ github.event.inputs.backup_name }}" ]; then
-            echo "❌ Backup name is required for restore action"
-            exit 1
-          fi
-          
-          if [ "${{ steps.status.outputs.EC2_STATE }}" != "running" ]; then
-            echo "❌ EC2 instance must be running to restore backup"
-            exit 1
-          fi
-          
-          BACKUP_NAME="${{ github.event.inputs.backup_name }}"
-          echo "Restoring backup: $BACKUP_NAME"
-          
-          # Download backup from S3
-          echo "📥 Downloading backup from S3..."
-          aws s3 cp "s3://${{ secrets.AWS_S3_BUCKET }}/backups/$BACKUP_NAME.tar.gz" - | ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "sudo tar -xzf - -C /opt/backups/"
-          
-          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << EOF
-            set -e
-            
-            echo "🔄 Restoring application..."
-            
-            # Stop services
-            sudo systemctl stop shopmefy-backend || true
-            sudo systemctl stop shopmefy-frontend || true
-            
-            # Restore application
-            if [ -f "/opt/backups/app-$BACKUP_NAME.tar.gz" ]; then
-              sudo rm -rf /opt/shopmefy/current
-              sudo mkdir -p /opt/shopmefy
-              sudo tar -xzf "/opt/backups/app-$BACKUP_NAME.tar.gz" -C /opt/shopmefy
-              sudo chown -R ubuntu:ubuntu /opt/shopmefy/current
-              echo "✅ Application restored"
-            fi
-            
-            # Restore database (if exists)
-            if [ -f "/opt/backups/db-$BACKUP_NAME.sql" ] && command -v psql >/dev/null 2>&1; then
-              sudo -u postgres psql shopmefy < "/opt/backups/db-$BACKUP_NAME.sql" || echo "Database restore skipped"
-            fi
-            
-            # Start services
-            sudo systemctl start shopmefy-backend
-            sudo systemctl start shopmefy-frontend
-            
-            echo "✅ Restore completed"
-          EOF
-
-      - name: 🏥 Service Health Check
-        if: github.event.inputs.action != 'stop' && steps.status.outputs.EC2_STATE == 'running'
-        run: |
-          echo "🏥 Checking service health..."
-          
-          # Wait for services
-          sleep 15
-          
-          # Check services
-          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'EOF'
-            echo "🔍 Checking system services..."
-            
-            # Check systemd services
-            sudo systemctl status shopmefy-backend --no-pager || echo "Backend service not configured"
-            sudo systemctl status shopmefy-frontend --no-pager || echo "Frontend service not configured"
-            
-            # Check processes
-            echo "🔍 Running processes:"
-            ps aux | grep -E "(node|serve)" | grep -v grep || echo "No Node.js processes found"
-            
-            # Check ports
-            echo "🔍 Open ports:"
-            netstat -tlnp | grep -E "(3000|8080)" || echo "No services on ports 3000/8080"
-            
-            # Check disk space
-            echo "💾 Disk usage:"
-            df -h /
-          EOF
-          
-          # Check HTTP endpoints
-          echo "🌐 Checking HTTP endpoints..."
-          curl -f -s "http://${{ env.EC2_HOST }}:8080/health" > /dev/null && echo "✅ Backend healthy" || echo "⚠️ Backend not responding"
-          curl -f -s "http://${{ env.EC2_HOST }}:3000" > /dev/null && echo "✅ Frontend accessible" || echo "⚠️ Frontend not responding"
-
       - name: 📊 Infrastructure Summary
         if: always()
         run: |
-          echo "## 🏗️ Infrastructure Control Summary" >> $GITHUB_STEP_SUMMARY
+          # Get final status
+          FINAL_EC2_STATE=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query "Reservations[0].Instances[0].State.Name" --output text)
+          FIXED_IP=$(aws ec2 describe-addresses --allocation-ids $FIXED_EIP_ALLOCATION --query "Addresses[0].PublicIp" --output text)
+          
+          echo "## 🏗️ Infrastructure Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📋 Action Details:" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Action Completed:" >> $GITHUB_STEP_SUMMARY
           echo "- **Action**: ${{ github.event.inputs.action }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Timestamp**: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_STEP_SUMMARY
-          if [ -n "${{ github.event.inputs.backup_name }}" ]; then
-            echo "- **Backup Name**: ${{ github.event.inputs.backup_name }}" >> $GITHUB_STEP_SUMMARY
-          fi
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🔧 Infrastructure Status:" >> $GITHUB_STEP_SUMMARY
-          echo "- **EC2 Instance**: ${{ steps.status.outputs.EC2_STATE }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Elastic IP**: ${{ steps.status.outputs.EIP_STATUS }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **IP Association**: ${{ steps.status.outputs.EIP_ASSOCIATION }}" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ steps.status.outputs.RDS_STATUS }}" != "Not found" ]; then
-            echo "- **RDS Database**: ${{ steps.status.outputs.RDS_STATUS }}" >> $GITHUB_STEP_SUMMARY
-          fi
+          echo "### 🔧 Current Status:" >> $GITHUB_STEP_SUMMARY
+          echo "- **EC2 Instance**: $FINAL_EC2_STATE" >> $GITHUB_STEP_SUMMARY
+          echo "- **Fixed IP**: $FIXED_IP" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🔗 Access Information:" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ steps.status.outputs.EC2_STATE }}" = "running" ]; then
-            echo "- **SSH**: \`ssh ubuntu@${{ env.EC2_HOST }}\`" >> $GITHUB_STEP_SUMMARY
-            echo "- **Frontend**: http://${{ env.EC2_HOST }}:3000" >> $GITHUB_STEP_SUMMARY
-            echo "- **Backend**: http://${{ env.EC2_HOST }}:8080" >> $GITHUB_STEP_SUMMARY
-            echo "- **Health Check**: http://${{ env.EC2_HOST }}:8080/health" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "$FINAL_EC2_STATE" = "running" ]; then
+            echo "### 🌐 Access URLs:" >> $GITHUB_STEP_SUMMARY
+            echo "- **Frontend**: http://$FIXED_IP/" >> $GITHUB_STEP_SUMMARY
+            echo "- **API**: http://$FIXED_IP/api" >> $GITHUB_STEP_SUMMARY
+            echo "- **Swagger**: http://$FIXED_IP/api-docs" >> $GITHUB_STEP_SUMMARY
+            echo "- **SSH**: \`ssh -i key.pem ubuntu@$FIXED_IP\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 💰 Cost Information:" >> $GITHUB_STEP_SUMMARY
+            echo "- **Monthly cost**: ~$27.5 (running)" >> $GITHUB_STEP_SUMMARY
           else
-            echo "- **Status**: Infrastructure is stopped" >> $GITHUB_STEP_SUMMARY
+            echo "### 💰 Cost Information:" >> $GITHUB_STEP_SUMMARY
+            echo "- **Monthly cost**: ~$16.1 (stopped)" >> $GITHUB_STEP_SUMMARY
+            echo "- **Savings**: ~$15/month vs running" >> $GITHUB_STEP_SUMMARY
           fi
