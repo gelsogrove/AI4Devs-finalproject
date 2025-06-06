@@ -86,11 +86,15 @@ jobs:
             
             # Create backend .env
             echo "⚙️ Creating backend .env..."
-            echo "NODE_ENV=production" > .env
+            echo "NODE_ENV=development" > .env
             echo "PORT=8080" >> .env
             echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env
             echo "OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}" >> .env
             echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+            echo "AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}" >> .env
+            echo "AWS_REGION=us-east-1" >> .env
+            echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> .env
+            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> .env
             
             # Build backend
             echo "🏗️ Building backend..."
@@ -109,7 +113,7 @@ jobs:
             # Frontend setup
             echo "🔧 Setting up frontend..."
             cd ../frontend
-            npm ci --production
+            npm ci
             
             # Create frontend .env
             echo "⚙️ Creating frontend .env..."
@@ -119,9 +123,9 @@ jobs:
             echo "🏗️ Building frontend..."
             npm run build
             
-            # Start frontend
+            # Start frontend with preview
             echo "🚀 Starting frontend..."
-            nohup npm run start > ../frontend.log 2>&1 &
+            nohup npx vite preview --host 0.0.0.0 --port 3000 > ../frontend.log 2>&1 &
             echo $! > ../frontend.pid
             
             # Configure Nginx reverse proxy
@@ -181,103 +185,3 @@ jobs:
           echo "- **Application**: http://${{ secrets.EC2_HOST }}" >> $GITHUB_STEP_SUMMARY
           echo "- **API**: http://${{ secrets.EC2_HOST }}/api" >> $GITHUB_STEP_SUMMARY
 
-      - name: 🚀 Deploy to EC2
-        run: |
-          echo "Connecting to EC2 and starting deployment..."
-          ssh -i ec2_key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} << 'DEPLOY_SCRIPT'
-            echo "🚀 Starting ShopMefy deployment..."
-            
-            # Stop existing processes
-            echo "🛑 Stopping existing processes..."
-            sudo pkill -f "node.*dist/index.js" || true
-            sudo pkill -f "serve.*dist" || true
-            sudo pkill -f npm || true
-            
-            # Clone or update repository
-            if [ -d "AI4Devs-finalproject" ]; then
-              echo "📥 Updating existing repository..."
-              cd AI4Devs-finalproject
-              git fetch origin
-              git reset --hard origin/main
-              git clean -fd
-            else
-              echo "📥 Cloning repository..."
-              git clone https://github.com/gelsogrove/AI4Devs-finalproject.git
-              cd AI4Devs-finalproject
-            fi
-            
-            # Backend setup
-            echo "🔧 Setting up backend..."
-            cd backend
-            npm ci --production
-            
-            # Create backend .env
-            echo "⚙️ Creating backend .env..."
-            echo "NODE_ENV=production" > .env
-            echo "PORT=8080" >> .env
-            echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env
-            echo "OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}" >> .env
-            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
-            
-            # Build backend
-            echo "🏗️ Building backend..."
-            npm run build
-            
-            # Database setup
-            echo "🗄️ Setting up database..."
-            npx prisma migrate deploy
-            npx prisma db seed
-            
-            # Start backend
-            echo "🚀 Starting backend..."
-            nohup npm run start > ../backend.log 2>&1 &
-            echo $! > ../backend.pid
-            
-            # Frontend setup
-            echo "🔧 Setting up frontend..."
-            cd ../frontend
-            npm ci --production
-            
-            # Create frontend .env
-            echo "⚙️ Creating frontend .env..."
-            echo "VITE_API_URL=http://${{ secrets.EC2_HOST }}/api" > .env
-            
-            # Build frontend
-            echo "🏗️ Building frontend..."
-            npm run build
-            
-            # Start frontend
-            echo "🚀 Starting frontend..."
-            nohup npm run start > ../frontend.log 2>&1 &
-            echo $! > ../frontend.pid
-            
-            # Wait for services to start
-            echo "⏳ Waiting for services to start..."
-            sleep 10
-            
-            echo "✅ Deployment completed successfully!"
-            echo "🌐 Application: http://${{ secrets.EC2_HOST }}"
-            echo "🔗 API: http://${{ secrets.EC2_HOST }}/api"
-            
-            # Show process status
-            echo "📊 Process status:"
-            ps aux | grep -E "(node|serve)" | grep -v grep || echo "No processes found"
-          DEPLOY_SCRIPT
-
-      - name: 🧹 Cleanup
-        if: always()
-        run: |
-          rm -f ec2_key.pem
-
-      - name: 📊 Deployment Summary
-        run: |
-          echo "## 🎉 Deployment Completed Successfully!" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📋 Deployment Details:" >> $GITHUB_STEP_SUMMARY
-          echo "- **Environment**: ${{ env.DEPLOY_ENV }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Target Server**: ${{ secrets.EC2_HOST }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Deployment Time**: $(date)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🔗 Access Your Application:" >> $GITHUB_STEP_SUMMARY
-          echo "- **Application**: http://${{ secrets.EC2_HOST }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **API**: http://${{ secrets.EC2_HOST }}/api" >> $GITHUB_STEP_SUMMARY
