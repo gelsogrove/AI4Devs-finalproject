@@ -1,4 +1,4 @@
-name: 🏗️ INFRA-CONTROL - Manage AWS Infrastructure
+name: 🏗️ Stop and Play Infra
 
 on:
   workflow_dispatch:

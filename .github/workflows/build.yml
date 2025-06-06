@@ -1,6 +1,11 @@
-name: 🏗️ BUILD - Compile and Package
+name: 📦 02 - BUILD - Download Artifacts and Upload to S3
 
 on:
+  workflow_run:
+    workflows: ["🧪 CI - Continuous Integration"]
+    types:
+      - completed
+    branches: [main]
   workflow_dispatch:
     inputs:
       environment:
@@ -10,44 +15,25 @@ on:
         type: choice
         options:
           - dev
-          - prod
-  push:
-    branches: [ main ]
-    paths:
-      - 'backend/**'
-      - 'frontend/**'
 
 env:
   AWS_REGION: us-east-1
-  NODE_VERSION: '20'
 
 jobs:
-  build:
-    name: 🏗️ Build Application
+  download-and-upload:
+    name: 📦 Download Artifacts and Upload to S3
     runs-on: ubuntu-latest
     environment: dev
-    outputs:
-      build_version: ${{ steps.version.outputs.BUILD_VERSION }}
+    if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch'
     
     steps:
-      - name: 🔄 Checkout Code
+      - name: 🔄 Checkout Code (for deployment info)
         uses: actions/checkout@v4
 
-      - name: 🟢 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: |
-            backend/package-lock.json
-            frontend/package-lock.json
-
-      - name: 🎯 Generate Build Version
-        id: version
+      - name: 🎯 Set Environment Variables
         run: |
-          BUILD_VERSION="build-$(date +%Y%m%d-%H%M%S)-$(echo $GITHUB_SHA | cut -c1-8)"
-          echo "BUILD_VERSION=$BUILD_VERSION" >> $GITHUB_OUTPUT
-          echo "🏷️ Build version: $BUILD_VERSION"
+          echo "BUILD_VERSION=build-$(date +%Y%m%d-%H%M%S)-$(echo $GITHUB_SHA | cut -c1-8)" >> $GITHUB_ENV
+          echo "🏷️ Build version: build-$(date +%Y%m%d-%H%M%S)-$(echo $GITHUB_SHA | cut -c1-8)"
 
       - name: ⚙️ Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -56,77 +42,45 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: 🏗️ Build Backend
-        run: |
-          echo "🏗️ Building backend..."
-          cd backend
-          
-          echo "📦 Installing dependencies..."
-          npm ci
-          
-          echo "⚙️ Creating build .env..."
-          cat > .env << EOF
-          NODE_ENV=production
-          PORT=8080
-          DATABASE_URL=placeholder
-          OPENROUTER_API_KEY=placeholder
-          JWT_SECRET=placeholder
-          AWS_S3_BUCKET=placeholder
-          AWS_REGION=us-east-1
-          AWS_ACCESS_KEY_ID=placeholder
-          AWS_SECRET_ACCESS_KEY=placeholder
-          PUBLIC_URL=placeholder
-          SWAGGER_USER=placeholder
-          SWAGGER_PASSWORD=placeholder
-          EOF
-          
-          echo "🔨 Compiling TypeScript..."
-          npm run build
-          
-          echo "✅ Backend build completed!"
-          ls -la dist/
+      - name: 📥 Download Backend Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-build
+          path: ./backend-artifacts
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id || github.run_id }}
 
-      - name: 🎨 Build Frontend
-        run: |
-          echo "🏗️ Building frontend..."
-          cd frontend
-          
-          echo "📦 Installing dependencies..."
-          npm ci
-          
-          echo "⚙️ Creating build .env..."
-          echo "VITE_API_URL=placeholder" > .env
-          
-          echo "🔨 Building React application..."
-          npm run build
-          
-          echo "✅ Frontend build completed!"
-          ls -la dist/
+      - name: 📥 Download Frontend Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: ./frontend-artifacts
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id || github.run_id }}
 
-      - name: 📦 Package Build Artifacts
+      - name: 📦 Package Deployment Artifacts
         run: |
-          echo "📦 Creating deployment package..."
+          echo "📦 Creating deployment package from downloaded artifacts..."
           
           # Create deployment structure
           mkdir -p deployment/backend
           mkdir -p deployment/frontend
           
-          # Copy backend build
-          cp -r backend/dist deployment/backend/
-          cp backend/package*.json deployment/backend/
-          cp -r backend/prisma deployment/backend/
+          # Copy backend artifacts
+          cp -r backend-artifacts/* deployment/backend/
           
-          # Copy frontend build
-          cp -r frontend/dist deployment/frontend/
+          # Copy frontend artifacts
+          cp -r frontend-artifacts/* deployment/frontend/
           
           # Create deployment info
           cat > deployment/deployment-info.json << EOF
           {
-            "version": "${{ steps.version.outputs.BUILD_VERSION }}",
+            "version": "${{ env.BUILD_VERSION }}",
             "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
             "commit": "$GITHUB_SHA",
             "branch": "$GITHUB_REF_NAME",
-            "environment": "${{ github.event.inputs.environment || 'dev' }}"
+            "environment": "${{ github.event.inputs.environment || 'dev' }}",
+            "source": "artifacts-from-ci"
           }
           EOF
           
@@ -134,48 +88,40 @@ jobs:
           echo "🗜️ Creating deployment archive..."
           tar -czf deployment.tar.gz -C deployment .
           
-          echo "📊 Package info:"
-          ls -lh deployment.tar.gz
-          echo "Package size: $(du -sh deployment.tar.gz)"
+          echo "📊 Package created: $(du -sh deployment.tar.gz)"
+          echo "📋 Contents:"
+          tar -tzf deployment.tar.gz | head -20
 
-      - name: ☁️ Upload to S3
+      - name: ☁️ Upload Build to S3
         run: |
-          echo "☁️ Uploading build to S3..."
-          
-          BUILD_VERSION="${{ steps.version.outputs.BUILD_VERSION }}"
+          echo "☁️ Uploading build artifacts to S3..."
           
           # Upload versioned build
-          aws s3 cp deployment.tar.gz "s3://${{ secrets.AWS_S3_BUCKET }}/builds/$BUILD_VERSION.tar.gz"
+          aws s3 cp deployment.tar.gz "s3://${{ secrets.AWS_S3_BUCKET }}/deployments/${{ env.BUILD_VERSION }}.tar.gz"
           
           # Upload as latest
-          aws s3 cp deployment.tar.gz "s3://${{ secrets.AWS_S3_BUCKET }}/builds/latest.tar.gz"
+          aws s3 cp deployment.tar.gz "s3://${{ secrets.AWS_S3_BUCKET }}/deployments/latest.tar.gz"
           
           # Upload deployment info
-          aws s3 cp deployment/deployment-info.json "s3://${{ secrets.AWS_S3_BUCKET }}/builds/$BUILD_VERSION-info.json"
-          aws s3 cp deployment/deployment-info.json "s3://${{ secrets.AWS_S3_BUCKET }}/builds/latest-info.json"
+          aws s3 cp deployment/deployment-info.json "s3://${{ secrets.AWS_S3_BUCKET }}/deployments/${{ env.BUILD_VERSION }}-info.json"
+          aws s3 cp deployment/deployment-info.json "s3://${{ secrets.AWS_S3_BUCKET }}/deployments/latest-info.json"
           
-          echo "✅ Build uploaded to S3!"
-
-      - name: 📤 Upload GitHub Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: shopmefy-build-${{ steps.version.outputs.BUILD_VERSION }}
-          path: deployment.tar.gz
-          retention-days: 30
+          echo "✅ Upload completed to S3!"
 
       - name: 📊 Build Summary
         run: |
-          echo "## 🎉 Build Completed Successfully" >> $GITHUB_STEP_SUMMARY
+          echo "## 📦 Build Package Created!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📋 Build Details:" >> $GITHUB_STEP_SUMMARY
-          echo "- **Version**: ${{ steps.version.outputs.BUILD_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ env.BUILD_VERSION }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit**: $GITHUB_SHA" >> $GITHUB_STEP_SUMMARY
           echo "- **Branch**: $GITHUB_REF_NAME" >> $GITHUB_STEP_SUMMARY
           echo "- **Environment**: ${{ github.event.inputs.environment || 'dev' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Source**: Downloaded from CI artifacts" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📦 Artifacts:" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ S3: \`s3://${{ secrets.AWS_S3_BUCKET }}/builds/latest.tar.gz\`" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ GitHub Artifacts: \`shopmefy-build-${{ steps.version.outputs.BUILD_VERSION }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 S3 Artifacts:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Versioned**: \`s3://${{ secrets.AWS_S3_BUCKET }}/deployments/${{ env.BUILD_VERSION }}.tar.gz\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Latest**: \`s3://${{ secrets.AWS_S3_BUCKET }}/deployments/latest.tar.gz\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🚀 Ready for Deployment:" >> $GITHUB_STEP_SUMMARY
           echo "Use the **DEPLOY** workflow to deploy this build to EC2." >> $GITHUB_STEP_SUMMARY

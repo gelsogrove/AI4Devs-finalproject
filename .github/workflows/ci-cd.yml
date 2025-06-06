@@ -1,4 +1,4 @@
-name: 🧪 CI - Test & Build Code
+name: 🧪 01 - CI - Continuous Integration
 
 on:
   push:
