@@ -220,6 +220,17 @@ jobs:
             
             # Database setup
             echo "🗄️ Setting up database..."
+            echo "🔍 Database URL check:"
+            echo "DATABASE_URL length: ${#DATABASE_URL}"
+            echo "DATABASE_URL starts with: ${DATABASE_URL:0:20}..."
+            
+            # Validate DATABASE_URL format
+            if [[ ! "$DATABASE_URL" =~ ^postgresql:// ]]; then
+              echo "❌ DATABASE_URL doesn't start with postgresql://"
+              echo "Current DATABASE_URL: $DATABASE_URL"
+              exit 1
+            fi
+            
             npx prisma migrate deploy
             npx prisma db seed || echo "Seeding skipped"
             

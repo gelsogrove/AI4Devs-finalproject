@@ -83,15 +83,15 @@ jobs:
           else
             echo "✅ EC2 instance already running"
           fi
-          
+            
           # Ensure EIP is associated
           echo "Associating Elastic IP..."
-          aws ec2 associate-address --instance-id $INSTANCE_ID --allocation-id $FIXED_EIP_ALLOCATION
+            aws ec2 associate-address --instance-id $INSTANCE_ID --allocation-id $FIXED_EIP_ALLOCATION
           echo "✅ Elastic IP associated"
-          
-          # Wait for SSH to be ready
-          echo "⏳ Waiting for SSH to be ready..."
-          sleep 30
+            
+            # Wait for SSH to be ready
+            echo "⏳ Waiting for SSH to be ready..."
+            sleep 30
 
       - name: 🛑 Stop Infrastructure
         if: github.event.inputs.action == 'stop'
