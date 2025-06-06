@@ -1,4 +1,4 @@
- name: 🚀 MAIN WORKFLOW - Build and Deploy
+name: 🚀 MAIN WORKFLOW - Build and Deploy
 
 on:
   push:
@@ -401,4 +401,4 @@ jobs:
           echo "- ✅ Build on GitHub Actions (unlimited RAM)" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Deploy from S3 (pre-compiled artifacts)" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ No memory issues on EC2" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Fast deployment (~2 minutes vs 10+ minutes)" >> $GITHUB_STEP_SUMMARY 
+          echo "- ✅ Fast deployment (~2 minutes vs 10+ minutes)" >> $GITHUB_STEP_SUMMARY
