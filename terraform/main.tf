@@ -349,10 +349,15 @@ resource "aws_instance" "web" {
 # ===================================
 
 resource "aws_eip" "web" {
-  instance = aws_instance.web.id
-  domain   = "vpc"
+  domain = "vpc"
   
   tags = {
     Name = "shopmefy-eip"
   }
+}
+
+# Associate EIP to instance (separate resource for flexibility)
+resource "aws_eip_association" "web" {
+  instance_id   = aws_instance.web.id
+  allocation_id = aws_eip.web.id
 } 

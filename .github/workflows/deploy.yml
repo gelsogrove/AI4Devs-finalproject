@@ -250,9 +250,9 @@ jobs:
             echo "Package.json exists: $(test -f package.json && echo 'YES' || echo 'NO')"
             ls -la package.json || echo "No package.json found"
             
-            npm ci --production --silent || {
+            npm ci --silent || {
               echo "❌ npm ci failed, trying npm install..."
-              npm install --production --silent || {
+              npm install --silent || {
                 echo "❌ npm install also failed"
                 exit 1
               }
