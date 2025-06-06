@@ -8,7 +8,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": "./",
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
@@ -17,6 +17,6 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.json", "src/types/**/*.d.ts"],
+  "include": ["src/**/*.ts", "src/**/*.json", "src/types/**/*.d.ts", "prisma/**/*.ts"],
   "exclude": ["node_modules", "**/*.test.ts"]
 } 
