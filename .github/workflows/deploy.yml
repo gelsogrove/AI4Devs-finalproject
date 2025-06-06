@@ -177,12 +177,34 @@ jobs:
             
             echo "🚀 Starting ShopMefy deployment..."
             
+            # Function to handle errors gracefully
+            handle_error() {
+              echo "❌ Error occurred in: $1"
+              echo "📝 Error details: $2"
+              echo "⚠️ Continuing with deployment..."
+            }
+            
             # Stop existing processes gracefully
             echo "🛑 Stopping existing processes..."
-            sudo pkill -f "node.*dist/index.js" || true
-            sudo pkill -f "vite preview" || true
-            sudo pkill -f npm || true
+            echo "Stopping Node.js processes..."
+            sudo pkill -f "node.*dist/index.js" || echo "No Node.js backend processes found"
+            echo "Stopping Vite processes..."
+            sudo pkill -f "vite preview" || echo "No Vite processes found"
+            echo "Stopping npm processes..."
+            sudo pkill -f npm || echo "No npm processes found"
+            echo "Waiting for processes to terminate..."
             sleep 5
+            
+            # Verify ports are free
+            echo "🔍 Checking port availability..."
+            if lsof -i :8080 > /dev/null 2>&1; then
+              echo "⚠️ Port 8080 still in use, force killing..."
+              sudo fuser -k 8080/tcp || true
+            fi
+            if lsof -i :3000 > /dev/null 2>&1; then
+              echo "⚠️ Port 3000 still in use, force killing..."
+              sudo fuser -k 3000/tcp || true
+            fi
             
             # Clone or update repository
             if [ -d "AI4Devs-finalproject" ]; then
@@ -224,7 +246,14 @@ jobs:
             
             # Build backend
             echo "🏗️ Building backend..."
-            npm run build
+            if ! npm run build; then
+              echo "❌ Backend build failed!"
+              echo "📝 Checking for common issues..."
+              echo "Node version: $(node --version)"
+              echo "NPM version: $(npm --version)"
+              echo "Available memory: $(free -h | grep Mem)"
+              exit 1
+            fi
             
             # Database operations
             echo "🗄️ Setting up database..."
@@ -232,9 +261,11 @@ jobs:
             npx prisma migrate deploy
             
             echo "Seeding database..."
-            npx prisma db seed || {
+            if ! npx prisma db seed; then
               echo "⚠️ Database seeding failed - this might be expected if data already exists"
-            }
+              echo "📝 Checking if database has existing data..."
+              npx prisma db execute --stdin <<< "SELECT COUNT(*) FROM \"User\";" || echo "Could not check user count"
+            fi
             
             # Start backend
             echo "🚀 Starting backend service..."
@@ -257,7 +288,15 @@ jobs:
             
             # Build frontend
             echo "🏗️ Building frontend..."
-            npm run build
+            if ! npm run build; then
+              echo "❌ Frontend build failed!"
+              echo "📝 Checking for common issues..."
+              echo "Node version: $(node --version)"
+              echo "NPM version: $(npm --version)"
+              echo "Available memory: $(free -h | grep Mem)"
+              echo "Disk space: $(df -h /)"
+              exit 1
+            fi
             
             # Start frontend
             echo "🚀 Starting frontend service..."
@@ -295,9 +334,24 @@ jobs:
             
             # Test and restart Nginx
             echo "🔄 Testing and restarting Nginx..."
-            sudo nginx -t
+            if ! sudo nginx -t; then
+              echo "❌ Nginx configuration test failed!"
+              echo "📝 Showing Nginx configuration:"
+              sudo nginx -T 2>&1 | tail -20
+              exit 1
+            fi
+            
+            echo "✅ Nginx configuration is valid"
             sudo systemctl restart nginx
             sudo systemctl enable nginx
+            
+            # Verify Nginx is running
+            if ! sudo systemctl is-active --quiet nginx; then
+              echo "❌ Nginx failed to start!"
+              sudo systemctl status nginx --no-pager -l
+              exit 1
+            fi
+            echo "✅ Nginx is running successfully"
             
             # Wait for services to start
             echo "⏳ Waiting for services to initialize..."
