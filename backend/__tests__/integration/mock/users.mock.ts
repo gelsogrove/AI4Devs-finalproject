@@ -17,7 +17,7 @@ export const mockUsers = [
   {
     id: '1',
     email: 'test@example.com',
-    password: '$2b$10$I6C.SGfOS1zFQgtjRSQmWOf.LVyZ0O3P2wQq61MJVKhvmka6gx4py', // password123
+    password: '$2b$10$gpeW/MyEhPVDkaTfG4kxkOL4qqzqCbdKvK9lWsWMZGumydu8pokVy', // ShopMefy$Secure
     firstName: 'Test',
     lastName: 'User',
   },
