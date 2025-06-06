@@ -10,13 +10,6 @@ on:
         type: choice
         options:
           - dev
-  # Auto-deploy after successful CI/CD
-  workflow_run:
-    workflows: ["🧪 CI - Test & Build Code"]
-    types:
-      - completed
-    branches:
-      - main
 
 env:
   AWS_REGION: us-east-1
@@ -26,21 +19,14 @@ jobs:
     name: 🚀 Deploy to EC2
     runs-on: ubuntu-latest
     environment: dev
-    # Only run if CI/CD was successful or if manually triggered
-    if: |
-      github.event_name == 'workflow_dispatch' || 
-      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    # Only run when manually triggered
+    if: github.event_name == 'workflow_dispatch'
     
     steps:
       - name: 🎯 Set Environment
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "DEPLOY_ENV=${{ github.event.inputs.environment }}" >> $GITHUB_ENV
-            echo "Manual deployment to ${{ github.event.inputs.environment }}"
-          else
-            echo "DEPLOY_ENV=dev" >> $GITHUB_ENV
-            echo "Auto deployment to dev after successful CI/CD"
-          fi
+          echo "DEPLOY_ENV=${{ github.event.inputs.environment }}" >> $GITHUB_ENV
+          echo "Manual deployment to ${{ github.event.inputs.environment }}"
 
       - name: ⚙️ Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
