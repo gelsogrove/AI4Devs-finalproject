@@ -239,6 +239,13 @@ jobs:
             echo "🔧 Setting up backend..."
             cd backend
             
+            # Clean up system before heavy operations
+            echo "🧹 Cleaning up system memory..."
+            sudo apt-get clean || true
+            sudo sync
+            echo 3 | sudo tee /proc/sys/vm/drop_caches > /dev/null || true
+            echo "📊 Memory after cleanup: $(free -h | grep Mem)"
+            
             # Install dependencies
             echo "📦 Installing backend dependencies..."
             echo "Node version: $(node --version)"
@@ -272,14 +279,29 @@ jobs:
             
             # Build backend
             echo "🏗️ Building backend..."
+            echo "📊 Backend build system status:"
+            echo "Available memory: $(free -h | grep Mem)"
+            echo "TypeScript version: $(npx tsc --version 2>/dev/null || echo 'Not found')"
+            
+            # Set Node.js memory limit for backend build too
+            export NODE_OPTIONS="--max-old-space-size=1024"
+            
             if ! npm run build; then
               echo "❌ Backend build failed!"
-              echo "📝 Checking for common issues..."
+              echo "📝 Detailed diagnostics:"
               echo "Node version: $(node --version)"
               echo "NPM version: $(npm --version)"
-              echo "Available memory: $(free -h | grep Mem)"
+              echo "Available memory: $(free -h)"
+              echo "TypeScript config:"
+              cat tsconfig.json 2>/dev/null | head -20 || echo "No tsconfig.json found"
+              echo "Build output directory:"
+              ls -la dist/ 2>/dev/null || echo "No dist directory created"
+              echo "Package.json scripts:"
+              cat package.json | grep -A 10 '"scripts"' || echo "No scripts found"
               exit 1
             fi
+            
+            echo "✅ Backend build completed successfully"
             
             # Database operations
             echo "🗄️ Setting up database..."
@@ -324,12 +346,30 @@ jobs:
             echo "Available memory: $(free -h | grep Mem)"
             echo "Disk space: $(df -h . | tail -1)"
             
-            if ! npm ci; then
-              echo "❌ Frontend dependency installation failed!"
-              echo "📝 NPM error log:"
-              cat ~/.npm/_logs/*.log 2>/dev/null | tail -20 || echo "No NPM logs found"
-              exit 1
-            fi
+            # Try npm ci with retry logic
+            RETRY_COUNT=0
+            MAX_RETRIES=2
+            
+            while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+              if npm ci; then
+                echo "✅ Frontend dependencies installed successfully"
+                break
+              else
+                RETRY_COUNT=$((RETRY_COUNT + 1))
+                echo "⚠️ Frontend npm ci failed (attempt $RETRY_COUNT/$MAX_RETRIES)"
+                if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                  echo "🔄 Cleaning npm cache and retrying..."
+                  npm cache clean --force
+                  rm -rf node_modules package-lock.json
+                  sleep 5
+                else
+                  echo "❌ Frontend dependency installation failed after $MAX_RETRIES attempts!"
+                  echo "📝 NPM error log:"
+                  cat ~/.npm/_logs/*.log 2>/dev/null | tail -20 || echo "No NPM logs found"
+                  exit 1
+                fi
+              fi
+            done
             
             # Create frontend .env
             echo "⚙️ Creating frontend .env..."
@@ -337,15 +377,37 @@ jobs:
             
             # Build frontend
             echo "🏗️ Building frontend..."
+            echo "📊 Pre-build system status:"
+            echo "Available memory: $(free -h)"
+            echo "Disk space: $(df -h)"
+            echo "Swap status: $(swapon --show || echo 'No swap configured')"
+            
+            # Create swap if not exists (for memory-intensive builds)
+            if ! swapon --show | grep -q "/swapfile"; then
+              echo "🔄 Creating swap file for build process..."
+              sudo fallocate -l 2G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048
+              sudo chmod 600 /swapfile
+              sudo mkswap /swapfile
+              sudo swapon /swapfile
+              echo "✅ Swap file created and activated"
+            fi
+            
+            # Set Node.js memory limit for build
+            export NODE_OPTIONS="--max-old-space-size=1536"
+            echo "🔧 Node memory limit set to 1536MB"
+            
             if ! npm run build; then
               echo "❌ Frontend build failed!"
-              echo "📝 Checking for common issues..."
-              echo "Node version: $(node --version)"
-              echo "NPM version: $(npm --version)"
-              echo "Available memory: $(free -h | grep Mem)"
-              echo "Disk space: $(df -h /)"
+              echo "📝 System status during failure:"
+              echo "Memory usage: $(free -h)"
+              echo "Disk usage: $(df -h /)"
+              echo "Node processes: $(ps aux | grep node | grep -v grep || echo 'None')"
+              echo "Build logs:"
+              ls -la dist/ 2>/dev/null || echo "No dist directory created"
               exit 1
             fi
+            
+            echo "✅ Frontend build completed successfully"
             
             # Start frontend
             echo "🚀 Starting frontend service..."
