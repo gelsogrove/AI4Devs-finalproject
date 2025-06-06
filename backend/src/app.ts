@@ -50,7 +50,13 @@ export function setupServer() {
   // CORS with security check
   app.use(corsSecurityCheck);
   app.use(cors({
-    origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://34.225.214.21'],
+    origin: [
+      'http://localhost:3000', 
+      'http://localhost:3001', 
+      'http://localhost:3002',
+      process.env.FRONTEND_URL,
+      process.env.PUBLIC_URL
+    ].filter((origin): origin is string => Boolean(origin)),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],

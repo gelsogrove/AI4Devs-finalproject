@@ -95,6 +95,7 @@ jobs:
             echo "AWS_REGION=us-east-1" >> .env
             echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> .env
             echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> .env
+            echo "PUBLIC_URL=${{ secrets.PUBLIC_URL }}" >> .env
             
             # Build backend
             echo "🏗️ Building backend..."

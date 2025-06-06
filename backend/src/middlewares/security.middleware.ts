@@ -182,8 +182,8 @@ export const corsSecurityCheck = (req: Request, res: Response, next: NextFunctio
     'http://localhost:3000',
     'http://localhost:3001', 
     'http://localhost:3002',
-    'http://34.225.214.21',
-    process.env.FRONTEND_URL
+    process.env.FRONTEND_URL,
+    process.env.PUBLIC_URL
   ].filter(Boolean);
   
   // Check if origin is allowed
