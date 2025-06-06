@@ -18,7 +18,7 @@ describe('Auth Utils', () => {
       // Setup
       const mockSalt = 'mock-salt';
       const mockHash = 'hashed-password';
-      const password = 'ShopMefy$Secure';
+      const password = 'ShopMefy2024';
       
       (bcrypt.genSalt as jest.Mock).mockResolvedValue(mockSalt);
       (bcrypt.hash as jest.Mock).mockResolvedValue(mockHash);
@@ -36,7 +36,7 @@ describe('Auth Utils', () => {
   describe('comparePasswords', () => {
     it('should return true for matching passwords', async () => {
       // Setup
-      const plainPassword = 'ShopMefy$Secure';
+      const plainPassword = 'ShopMefy2024';
       const hashedPassword = 'hashed-password';
       
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
@@ -51,7 +51,7 @@ describe('Auth Utils', () => {
 
     it('should return false for non-matching passwords', async () => {
       // Setup
-      const plainPassword = 'ShopMefy$Secure';
+      const plainPassword = 'ShopMefy2024';
       const hashedPassword = 'hashed-password';
       
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);

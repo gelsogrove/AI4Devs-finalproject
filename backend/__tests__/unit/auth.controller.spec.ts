@@ -35,7 +35,7 @@ describe('Auth Controller', () => {
       // Setup
       mockRequest.body = {
         email: 'test@example.com',
-        password: 'ShopMefy$Secure',
+        password: 'ShopMefy2024',
       };
       
       // Execute

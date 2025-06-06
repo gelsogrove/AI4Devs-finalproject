@@ -28,7 +28,7 @@ describe('authApi', () => {
 
       (global.fetch as jest.Mock).mockResolvedValue(mockResponse);
 
-      const credentials = { email: 'test@example.com', password: 'ShopMefy$Secure' };
+      const credentials = { email: 'test@example.com', password: 'ShopMefy2024' };
       await loginUser(credentials);
 
       expect(global.fetch).toHaveBeenCalledWith('/api/auth/login', {
@@ -59,7 +59,7 @@ describe('authApi', () => {
 
       (global.fetch as jest.Mock).mockResolvedValue(mockResponse);
 
-      const result = await loginUser({ email: 'test@example.com', password: 'ShopMefy$Secure' });
+      const result = await loginUser({ email: 'test@example.com', password: 'ShopMefy2024' });
       
       expect(result).toEqual(mockResponseData);
     });

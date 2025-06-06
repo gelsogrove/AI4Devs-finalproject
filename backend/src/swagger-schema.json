@@ -180,7 +180,7 @@
                   "password": {
                     "type": "string",
                     "format": "password",
-                    "example": "ShopMefy$Secure"
+                    "example": "ShopMefy2024"
                   }
                 }
               }

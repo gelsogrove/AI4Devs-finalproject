@@ -1,5 +1,4 @@
 import { PrismaClient } from '@prisma/client';
-import { storageService } from '../src/services/storage.service';
 
 const prisma = new PrismaClient();
 
@@ -309,7 +308,7 @@ async function main() {
   await prisma.user.create({
     data: {
       email: 'admin@shopmefy.com',
-              password: 'ShopMefy$Secure', 
+              password: 'ShopMefy2024', 
       firstName: 'Admin',
       lastName: 'User',
       isActive: true
@@ -436,8 +435,8 @@ Electronic documentation and digital platforms are increasingly important in int
     // Create a mock PDF buffer for the document
     const pdfBuffer = Buffer.from('Mock PDF content for seeding');
     
-    // Upload the file using StorageService
-    const uploadResult = await storageService.uploadFile(pdfBuffer, legacyFilename, 'application/pdf');
+    // Mock upload result for seeding (no actual file upload needed)
+    const uploadResult = { path: `uploads/documents/${legacyFilename}` };
     
     // Create the document record
     const document = await prisma.document.create({

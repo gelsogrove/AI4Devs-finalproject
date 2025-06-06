@@ -23,7 +23,7 @@ env:
   AWS_REGION: us-east-1
   INSTANCE_ID: i-008b6c493b1f842a9
   FIXED_EIP_ALLOCATION: eipalloc-0001d20efe88091c7
-  EC2_HOST: 18.207.145.179
+  EC2_HOST: 52.7.57.53
   EC2_USER: ubuntu
 
 jobs:

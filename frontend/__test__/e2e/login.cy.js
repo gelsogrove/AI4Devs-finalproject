@@ -24,7 +24,7 @@ describe('Login Page', () => {
   
   it('should pre-fill the test credentials', () => {
     cy.get('input[type="email"]').should('have.value', 'test@example.com');
-    cy.get('input[type="password"]').should('have.value', 'ShopMefy$Secure');
+    cy.get('input[type="password"]').should('have.value', 'ShopMefy2024');
   });
   
   it('should allow entering custom credentials', () => {
@@ -74,7 +74,7 @@ describe('Login Page', () => {
       // Verify the payload
       expect(interception.request.body).to.deep.equal({
         email: 'test@example.com',
-        password: 'ShopMefy$Secure'
+        password: 'ShopMefy2024'
       });
     });
     

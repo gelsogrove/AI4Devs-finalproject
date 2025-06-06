@@ -5,7 +5,7 @@ import app from '../../src/app';
 // MVP Test User - aligns with actual seeded data in user service
 const testUser = {
   email: 'test@example.com',
-  password: 'ShopMefy$Secure',
+  password: 'ShopMefy2024',
   firstName: 'Test',
   lastName: 'User'
 };
@@ -58,7 +58,7 @@ describe('Auth API Integration Tests - MVP Scope', () => {
     it('should register new user (MVP: basic registration)', async () => {
       const newUser = {
         email: 'newuser@test.com',
-        password: 'ShopMefy$Secure',
+        password: 'ShopMefy2024',
         firstName: 'New',
         lastName: 'User'
       };
@@ -79,7 +79,7 @@ describe('Auth API Integration Tests - MVP Scope', () => {
       // First register a user
       const newUser = {
         email: 'duplicate@test.com',
-        password: 'ShopMefy$Secure',
+        password: 'ShopMefy2024',
         firstName: 'Duplicate',
         lastName: 'User'
       };

@@ -35,8 +35,8 @@ export const comparePasswords = async (
 
 // For testing only
 export const checkTestPassword = async (): Promise<void> => {
-  const testPassword = 'ShopMefy$Secure';
-      const testHash = '$2b$10$gpeW/MyEhPVDkaTfG4kxkOL4qqzqCbdKvK9lWsWMZGumydu8pokVy';
+  const testPassword = 'ShopMefy2024';
+      const testHash = '$2b$10$iHb5iNkMOm/0ruKp7uXRUuI4wYPzIz28Oe033XZsspEBbiKBDWYnu';
   
   try {
     const result = await bcrypt.compare(testPassword, testHash);

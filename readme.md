@@ -215,7 +215,7 @@ npm run test:e2e
 #### Swagger API Documentation
 - **URL**: http://34.225.214.21/api-docs
 - **Username**: admin
-- **Password**: ShopMefy$Secure
+- **Password**: ShopMefy2024
 
 #### Manual Deployment
 The application uses manual deployment to save AWS resources:

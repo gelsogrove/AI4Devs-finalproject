@@ -17,7 +17,7 @@ describe('Document API Integration Tests', () => {
       .post('/api/auth/register')
       .send({
         email: 'test@example.com',
-        password: 'ShopMefy$Secure',
+        password: 'ShopMefy2024',
         firstName: 'Test',
         lastName: 'User'
       });
@@ -31,7 +31,7 @@ describe('Document API Integration Tests', () => {
         .post('/api/auth/login')
         .send({
           email: 'test@example.com',
-          password: 'ShopMefy$Secure'
+          password: 'ShopMefy2024'
         });
       
       testUserId = loginResponse.body.user.id;
