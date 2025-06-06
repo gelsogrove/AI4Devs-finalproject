@@ -277,10 +277,7 @@ jobs:
             }
             
             echo "🌱 Running Prisma seed..."
-            npx prisma db seed || {
-              echo "⚠️ Seeding failed (TypeScript compilation issue)"
-              echo "✅ Continuing deployment without seed data"
-            }
+            npx prisma db seed
             
             # Start backend
             echo "🚀 Starting backend..."
