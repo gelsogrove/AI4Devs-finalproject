@@ -24,7 +24,7 @@ jobs:
     name: 📦 Download Artifacts and Upload to S3
     runs-on: ubuntu-latest
     environment: dev
-    if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch'
+    if: (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') || github.event_name == 'workflow_dispatch'
     
     steps:
       - name: 🔄 Checkout Code (for deployment info)
@@ -34,6 +34,14 @@ jobs:
         run: |
           echo "BUILD_VERSION=build-$(date +%Y%m%d-%H%M%S)-$(echo $GITHUB_SHA | cut -c1-8)" >> $GITHUB_ENV
           echo "🏷️ Build version: build-$(date +%Y%m%d-%H%M%S)-$(echo $GITHUB_SHA | cut -c1-8)"
+          
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "WORKFLOW_RUN_ID=${{ github.event.workflow_run.id }}" >> $GITHUB_ENV
+            echo "📋 Using workflow run ID: ${{ github.event.workflow_run.id }}"
+          else
+            echo "WORKFLOW_RUN_ID=${{ github.run_id }}" >> $GITHUB_ENV
+            echo "📋 Using current run ID: ${{ github.run_id }}"
+          fi
 
       - name: ⚙️ Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -42,13 +50,25 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: 🔍 Check Available Artifacts
+        run: |
+          echo "🔍 Checking available artifacts for workflow run: ${{ env.WORKFLOW_RUN_ID }}"
+          
+          # List artifacts using GitHub API
+          curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+               -H "Accept: application/vnd.github.v3+json" \
+               "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ env.WORKFLOW_RUN_ID }}/artifacts" \
+               | jq '.artifacts[] | {name: .name, expired: .expired, created_at: .created_at}'
+
       - name: 📥 Download Backend Build Artifacts
         uses: actions/download-artifact@v4
         with:
           name: backend-build
           path: ./backend-artifacts
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ github.event.workflow_run.id || github.run_id }}
+          run-id: ${{ env.WORKFLOW_RUN_ID }}
+        continue-on-error: true
+        id: download-backend
 
       - name: 📥 Download Frontend Build Artifacts
         uses: actions/download-artifact@v4
@@ -56,7 +76,29 @@ jobs:
           name: frontend-build
           path: ./frontend-artifacts
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ github.event.workflow_run.id || github.run_id }}
+          run-id: ${{ env.WORKFLOW_RUN_ID }}
+        continue-on-error: true
+        id: download-frontend
+
+      - name: ✅ Verify Downloads
+        run: |
+          echo "🔍 Verifying artifact downloads..."
+          
+          if [ "${{ steps.download-backend.outcome }}" = "success" ]; then
+            echo "✅ Backend artifacts downloaded successfully"
+            ls -la ./backend-artifacts/
+          else
+            echo "❌ Backend artifacts download failed"
+            exit 1
+          fi
+          
+          if [ "${{ steps.download-frontend.outcome }}" = "success" ]; then
+            echo "✅ Frontend artifacts downloaded successfully"
+            ls -la ./frontend-artifacts/
+          else
+            echo "❌ Frontend artifacts download failed"
+            exit 1
+          fi
 
       - name: 📦 Package Deployment Artifacts
         run: |
@@ -80,7 +122,8 @@ jobs:
             "commit": "$GITHUB_SHA",
             "branch": "$GITHUB_REF_NAME",
             "environment": "${{ github.event.inputs.environment || 'dev' }}",
-            "source": "artifacts-from-ci"
+            "source": "artifacts-from-ci",
+            "workflow_run_id": "${{ env.WORKFLOW_RUN_ID }}"
           }
           EOF
           
@@ -117,7 +160,7 @@ jobs:
           echo "- **Commit**: $GITHUB_SHA" >> $GITHUB_STEP_SUMMARY
           echo "- **Branch**: $GITHUB_REF_NAME" >> $GITHUB_STEP_SUMMARY
           echo "- **Environment**: ${{ github.event.inputs.environment || 'dev' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Source**: Downloaded from CI artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "- **Source**: Downloaded from CI artifacts (Run ID: ${{ env.WORKFLOW_RUN_ID }})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📦 S3 Artifacts:" >> $GITHUB_STEP_SUMMARY
           echo "- **Versioned**: \`s3://${{ secrets.AWS_S3_BUCKET }}/deployments/${{ env.BUILD_VERSION }}.tar.gz\`" >> $GITHUB_STEP_SUMMARY
