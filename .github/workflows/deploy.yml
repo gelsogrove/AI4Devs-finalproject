@@ -184,6 +184,22 @@ jobs:
               echo "⚠️ Continuing with deployment..."
             }
             
+            # Verify essential environment variables
+            echo "🔍 Verifying environment variables..."
+            if [ -z "${{ secrets.DATABASE_URL }}" ]; then
+              echo "❌ DATABASE_URL secret is missing!"
+              exit 1
+            fi
+            if [ -z "${{ secrets.OPENROUTER_API_KEY }}" ]; then
+              echo "❌ OPENROUTER_API_KEY secret is missing!"
+              exit 1
+            fi
+            if [ -z "${{ secrets.JWT_SECRET }}" ]; then
+              echo "❌ JWT_SECRET secret is missing!"
+              exit 1
+            fi
+            echo "✅ All essential secrets are present"
+            
             # Stop existing processes gracefully
             echo "🛑 Stopping existing processes..."
             echo "Stopping Node.js processes..."
@@ -225,7 +241,17 @@ jobs:
             
             # Install dependencies
             echo "📦 Installing backend dependencies..."
-            npm ci --production --silent
+            echo "Node version: $(node --version)"
+            echo "NPM version: $(npm --version)"
+            echo "Available memory: $(free -h | grep Mem)"
+            echo "Disk space: $(df -h . | tail -1)"
+            
+            if ! npm ci --production; then
+              echo "❌ Backend dependency installation failed!"
+              echo "📝 NPM error log:"
+              cat ~/.npm/_logs/*.log 2>/dev/null | tail -20 || echo "No NPM logs found"
+              exit 1
+            fi
             
             # Create backend .env
             echo "⚙️ Creating backend .env..."
@@ -257,8 +283,22 @@ jobs:
             
             # Database operations
             echo "🗄️ Setting up database..."
+            echo "Testing database connection..."
+            if ! npx prisma db execute --stdin <<< "SELECT 1;" > /dev/null 2>&1; then
+              echo "❌ Database connection failed!"
+              echo "📝 Checking DATABASE_URL format..."
+              echo "DATABASE_URL starts with: $(echo $DATABASE_URL | cut -c1-20)..."
+              exit 1
+            fi
+            echo "✅ Database connection successful"
+            
             echo "Running Prisma migrations..."
-            npx prisma migrate deploy
+            if ! npx prisma migrate deploy; then
+              echo "❌ Prisma migration failed!"
+              echo "📝 Checking migration status..."
+              npx prisma migrate status || true
+              exit 1
+            fi
             
             echo "Seeding database..."
             if ! npx prisma db seed; then
@@ -280,7 +320,16 @@ jobs:
             
             # Install dependencies
             echo "📦 Installing frontend dependencies..."
-            npm ci --silent
+            echo "Current directory: $(pwd)"
+            echo "Available memory: $(free -h | grep Mem)"
+            echo "Disk space: $(df -h . | tail -1)"
+            
+            if ! npm ci; then
+              echo "❌ Frontend dependency installation failed!"
+              echo "📝 NPM error log:"
+              cat ~/.npm/_logs/*.log 2>/dev/null | tail -20 || echo "No NPM logs found"
+              exit 1
+            fi
             
             # Create frontend .env
             echo "⚙️ Creating frontend .env..."
