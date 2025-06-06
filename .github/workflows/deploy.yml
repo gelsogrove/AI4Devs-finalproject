@@ -1,4 +1,4 @@
-name: 🚀 03 - DEPLOY - SSH and Deploy to EC2
+name: 🚀 03 - Deploy to EC2
 
 on:
   workflow_dispatch:
@@ -219,12 +219,15 @@ jobs:
             cd backend
             
             # Create production .env
-            # Check if DATABASE_URL is set, otherwise use default
+            # Check if DATABASE_URL is set
             DB_URL="${{ secrets.DATABASE_URL }}"
             if [ -z "$DB_URL" ]; then
-              echo "⚠️ DATABASE_URL secret not set, using localhost default"
-              DB_URL="postgresql://shopmefy:shopmefy@localhost:5432/shopmefy"
+              echo "❌ DATABASE_URL secret not set! Please configure it in GitHub Secrets."
+              echo "Expected format: postgresql://username:password@host:5432/database"
+              exit 1
             fi
+            
+            echo "✅ Using DATABASE_URL from secrets"
             
             cat > .env << EOF
           NODE_ENV=production
