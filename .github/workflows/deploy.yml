@@ -281,7 +281,7 @@ jobs:
             
             # Start backend
             echo "🚀 Starting backend..."
-            nohup node dist/index.js > ../backend.log 2>&1 &
+            nohup node dist/src/index.js > ../backend.log 2>&1 &
             echo $! > ../backend.pid
             
             # Setup frontend
@@ -289,7 +289,7 @@ jobs:
             cd ../frontend
             
             # Install serve if needed
-            npm install -g serve 2>/dev/null || echo "serve already installed"
+            sudo npm install -g serve 2>/dev/null || echo "serve already installed"
             
             # Start frontend
             echo "🚀 Starting frontend..."
