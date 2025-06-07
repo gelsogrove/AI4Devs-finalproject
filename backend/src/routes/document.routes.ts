@@ -1,9 +1,11 @@
+import { PrismaClient } from '@prisma/client';
 import { Router } from 'express';
 import { SimpleDocumentController } from '../controllers/document.controller.simple';
 import { authenticate } from '../middlewares/auth.middleware';
 
 const router = Router();
 const simpleDocumentController = new SimpleDocumentController();
+const prisma = new PrismaClient();
 
 /**
  * @swagger
@@ -255,6 +257,36 @@ router.get('/:id/preview', simpleDocumentController.previewDocument);
 
 router.get('/:id', authenticate, simpleDocumentController.getDocumentById);
 router.put('/:id', authenticate, simpleDocumentController.updateDocument);
+
+// Temporary endpoint to fix S3 path migration
+router.patch('/:id/fix-path', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { uploadPath } = req.body;
+    
+    if (!uploadPath) {
+      return res.status(400).json({ error: 'uploadPath is required' });
+    }
+    
+    // Direct database update for S3 migration
+    const updatedDocument = await prisma.document.update({
+      where: { id },
+      data: { uploadPath }
+    });
+    
+    res.json({ 
+      message: 'Document path updated successfully',
+      document: {
+        id: updatedDocument.id,
+        uploadPath: updatedDocument.uploadPath
+      }
+    });
+  } catch (error) {
+    console.error('Error updating document path:', error);
+    res.status(500).json({ error: 'Failed to update document path' });
+  }
+});
+
 router.delete('/:id', authenticate, simpleDocumentController.deleteDocument);
 
 export default router; 
