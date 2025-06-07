@@ -2,6 +2,11 @@ name: 🚀 03 - Deploy to EC2
 
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: ["🧪 01 - CI - Continuous Integration"]
+    types:
+      - completed
+    branches: [main]
 
 env:
   AWS_REGION: us-east-1
@@ -13,6 +18,7 @@ jobs:
     name: 🔍 Pre-Deploy Infrastructure Check
     runs-on: ubuntu-latest
     environment: dev
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     outputs:
       ec2_state: ${{ steps.check.outputs.EC2_STATE }}
       fixed_ip: ${{ steps.check.outputs.FIXED_IP }}
