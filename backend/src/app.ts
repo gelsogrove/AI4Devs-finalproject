@@ -34,24 +34,31 @@ export function setupServer() {
     next();
   });
   
-  app.use(helmet({
-    crossOriginResourcePolicy: { policy: "cross-origin" },
-    crossOriginOpenerPolicy: false, // Disable for HTTP compatibility
-    frameguard: { action: 'sameorigin' },
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'"],
-        fontSrc: ["'self'"],
-        objectSrc: ["'none'"],
-        mediaSrc: ["'self'"],
-        frameSrc: ["'none'"],
+  app.use((req, res, next) => {
+    // Skip helmet security headers for PDF preview routes
+    if (req.path.includes('/api/documents/') && req.path.includes('/preview')) {
+      return next();
+    }
+    
+    helmet({
+      crossOriginResourcePolicy: { policy: "cross-origin" },
+      crossOriginOpenerPolicy: false, // Disable for HTTP compatibility
+      frameguard: { action: 'sameorigin' },
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", "data:", "https:"],
+          connectSrc: ["'self'"],
+          fontSrc: ["'self'"],
+          objectSrc: ["'none'"],
+          mediaSrc: ["'self'"],
+          frameSrc: ["'none'"],
+        },
       },
-    },
-  }));
+    })(req, res, next);
+  });
   
   // CORS with security check
   app.use(corsSecurityCheck);

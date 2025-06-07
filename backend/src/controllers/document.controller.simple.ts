@@ -446,6 +446,11 @@ export class SimpleDocumentController {
    */
   previewDocument = async (req: Request, res: Response) => {
     try {
+      // Remove iframe-blocking headers immediately
+      res.removeHeader('X-Frame-Options');
+      res.removeHeader('Content-Security-Policy');
+      res.setHeader('X-Frame-Options', 'ALLOWALL');
+      
       const { id } = req.params;
       const { token } = req.query;
       

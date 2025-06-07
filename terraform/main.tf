@@ -322,9 +322,39 @@ resource "aws_instance" "web" {
     # Install PM2 globally
     npm install -g pm2
     
-    # Configure nginx
+    # Configure nginx with file upload support
     systemctl start nginx
     systemctl enable nginx
+    
+    # Create nginx configuration for ShopMefy with 20MB upload limit
+    cat > /etc/nginx/sites-available/default << 'NGINX_CONFIG'
+server {
+    listen 80;
+    server_name _;
+    client_max_body_size 20M;
+    
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    
+    location /api {
+        proxy_pass http://localhost:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Authorization $http_authorization;
+        client_max_body_size 20M;
+    }
+}
+NGINX_CONFIG
+    
+    # Test and reload nginx
+    nginx -t && systemctl reload nginx
     echo "<h1>ShopMefy Server Ready</h1>" > /var/www/html/index.html
     
     # Create app directory
