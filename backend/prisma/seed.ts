@@ -1,4 +1,7 @@
 import { PrismaClient } from '@prisma/client';
+import * as fs from 'fs';
+import * as path from 'path';
+import { storageService } from '../src/services/storage.service';
 
 const prisma = new PrismaClient();
 
@@ -432,20 +435,40 @@ International transportation requires extensive documentation including:
 Technology and Digital Transformation:
 Electronic documentation and digital platforms are increasingly important in international transportation, with initiatives like electronic bills of lading and digital customs procedures streamlining operations while maintaining legal validity.`;
 
-    // Create a mock PDF buffer for the document
-    const pdfBuffer = Buffer.from('Mock PDF content for seeding');
+    // Read the actual PDF file from temp directory
+    const pdfPath = path.join(__dirname, 'temp', legacyFilename);
+    let uploadResult: { path: string; filename: string; size: number };
     
-    // Mock upload result for seeding (no actual file upload needed)
-    const uploadResult = { path: `uploads/documents/${legacyFilename}` };
+    if (fs.existsSync(pdfPath)) {
+      console.log('📄 Found PDF file, uploading to storage...');
+      const pdfBuffer = fs.readFileSync(pdfPath);
+      
+      // Upload using StorageService (will use S3 in production, local in development)
+      uploadResult = await storageService.uploadFile(
+        pdfBuffer,
+        legacyFilename,
+        'application/pdf'
+      );
+      
+      console.log(`📄 PDF uploaded to: ${uploadResult.path}`);
+    } else {
+      console.log('📄 PDF file not found, using mock path');
+      // Fallback for cases where PDF doesn't exist
+      uploadResult = { 
+        path: `uploads/documents/${legacyFilename}`,
+        filename: legacyFilename,
+        size: 1000
+      };
+    }
     
     // Create the document record
     const document = await prisma.document.create({
       data: {
-        filename: legacyFilename,
+        filename: uploadResult.filename,
         originalName: 'international-transportation-law.pdf',
         title: 'International Transportation Law',
         mimeType: 'application/pdf',
-        size: pdfBuffer.length,
+        size: uploadResult.size,
         uploadPath: uploadResult.path,
         status: 'COMPLETED',
         metadata: JSON.stringify({

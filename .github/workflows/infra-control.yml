@@ -1,4 +1,4 @@
-name: 🏗️  04 -Start/Stop
+name: 🏗️  04 -Start/Stop AWS
 
 on:
   workflow_dispatch:

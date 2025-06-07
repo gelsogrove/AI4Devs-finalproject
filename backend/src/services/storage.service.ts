@@ -31,7 +31,7 @@ export class StorageService {
 
   constructor() {
     this.config = {
-      useS3: process.env.NODE_ENV === 'development' && !!process.env.AWS_S3_BUCKET,
+      useS3: process.env.NODE_ENV === 'production' && !!process.env.AWS_S3_BUCKET,
       s3Bucket: process.env.AWS_S3_BUCKET,
       localUploadDir: process.env.UPLOAD_DIR || 'uploads/documents'
     };

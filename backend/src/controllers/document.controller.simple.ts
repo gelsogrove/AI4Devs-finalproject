@@ -477,18 +477,33 @@ export class SimpleDocumentController {
         return res.status(404).json({ error: 'Document not found' });
       }
 
-      // Check if file exists
-      if (!fs.existsSync(document.uploadPath)) {
-        return res.status(404).json({ error: 'File not found on disk' });
-      }
+      // Use StorageService to get the file URL (handles both S3 and local)
+      try {
+        // For S3 files, get a signed URL; for local files, use direct path
+        const fileUrl = await storageService.getSignedUrl(document.uploadPath, 3600); // 1 hour expiry
+        
+        // If it's an S3 URL, redirect to it
+        if (fileUrl.startsWith('https://')) {
+          return res.redirect(fileUrl);
+        }
+        
+        // For local files, check if file exists and stream it
+        if (!fs.existsSync(document.uploadPath)) {
+          return res.status(404).json({ error: 'File not found on disk' });
+        }
 
-      // Set headers for PDF preview
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `inline; filename="${document.originalName}"`);
-      
-      // Stream the file
-      const fileStream = fs.createReadStream(document.uploadPath);
-      fileStream.pipe(res);
+        // Set headers for PDF preview
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="${document.originalName}"`);
+        
+        // Stream the file
+        const fileStream = fs.createReadStream(document.uploadPath);
+        fileStream.pipe(res);
+        
+      } catch (storageError) {
+        logger.error('Storage service error:', storageError);
+        return res.status(404).json({ error: 'File not found' });
+      }
       
     } catch (error) {
       logger.error('Error previewing document:', error);
