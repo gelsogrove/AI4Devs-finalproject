@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       run_seed:
-        description: '🌱 Run database seed (ATTENZIONE: Cancella tutti i dati esistenti!)'
+        description: '🌱 Run database seed (Be careful it deletes all data)'
         required: false
         default: false
         type: boolean
