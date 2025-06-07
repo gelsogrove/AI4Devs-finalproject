@@ -2,6 +2,12 @@ name: 🚀 03 - Deploy to EC2
 
 on:
   workflow_dispatch:
+    inputs:
+      run_seed:
+        description: '🌱 Run database seed (ATTENZIONE: Cancella tutti i dati esistenti!)'
+        required: false
+        default: false
+        type: boolean
   workflow_run:
     workflows: ["🧪 01 - CI - Continuous Integration"]
     types:
@@ -358,8 +364,15 @@ jobs:
               echo "⚠️ PDF file not found in prisma/temp/"
             fi
             
-            echo "🌱 Running Prisma seed..."
-            npx prisma db seed
+            # Conditional seed execution
+            if [ "${{ github.event.inputs.run_seed }}" = "true" ]; then
+              echo "🌱 Running Prisma seed (ATTENZIONE: Cancella tutti i dati esistenti!)..."
+              npx prisma db seed
+              echo "✅ Database seeded successfully"
+            else
+              echo "⏭️ Skipping database seed (preserving existing data)"
+              echo "💡 To run seed, use 'Run workflow' with 'Run database seed' checked"
+            fi
             
             # Start backend
             echo "🚀 Starting backend..."
@@ -450,6 +463,7 @@ jobs:
           echo "- **Target**: ${{ env.FIXED_IP }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Environment**: production" >> $GITHUB_STEP_SUMMARY
           echo "- **Source**: S3 deployment package" >> $GITHUB_STEP_SUMMARY
+          echo "- **Database Seed**: ${{ github.event.inputs.run_seed == 'true' && '🌱 Executed (data reset)' || '⏭️ Skipped (data preserved)' }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🌐 Access URLs:" >> $GITHUB_STEP_SUMMARY
           echo "- **Application**: http://${{ env.FIXED_IP }}/" >> $GITHUB_STEP_SUMMARY
