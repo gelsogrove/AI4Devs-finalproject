@@ -481,16 +481,16 @@ export class SimpleDocumentController {
 
       // Handle S3 URLs directly or use StorageService for local files
       try {
-        // Check if it's an S3 URL - generate signed URL manually
+        // Check if it's an S3 URL - stream directly from S3 instead of signed URL
         if (document.uploadPath.startsWith('https://') && document.uploadPath.includes('s3.amazonaws.com')) {
-          logger.info(`Generating signed URL for S3: ${document.uploadPath}`);
+          logger.info(`Streaming file directly from S3: ${document.uploadPath}`);
           
           // Extract bucket and key from URL
           const urlParts = document.uploadPath.split('/');
           const bucketName = process.env.AWS_S3_BUCKET || 'shopmefy-deployments-b070a7e8';
           const key = urlParts.slice(-2).join('/'); // documents/filename
           
-          // Generate signed URL manually
+          // Stream directly from S3
           const AWS = require('aws-sdk');
           const s3 = new AWS.S3({
             accessKeyId: process.env.AWS_ACCESS_KEY_ID,
@@ -499,17 +499,28 @@ export class SimpleDocumentController {
           });
           
           try {
-            const signedUrl = await s3.getSignedUrlPromise('getObject', {
+            // Set headers for PDF preview
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `inline; filename="${document.originalName}"`);
+            
+            // Stream the file directly from S3
+            const s3Stream = s3.getObject({
               Bucket: bucketName,
-              Key: key,
-              Expires: 3600 // 1 hour
+              Key: key
+            }).createReadStream();
+            
+            s3Stream.on('error', (error: any) => {
+              logger.error('S3 stream error:', error);
+              if (!res.headersSent) {
+                res.status(404).json({ error: 'File not found on S3' });
+              }
             });
             
-            logger.info(`Generated signed URL: ${signedUrl}`);
-            return res.redirect(signedUrl);
+            s3Stream.pipe(res);
+            return;
           } catch (s3Error) {
-            logger.error('Failed to generate signed URL:', s3Error);
-            return res.status(404).json({ error: 'Failed to access file' });
+            logger.error('Failed to stream from S3:', s3Error);
+            return res.status(404).json({ error: 'Failed to access file on S3' });
           }
         }
         

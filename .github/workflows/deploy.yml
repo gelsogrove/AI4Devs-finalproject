@@ -133,9 +133,43 @@ jobs:
             
             # Stop existing processes
             echo "🛑 Stopping existing processes..."
-            sudo pkill -f "node.*dist/index.js" || echo "No backend processes"
-            sudo pkill -f "serve.*dist" || echo "No frontend processes"
-            sleep 5
+            
+            # Stop backend using PID file if exists
+            if [ -f "shopmefy-deployment/backend.pid" ]; then
+              BACKEND_PID=$(cat shopmefy-deployment/backend.pid)
+              echo "Stopping backend process $BACKEND_PID..."
+              kill $BACKEND_PID 2>/dev/null || echo "Backend process already stopped"
+              rm -f shopmefy-deployment/backend.pid
+            fi
+            
+            # Stop frontend using PID file if exists  
+            if [ -f "shopmefy-deployment/frontend.pid" ]; then
+              FRONTEND_PID=$(cat shopmefy-deployment/frontend.pid)
+              echo "Stopping frontend process $FRONTEND_PID..."
+              kill $FRONTEND_PID 2>/dev/null || echo "Frontend process already stopped"
+              rm -f shopmefy-deployment/frontend.pid
+            fi
+            
+            # Fallback: kill any remaining processes
+            pkill -f "node.*dist/index.js" 2>/dev/null || echo "No backend processes found"
+            pkill -f "serve.*dist" 2>/dev/null || echo "No frontend processes found"
+            
+            # Wait for processes to terminate
+            echo "Waiting for processes to terminate..."
+            sleep 10
+            
+            # Verify processes are stopped
+            if pgrep -f "node.*dist/index.js" > /dev/null; then
+              echo "⚠️ Backend processes still running, force killing..."
+              pkill -9 -f "node.*dist/index.js" || true
+            fi
+            
+            if pgrep -f "serve.*dist" > /dev/null; then
+              echo "⚠️ Frontend processes still running, force killing..."
+              pkill -9 -f "serve.*dist" || true
+            fi
+            
+            echo "✅ All processes stopped"
             
             # Clean up and prepare
             echo "🧹 Preparing deployment directory..."
@@ -246,6 +280,7 @@ jobs:
           AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
           PUBLIC_URL=http://${{ env.FIXED_IP }}
+          FRONTEND_URL=http://${{ env.FIXED_IP }}:3000
           SWAGGER_USER=${{ secrets.SWAGGER_USER }}
           SWAGGER_PASSWORD=${{ secrets.SWAGGER_PASSWORD }}
           EOF
@@ -297,7 +332,10 @@ jobs:
             # Start backend
             echo "🚀 Starting backend..."
             nohup node dist/src/index.js > ../backend.log 2>&1 &
-            echo $! > ../backend.pid
+            BACKEND_PID=$!
+            echo $BACKEND_PID > ../backend.pid
+            chmod 644 ../backend.pid
+            echo "✅ Backend started with PID: $BACKEND_PID"
             
             # Setup frontend
             echo "🎨 Setting up frontend..."
@@ -309,7 +347,10 @@ jobs:
             # Start frontend
             echo "🚀 Starting frontend..."
             nohup serve -s dist -l 3000 > ../frontend.log 2>&1 &
-            echo $! > ../frontend.pid
+            FRONTEND_PID=$!
+            echo $FRONTEND_PID > ../frontend.pid
+            chmod 644 ../frontend.pid
+            echo "✅ Frontend started with PID: $FRONTEND_PID"
             
             # Configure Nginx
             echo "🔧 Configuring Nginx..."

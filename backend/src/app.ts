@@ -28,9 +28,15 @@ export function setupServer() {
   app.use(securityHeaders);
   app.use(securityLogger);
   
-  // Helmet for security headers
+  // Helmet for security headers - Disabled problematic headers for HTTP
+  app.use('/api/documents/:id/preview', (req, res, next) => {
+    // Skip frame protection for PDF preview routes
+    next();
+  });
+  
   app.use(helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginOpenerPolicy: false, // Disable for HTTP compatibility
     frameguard: { action: 'sameorigin' },
     contentSecurityPolicy: {
       directives: {
@@ -146,6 +152,14 @@ export function setupServer() {
       environment: process.env.NODE_ENV || 'development',
       version: process.env.npm_package_version || '1.0.0'
     });
+  });
+
+  // PDF preview route - NO security headers for iframe compatibility
+  app.get('/api/documents/:id/preview', (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    // Remove security headers that block iframes
+    res.removeHeader('X-Frame-Options');
+    res.removeHeader('Content-Security-Policy');
+    next();
   });
   
   // Apply rate limiting to API routes
