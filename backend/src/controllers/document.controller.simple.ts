@@ -32,6 +32,7 @@ const updateDocumentSchema = z.object({
   isActive: z.boolean().optional(),
   status: z.enum(['UPLOADING', 'PROCESSING', 'COMPLETED', 'FAILED']).optional(),
   metadata: z.string().optional(), // Allow metadata updates
+  uploadPath: z.string().optional(), // Allow uploadPath updates for S3 migration
 }).refine(data => Object.keys(data).length > 0, {
   message: 'At least one field must be provided',
 });
