@@ -18,6 +18,8 @@ const secureStorage = {
     // In production, this should be httpOnly cookies
     // For now, we'll use sessionStorage which is more secure than localStorage
     sessionStorage.setItem('auth_token', token);
+    // Also save to localStorage for API compatibility
+    localStorage.setItem('token', token);
     // Set expiry time (1 hour)
     const expiry = new Date().getTime() + (60 * 60 * 1000);
     sessionStorage.setItem('auth_expiry', expiry.toString());
@@ -42,6 +44,8 @@ const secureStorage = {
     sessionStorage.removeItem('auth_token');
     sessionStorage.removeItem('auth_expiry');
     sessionStorage.removeItem('user_data');
+    // Also clear from localStorage
+    localStorage.removeItem('token');
   },
   
   setUser: (user: User) => {
