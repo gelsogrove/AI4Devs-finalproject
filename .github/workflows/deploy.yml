@@ -282,6 +282,15 @@ jobs:
               }
             }
             
+            echo "📄 Uploading PDF to S3..."
+            # Upload the PDF file to S3 if it exists
+            if [ -f "prisma/temp/international-transportation-law.pdf" ]; then
+              aws s3 cp "prisma/temp/international-transportation-law.pdf" "s3://${{ secrets.AWS_S3_BUCKET }}/documents/international-transportation-law.pdf" --content-type "application/pdf"
+              echo "✅ PDF uploaded to S3"
+            else
+              echo "⚠️ PDF file not found in prisma/temp/"
+            fi
+            
             echo "🌱 Running Prisma seed..."
             npx prisma db seed
             

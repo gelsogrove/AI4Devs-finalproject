@@ -1,7 +1,4 @@
 import { PrismaClient } from '@prisma/client';
-import * as fs from 'fs';
-import * as path from 'path';
-import { storageService } from '../src/services/storage.service';
 
 const prisma = new PrismaClient();
 
@@ -435,29 +432,24 @@ International transportation requires extensive documentation including:
 Technology and Digital Transformation:
 Electronic documentation and digital platforms are increasingly important in international transportation, with initiatives like electronic bills of lading and digital customs procedures streamlining operations while maintaining legal validity.`;
 
-    // Read the actual PDF file from temp directory
-    const pdfPath = path.join(__dirname, 'temp', legacyFilename);
+    // Create appropriate path based on environment
     let uploadResult: { path: string; filename: string; size: number };
     
-    if (fs.existsSync(pdfPath)) {
-      console.log('📄 Found PDF file, uploading to storage...');
-      const pdfBuffer = fs.readFileSync(pdfPath);
-      
-      // Upload using StorageService (will use S3 in production, local in development)
-      uploadResult = await storageService.uploadFile(
-        pdfBuffer,
-        legacyFilename,
-        'application/pdf'
-      );
-      
-      console.log(`📄 PDF uploaded to: ${uploadResult.path}`);
+    if (process.env.NODE_ENV === 'production') {
+      // In production, assume PDF will be uploaded to S3 by a separate process
+      console.log('📄 Production environment: using S3 path for PDF');
+      uploadResult = { 
+        path: `https://${process.env.AWS_S3_BUCKET}.s3.amazonaws.com/documents/${legacyFilename}`,
+        filename: legacyFilename,
+        size: 137879 // Actual PDF size
+      };
     } else {
-      console.log('📄 PDF file not found, using mock path');
-      // Fallback for cases where PDF doesn't exist
+      // In development, use local path
+      console.log('📄 Development environment: using local path for PDF');
       uploadResult = { 
         path: `uploads/documents/${legacyFilename}`,
         filename: legacyFilename,
-        size: 1000
+        size: 137879
       };
     }
     
