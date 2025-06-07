@@ -480,16 +480,35 @@ export class SimpleDocumentController {
 
       // Handle S3 URLs directly or use StorageService for local files
       try {
-        // Check if it's an S3 URL
+        // Check if it's an S3 URL - generate signed URL manually
         if (document.uploadPath.startsWith('https://') && document.uploadPath.includes('s3.amazonaws.com')) {
-          // For S3 URLs, try to get a signed URL
+          logger.info(`Generating signed URL for S3: ${document.uploadPath}`);
+          
+          // Extract bucket and key from URL
+          const urlParts = document.uploadPath.split('/');
+          const bucketName = process.env.AWS_S3_BUCKET || 'shopmefy-deployments-b070a7e8';
+          const key = urlParts.slice(-2).join('/'); // documents/filename
+          
+          // Generate signed URL manually
+          const AWS = require('aws-sdk');
+          const s3 = new AWS.S3({
+            accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+            region: process.env.AWS_REGION || 'us-east-1'
+          });
+          
           try {
-            const fileUrl = await storageService.getSignedUrl(document.uploadPath, 3600);
-            return res.redirect(fileUrl);
+            const signedUrl = await s3.getSignedUrlPromise('getObject', {
+              Bucket: bucketName,
+              Key: key,
+              Expires: 3600 // 1 hour
+            });
+            
+            logger.info(`Generated signed URL: ${signedUrl}`);
+            return res.redirect(signedUrl);
           } catch (s3Error) {
-            logger.error('S3 signed URL error:', s3Error);
-            // Fallback: redirect to the original S3 URL (might work if bucket is public)
-            return res.redirect(document.uploadPath);
+            logger.error('Failed to generate signed URL:', s3Error);
+            return res.status(404).json({ error: 'Failed to access file' });
           }
         }
         
