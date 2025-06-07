@@ -478,14 +478,19 @@ export class SimpleDocumentController {
         return res.status(404).json({ error: 'Document not found' });
       }
 
-      // Use StorageService to get the file URL (handles both S3 and local)
+      // Handle S3 URLs directly or use StorageService for local files
       try {
-        // For S3 files, get a signed URL; for local files, use direct path
-        const fileUrl = await storageService.getSignedUrl(document.uploadPath, 3600); // 1 hour expiry
-        
-        // If it's an S3 URL, redirect to it
-        if (fileUrl.startsWith('https://')) {
-          return res.redirect(fileUrl);
+        // Check if it's an S3 URL
+        if (document.uploadPath.startsWith('https://') && document.uploadPath.includes('s3.amazonaws.com')) {
+          // For S3 URLs, try to get a signed URL
+          try {
+            const fileUrl = await storageService.getSignedUrl(document.uploadPath, 3600);
+            return res.redirect(fileUrl);
+          } catch (s3Error) {
+            logger.error('S3 signed URL error:', s3Error);
+            // Fallback: redirect to the original S3 URL (might work if bucket is public)
+            return res.redirect(document.uploadPath);
+          }
         }
         
         // For local files, check if file exists and stream it
