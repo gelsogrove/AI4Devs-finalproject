@@ -1,18 +1,16 @@
 #!/bin/bash
 
-# Monitor deployment completion and execute next process
+# Comprehensive deployment monitoring and testing script
 # Usage: ./scripts/monitor-and-execute.sh
 
 set -e
 
-echo "🔍 Starting deployment monitor..."
+echo "🔍 Starting comprehensive deployment verification..."
 
 # Configuration
 SERVER_IP="52.7.57.53"
-MAX_WAIT_TIME=600  # 10 minutes
-CHECK_INTERVAL=30  # 30 seconds
-PROCESS_02_NAME="deployment"
-PROCESS_03_NAME="next-process"
+MAX_WAIT_TIME=300  # 5 minutes
+CHECK_INTERVAL=15  # 15 seconds
 
 # Colors for output
 RED='\033[0;31m'
@@ -37,109 +35,210 @@ error() {
     echo -e "${RED}❌ $1${NC}"
 }
 
-# Function to check if deployment is complete
-check_deployment_status() {
-    log "Checking deployment status on server..."
+# Function to check backend process via SSH
+check_backend_process() {
+    log "Checking backend process via SSH..."
     
-    # Check if backend process is running with normal CPU
-    local cpu_usage=$(ssh ubuntu@${SERVER_IP} "ps aux | grep 'node dist/src/index.js' | grep -v grep | awk '{print \$3}'" 2>/dev/null || echo "0")
+    local process_info=$(ssh ubuntu@${SERVER_IP} "ps aux | grep 'node dist/src/index.js' | grep -v grep" 2>/dev/null || echo "")
     
-    if [ -z "$cpu_usage" ] || [ "$cpu_usage" = "0" ]; then
-        return 1  # Process not running
-    fi
-    
-    # Check if CPU usage is reasonable (less than 10%)
-    local cpu_int=$(echo "$cpu_usage" | cut -d'.' -f1)
-    if [ "$cpu_int" -lt 10 ]; then
-        # Additional check: verify the code doesn't contain checkTestPassword
-        local has_old_code=$(ssh ubuntu@${SERVER_IP} "cd shopmefy-deployment/backend && grep -c 'checkTestPassword' dist/src/controllers/auth.controller.js 2>/dev/null || echo '0'")
-        
-        if [ "$has_old_code" = "0" ]; then
-            return 0  # Deployment complete and healthy
-        else
-            return 1  # Still has old code
-        fi
-    else
-        return 1  # High CPU usage, still problematic
-    fi
-}
-
-# Function to execute process 03
-execute_process_03() {
-    success "Process 02 (${PROCESS_02_NAME}) completed successfully!"
-    log "Starting Process 03 (${PROCESS_03_NAME})..."
-    
-    # TODO: Andrea, specify what Process 03 should do here
-    # Examples:
-    
-    # Option 1: Test login functionality
-    test_login_functionality
-    
-    # Option 2: Run automated tests
-    # run_automated_tests
-    
-    # Option 3: Execute specific script
-    # ./scripts/process-03.sh
-    
-    success "Process 03 completed!"
-}
-
-# Function to test login functionality
-test_login_functionality() {
-    log "Testing login functionality..."
-    
-    # Test health endpoint first
-    log "Checking backend health..."
-    local health_status=$(curl -s -o /dev/null -w "%{http_code}" http://${SERVER_IP}/api/health || echo "000")
-    
-    if [ "$health_status" = "200" ]; then
-        success "Backend health check passed"
-    else
-        error "Backend health check failed (HTTP $health_status)"
+    if [ -z "$process_info" ]; then
+        error "Backend process not running"
         return 1
     fi
     
-    # Test login endpoint
-    log "Testing login endpoint..."
-    local login_response=$(curl -s -m 10 -X POST http://${SERVER_IP}/api/auth/login \
-        -H "Content-Type: application/json" \
-        -d '{"email":"test@example.com","password":"ShopMefy2024"}' \
-        -w "HTTPSTATUS:%{http_code}" 2>/dev/null || echo "HTTPSTATUS:000")
+    local cpu_usage=$(echo "$process_info" | awk '{print $3}')
+    local memory_usage=$(echo "$process_info" | awk '{print $4}')
+    local pid=$(echo "$process_info" | awk '{print $2}')
+    
+    log "Backend process PID: $pid, CPU: ${cpu_usage}%, Memory: ${memory_usage}%"
+    
+    # Check if CPU usage is reasonable (less than 20%)
+    local cpu_int=$(echo "$cpu_usage" | cut -d'.' -f1)
+    if [ "$cpu_int" -lt 20 ]; then
+        success "Backend process running with normal CPU usage"
+        return 0
+    else
+        warning "Backend process has high CPU usage: ${cpu_usage}%"
+        return 1
+    fi
+}
+
+# Function to check frontend process via SSH
+check_frontend_process() {
+    log "Checking frontend process via SSH..."
+    
+    local process_info=$(ssh ubuntu@${SERVER_IP} "ps aux | grep 'serve -s dist -l 3000' | grep -v grep" 2>/dev/null || echo "")
+    
+    if [ -z "$process_info" ]; then
+        error "Frontend process not running"
+        return 1
+    fi
+    
+    local pid=$(echo "$process_info" | awk '{print $2}')
+    log "Frontend process PID: $pid"
+    success "Frontend process running"
+    return 0
+}
+
+# Function to test backend health via SSH curl
+test_backend_health() {
+    log "Testing backend health via SSH curl..."
+    
+    local health_response=$(ssh ubuntu@${SERVER_IP} "curl -s -m 10 -w 'HTTPSTATUS:%{http_code}' http://localhost:8080/api/health" 2>/dev/null || echo "HTTPSTATUS:000")
+    
+    local http_status=$(echo "$health_response" | grep -o "HTTPSTATUS:[0-9]*" | cut -d: -f2)
+    local response_body=$(echo "$health_response" | sed 's/HTTPSTATUS:[0-9]*$//')
+    
+    if [ "$http_status" = "200" ]; then
+        success "Backend health check passed: $response_body"
+        return 0
+    else
+        error "Backend health check failed (HTTP $http_status)"
+        return 1
+    fi
+}
+
+# Function to test frontend via SSH curl
+test_frontend_access() {
+    log "Testing frontend access via SSH curl..."
+    
+    local frontend_response=$(ssh ubuntu@${SERVER_IP} "curl -s -m 10 -w 'HTTPSTATUS:%{http_code}' http://localhost:3000" 2>/dev/null || echo "HTTPSTATUS:000")
+    
+    local http_status=$(echo "$frontend_response" | grep -o "HTTPSTATUS:[0-9]*" | cut -d: -f2)
+    
+    if [ "$http_status" = "200" ]; then
+        success "Frontend access test passed"
+        return 0
+    else
+        error "Frontend access test failed (HTTP $http_status)"
+        return 1
+    fi
+}
+
+# Function to test login API via SSH curl
+test_login_api() {
+    log "Testing login API via SSH curl..."
+    
+    local login_response=$(ssh ubuntu@${SERVER_IP} "curl -s -m 15 -X POST http://localhost:8080/api/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"test@example.com\",\"password\":\"ShopMefy2024\"}' -w 'HTTPSTATUS:%{http_code}'" 2>/dev/null || echo "HTTPSTATUS:000")
     
     local http_status=$(echo "$login_response" | grep -o "HTTPSTATUS:[0-9]*" | cut -d: -f2)
     local response_body=$(echo "$login_response" | sed 's/HTTPSTATUS:[0-9]*$//')
     
     if [ "$http_status" = "200" ]; then
-        success "Login test passed! Response: $response_body"
+        success "Login API test passed!"
+        log "Response: $response_body"
         return 0
     else
-        error "Login test failed (HTTP $http_status)"
+        error "Login API test failed (HTTP $http_status)"
+        log "Response: $response_body"
         return 1
     fi
 }
 
-# Main monitoring loop
+# Function to test external access (from outside)
+test_external_access() {
+    log "Testing external access to application..."
+    
+    # Test frontend from outside
+    local frontend_status=$(curl -s -o /dev/null -w "%{http_code}" -m 10 http://${SERVER_IP}/ 2>/dev/null || echo "000")
+    if [ "$frontend_status" = "200" ]; then
+        success "External frontend access working"
+    else
+        error "External frontend access failed (HTTP $frontend_status)"
+        return 1
+    fi
+    
+    # Test backend API from outside
+    local backend_status=$(curl -s -o /dev/null -w "%{http_code}" -m 10 http://${SERVER_IP}/api/health 2>/dev/null || echo "000")
+    if [ "$backend_status" = "200" ]; then
+        success "External backend API access working"
+    else
+        error "External backend API access failed (HTTP $backend_status)"
+        return 1
+    fi
+    
+    return 0
+}
+
+# Function to verify deployed code doesn't have checkTestPassword
+verify_deployed_code() {
+    log "Verifying deployed code doesn't contain checkTestPassword..."
+    
+    local has_old_code=$(ssh ubuntu@${SERVER_IP} "cd shopmefy-deployment/backend && grep -c 'checkTestPassword' dist/src/controllers/auth.controller.js 2>/dev/null || echo '0'")
+    
+    if [ "$has_old_code" = "0" ]; then
+        success "Deployed code is clean (no checkTestPassword found)"
+        return 0
+    else
+        error "Deployed code still contains checkTestPassword!"
+        return 1
+    fi
+}
+
+# Main comprehensive test function
+run_comprehensive_tests() {
+    log "🧪 Running comprehensive tests..."
+    
+    local all_passed=true
+    
+    # Test 1: Backend process
+    if ! check_backend_process; then
+        all_passed=false
+    fi
+    
+    # Test 2: Frontend process
+    if ! check_frontend_process; then
+        all_passed=false
+    fi
+    
+    # Test 3: Verify clean code
+    if ! verify_deployed_code; then
+        all_passed=false
+    fi
+    
+    # Test 4: Backend health
+    if ! test_backend_health; then
+        all_passed=false
+    fi
+    
+    # Test 5: Frontend access
+    if ! test_frontend_access; then
+        all_passed=false
+    fi
+    
+    # Test 6: Login API
+    if ! test_login_api; then
+        all_passed=false
+    fi
+    
+    # Test 7: External access
+    if ! test_external_access; then
+        all_passed=false
+    fi
+    
+    if [ "$all_passed" = true ]; then
+        success "🎉 ALL TESTS PASSED! Frontend and Backend are working correctly!"
+        success "🌐 Application is fully functional at http://${SERVER_IP}"
+        return 0
+    else
+        error "❌ Some tests failed. Application needs attention."
+        return 1
+    fi
+}
+
+# Main execution
 main() {
-    log "Monitoring deployment completion for Process 02..."
+    log "🚀 Starting comprehensive deployment verification..."
     log "Server: $SERVER_IP"
-    log "Max wait time: $MAX_WAIT_TIME seconds"
-    log "Check interval: $CHECK_INTERVAL seconds"
     
-    local elapsed_time=0
-    
-    while [ $elapsed_time -lt $MAX_WAIT_TIME ]; do
-        if check_deployment_status; then
-            execute_process_03
-            exit 0
-        else
-            warning "Process 02 still running or not healthy. Waiting..."
-            sleep $CHECK_INTERVAL
-            elapsed_time=$((elapsed_time + CHECK_INTERVAL))
-        fi
-    done
-    
-    error "Timeout reached. Process 02 did not complete within $MAX_WAIT_TIME seconds."
-    exit 1
+    # Run tests immediately
+    if run_comprehensive_tests; then
+        success "✅ Deployment verification completed successfully!"
+        exit 0
+    else
+        error "❌ Deployment verification failed!"
+        exit 1
+    fi
 }
 
 # Run main function
