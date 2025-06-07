@@ -428,6 +428,7 @@ export class SimpleDocumentController {
         size: document.size,
         status: document.status,
         isActive: document.isActive,
+        uploadPath: document.uploadPath, // Include uploadPath for debugging
         metadata: document.metadata ? JSON.parse(document.metadata) : null,
         createdAt: document.createdAt.toISOString(),
         updatedAt: document.updatedAt.toISOString()
