@@ -276,7 +276,10 @@ jobs:
             backend/package.json
             backend/package-lock.json
             backend/tsconfig.json
-            backend/prisma/
+            backend/prisma/schema.prisma
+            backend/prisma/seed.ts
+            backend/prisma/migrations/
+            backend/prisma/temp/
           retention-days: 7
 
       - name: 📦 Upload Frontend Build Artifacts  
