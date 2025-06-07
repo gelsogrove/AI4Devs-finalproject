@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import userService from '../services/user.service';
-import { checkTestPassword } from '../utils/auth';
 import logger from '../utils/logger';
 
 // Validation schemas
@@ -58,9 +57,6 @@ class AuthController {
    */
   async login(req: Request, res: Response) {
     try {
-      // For testing only - check if test password works
-      await checkTestPassword();
-      
       logger.info(`Login attempt: ${JSON.stringify(req.body)}`);
       
       // Validate request body
