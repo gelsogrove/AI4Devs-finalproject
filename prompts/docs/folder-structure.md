@@ -22,18 +22,37 @@ backend/
 ├── 📁 src/                         # Source code
 │   ├── 📁 controllers/             # API controllers (DDD Application Layer)
 │   ├── 📁 services/                # Business logic services (DDD Domain Layer)
-│   ├── 📁 repositories/            # Data access layer (DDD Infrastructure)
-│   ├── 📁 middleware/              # Express middleware
+│   ├── 📁 domain/                  # Domain Layer (DDD Core)
+│   │   ├── 📁 entities/            # Domain entities
+│   │   ├── 📁 repositories/        # Repository interfaces
+│   │   ├── 📁 services/            # Domain services
+│   │   ├── 📁 dto/                 # Data Transfer Objects
+│   │   ├── 📁 events/              # Domain events
+│   │   └── 📁 interfaces/          # Domain interfaces
+│   ├── 📁 application/             # Application Layer (DDD Use Cases)
+│   │   ├── 📁 useCases/            # Application use cases
+│   │   └── 📁 services/            # Application services
+│   ├── 📁 infrastructure/          # Infrastructure Layer (DDD External)
+│   │   ├── 📁 repositories/        # Repository implementations
+│   │   └── 📁 events/              # Event handlers
+│   ├── 📁 modules/                 # Feature modules
+│   ├── 📁 middlewares/             # Express middleware (renamed from middleware)
 │   ├── 📁 routes/                  # API route definitions
 │   ├── 📁 types/                   # TypeScript type definitions
 │   ├── 📁 utils/                   # Utility functions
-│   └── 📄 index.ts                 # Application entry point
+│   ├── 📁 lib/                     # Third-party library configurations
+│   ├── 📄 app.ts                   # Express app configuration
+│   ├── 📄 server.ts                # Server startup
+│   ├── 📄 index.ts                 # Application entry point
+│   ├── 📄 swagger.ts               # Swagger configuration
+│   ├── 📄 swagger-schema.json      # Swagger schema definition
+│   └── 📄 types.d.ts               # Global type declarations
 ├── 📁 prisma/                      # Database schema and migrations
 │   ├── 📁 migrations/              # Database migration files
 │   ├── 📁 temp/                    # Temporary files for seeding
 │   ├── 📄 schema.prisma            # Database schema definition
 │   └── 📄 seed.ts                  # Database seeding script
-├── 📁 uploads/                     # File upload storage
+├── 📁 uploads/                     # File upload storage (local development)
 │   └── 📁 documents/               # Document storage directory
 ├── 📁 __tests__/                   # Test files (MANDATORY structure)
 │   ├── 📁 unit/                    # Unit tests
@@ -55,14 +74,31 @@ frontend/
 ├── 📁 src/                         # Source code
 │   ├── 📁 components/              # React components
 │   │   ├── 📁 ui/                  # Reusable UI components (shadcn/ui)
-│   │   └── 📁 layout/              # Layout components
+│   │   ├── 📁 layout/              # Layout components
+│   │   ├── 📁 admin/               # Admin panel components
+│   │   ├── 📁 chat/                # Chatbot components
+│   │   ├── 📁 dashboard/           # Dashboard components
+│   │   ├── 📁 documents/           # Document management components
+│   │   ├── 📁 faqs/                # FAQ components
+│   │   ├── 📁 flowise/             # Flowise integration components
+│   │   ├── 📁 products/            # Product components
+│   │   ├── 📁 services/            # Services components
+│   │   └── 📁 slashpage/           # Landing page components
 │   ├── 📁 pages/                   # Page components
 │   ├── 📁 hooks/                   # Custom React hooks
+│   ├── 📁 api/                     # API client functions
 │   ├── 📁 services/                # API service functions
+│   ├── 📁 contexts/                # React Context providers
 │   ├── 📁 types/                   # TypeScript type definitions
+│   │   └── 📁 dto/                 # Data Transfer Objects
 │   ├── 📁 utils/                   # Utility functions
-│   ├── 📁 styles/                  # CSS and styling files
-│   └── 📄 main.tsx                 # Application entry point
+│   ├── 📁 lib/                     # Third-party library configurations
+│   ├── 📄 App.tsx                  # Main App component
+│   ├── 📄 App.css                  # App-specific styles
+│   ├── 📄 main.tsx                 # Application entry point
+│   ├── 📄 index.css                # Global styles
+│   ├── 📄 setupTests.ts            # Test setup configuration
+│   └── 📄 vite-env.d.ts            # Vite environment types
 ├── 📁 public/                      # Static assets
 ├── 📁 __test__/                    # Test files (MANDATORY structure)
 │   ├── 📁 unit/                    # Unit tests

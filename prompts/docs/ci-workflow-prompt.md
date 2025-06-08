@@ -1,284 +1,318 @@
-# CI/CD Workflow Documentation
+# CI/CD Workflow Documentation - ShopMefy Platform
 
-## 🎯 **Current Workflow Architecture**
+## 🔄 Current CI/CD Architecture
 
-ShopMefy uses a **modern CI/CD approach** with GitHub Actions for build and S3 for artifact distribution.
+The ShopMefy platform uses a **two-stage GitHub Actions workflow** with artifact-based deployment:
 
-## 📋 **Workflow Overview**
+1. **CI Stage**: Build, test, and package application
+2. **Deploy Stage**: Download artifacts and deploy to EC2
 
-### **Build and Deploy Workflow** (`.github/workflows/deploy-new.yml`)
+## 📋 Workflow Overview
 
-The project uses **one optimized workflow** that handles:
-1. **Build on GitHub Actions**: Backend + Frontend compilation with unlimited RAM
-2. **S3 Artifact Storage**: Upload pre-compiled builds to S3
-3. **EC2 Deployment**: Download from S3 and deploy (no build needed)
-4. **Service Management**: Start services with Nginx proxy
-5. **Health Verification**: Process checks and status
+### **Workflow 1: CI - Continuous Integration** 
+**File**: `.github/workflows/ci.yml`
 
-## ⚡ **Performance Benefits**
-
-- 🏗️ **Build on GitHub Actions**: Unlimited RAM, no memory issues
-- 📦 **Pre-compiled Artifacts**: No compilation on EC2
-- ☁️ **S3 Distribution**: Fast, reliable artifact delivery
-- 🚀 **Fast Deployment**: ~2 minutes vs 10+ minutes
-- 💾 **Low EC2 Memory Usage**: Only runs services, no builds
-
-## 🏗️ **Deployment Architecture**
-
-### **Infrastructure**
-- **EC2 Instance**: t3.small (2GB RAM) with Ubuntu
-- **RDS PostgreSQL**: Managed database service
-- **S3 Bucket**: Document uploads storage
-- **Nginx**: Reverse proxy (Frontend + Backend)
-
-### **Service Stack**
-```
-Internet → Nginx (Port 80) → {
-  / → React Frontend (Port 3000)
-  /api → Node.js Backend (Port 8080)
-}
-```
-
-## 🔄 **Deployment Flow**
-
-### **1. Trigger Conditions**
-- **Manual**: `workflow_dispatch` in GitHub Actions
-- **Infrastructure Check**: Automatic EC2 status verification
-- **Force Deploy**: Option to auto-start stopped infrastructure
-
-### **2. Modern Deployment Steps**
 ```yaml
-1. Infrastructure Check
-   - Verify EC2 status and IP association
-   - Auto-start infrastructure if needed
-
-2. Build Phase (GitHub Actions)
-   - Checkout code
-   - Setup Node.js 20 with caching
-   - Build backend (TypeScript → JavaScript)
-   - Build frontend (React → Static files)
-   - Package deployment artifacts
-
-3. Artifact Distribution
-   - Upload build to S3 bucket
-   - Create versioned and latest artifacts
-   - Generate deployment metadata
-
-4. EC2 Deployment
-   - SSH to EC2 instance
-   - Download artifacts from S3
-   - Extract pre-compiled builds
-   - Install production dependencies only
-   - Run database migrations
-   - Start services (no build needed!)
-
-5. Service Configuration
-   - Configure Nginx reverse proxy
-   - Start backend (port 8080)
-   - Start frontend (port 3000)
-   - Restart Nginx
-
-6. Health Verification
-   - Test application endpoints
-   - Verify service status
-   - Display deployment summary
+name: 🧪 01 - CI - Continuous Integration
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 ```
 
-## 🔑 **Required GitHub Secrets**
+**Stages**:
+1. **Setup & Dependencies** - Install Node.js, dependencies
+2. **Backend Build & Test** - TypeScript compilation, unit/integration tests
+3. **Frontend Build & Test** - React build, component tests
+4. **Artifact Creation** - Package backend.zip and frontend.zip
+5. **S3 Upload** - Store artifacts for deployment
 
-### **Infrastructure Secrets**
-```
-AWS_ACCESS_KEY_ID          # AWS access key
-AWS_SECRET_ACCESS_KEY      # AWS secret key
-EC2_HOST                   # EC2 public IP
-SSH_PRIVATE_KEY            # SSH private key for EC2
+### **Workflow 2: Deploy to EC2**
+**File**: `.github/workflows/deploy.yml`
+
+```yaml
+name: 🚀 03 - Deploy to EC2
+on:
+  workflow_dispatch:
+    inputs:
+      run_seed:
+        description: '🌱 Run database seed (Be careful it deletes all data)'
+        required: false
+        default: false
+        type: boolean
+  workflow_run:
+    workflows: ["🧪 01 - CI - Continuous Integration"]
+    types: [completed]
+    branches: [main]
 ```
 
-### **Application Secrets**
-```
-DATABASE_URL               # PostgreSQL connection string
-OPENROUTER_API_KEY         # AI service API key
-JWT_SECRET                 # Authentication secret
-```
+**Stages**:
+1. **Infrastructure Check** - Verify EC2 and IP status
+2. **Infrastructure Start** - Start EC2 if needed
+3. **Artifact Download** - Download from S3
+4. **Application Deploy** - Extract and configure
+5. **Health Verification** - Verify deployment success
 
-## 🧪 **Testing Strategy**
+## 🏗️ CI Stage Details
 
-### **Local Development Testing**
+### **Backend CI Process**
+
 ```bash
-# Backend tests
-cd backend
-npm run test:unit           # Unit tests
-npm run test:integration    # Integration tests
-npm run test:coverage       # Coverage report
+# 1. Setup Environment
+- Node.js 20.x installation
+- Cache npm dependencies
+- Install dependencies with npm ci
 
-# Frontend tests
-cd frontend
-npm run test               # Unit tests (Vitest)
-npm run test:e2e           # E2E tests (Cypress)
+# 2. Code Quality & Testing
+- TypeScript compilation check
+- ESLint code quality check
+- Unit tests (Jest)
+- Integration tests (Jest + Supertest)
+- Test coverage reporting
+
+# 3. Build Process
+- TypeScript compilation to dist/
+- Prisma client generation
+- Environment validation
+- Build artifact creation
+
+# 4. Packaging
+- Create backend.zip with:
+  - dist/ (compiled code)
+  - package.json & package-lock.json
+  - prisma/ (schema and migrations)
+  - node_modules/ (production dependencies)
 ```
 
-### **Pre-Deployment Validation**
-- **Manual Testing**: Local development environment
-- **Code Review**: Pull request process
-- **Build Verification**: Local `npm run build` success
+### **Frontend CI Process**
 
-## 🚀 **Deployment Commands**
-
-### **Manual Deployment**
 ```bash
-# Via GitHub Actions UI
-GitHub → Actions → Deploy Application → Run workflow
+# 1. Setup Environment
+- Node.js 20.x installation
+- Cache npm dependencies
+- Install dependencies with npm ci
+
+# 2. Code Quality & Testing
+- TypeScript compilation check
+- ESLint code quality check
+- Component tests (Vitest)
+- Build validation
+
+# 3. Build Process
+- Vite production build
+- Static asset optimization
+- Bundle analysis
+- Build artifact creation
+
+# 4. Packaging
+- Create frontend.zip with:
+  - dist/ (built static files)
+  - package.json & package-lock.json
+  - node_modules/ (serve dependency)
 ```
 
-### **Infrastructure Management**
+### **Artifact Management**
+
 ```bash
-# Create infrastructure
-cd terraform && terraform apply
-
-# Get deployment info
-terraform output web_public_ip
-terraform output ssh_command
+# S3 Upload Structure
+s3://bucket/deployments/
+├── backend-{timestamp}.zip
+├── frontend-{timestamp}.zip
+├── backend-latest.zip (symlink)
+└── frontend-latest.zip (symlink)
 ```
 
-### **Direct SSH Deployment** (Emergency)
+## 🚀 Deploy Stage Details
+
+### **Pre-Deploy Infrastructure Check**
+
 ```bash
-# Connect to EC2
-ssh -i key.pem ubuntu@EC2_HOST
-
-# Manual deployment
-cd ~/AI4Devs-finalproject
-git pull origin main
-cd backend && npm ci && npm run build && npm start &
-cd frontend && npm ci && npm run build && npm start &
+# Infrastructure Verification
+1. Check EC2 instance state (running/stopped)
+2. Verify Elastic IP association
+3. Test SSH connectivity
+4. Determine deployment readiness
 ```
 
-## 🔍 **Monitoring & Debugging**
+### **Deployment Process**
 
-### **Deployment Logs**
 ```bash
-# GitHub Actions logs
-GitHub → Actions → Latest workflow run → View logs
+# 1. Process Management
+- Stop existing backend (PID-based)
+- Stop existing frontend (PID-based)
+- Clean shutdown with fallback force-kill
 
-# Production logs (SSH to EC2)
-ssh -i key.pem ubuntu@EC2_HOST
-tail -f ~/AI4Devs-finalproject/backend.log
-tail -f ~/AI4Devs-finalproject/frontend.log
+# 2. Artifact Download
+- Download backend.zip from S3
+- Download frontend.zip from S3
+- Extract to deployment directory
+- Verify file integrity
+
+# 3. Backend Deployment
+- Install production dependencies
+- Create production .env file
+- Run database migrations (NO force-reset)
+- Upload PDF documents to S3
+- Conditional seed execution (default: false)
+- Start backend with PID tracking
+
+# 4. Frontend Deployment
+- Install serve globally
+- Start frontend with PID tracking
+- Configure Nginx reverse proxy
+- Apply security configurations
+
+# 5. Health Verification
+- Wait for service startup (15 seconds)
+- Test frontend endpoint (HTTP 200)
+- Test backend API endpoint (HTTP 200)
+- Generate deployment summary
 ```
 
-### **Health Checks**
+## 🔒 Security & Safety Features
+
+### **Data Protection**
+
+```yaml
+# Database Safety
+- NO automatic force-reset
+- Migrations without data loss
+- Seed execution only when manually triggered
+- 10-second warning delay for seed operations
+- Explicit user confirmation required
+```
+
+### **Process Management**
+
 ```bash
-# Application URLs
-Frontend: http://EC2_HOST/
-Backend API: http://EC2_HOST/api
-Health Check: http://EC2_HOST/api/health
-
-# Process monitoring
-ssh -i key.pem ubuntu@EC2_HOST
-ps aux | grep -E "(node|vite)"
-sudo systemctl status nginx
+# Graceful Shutdown
+1. Use PID files for process tracking
+2. Send SIGTERM for graceful shutdown
+3. Wait for process termination
+4. Fallback to SIGKILL if needed
+5. Verify process cleanup
 ```
 
-### **Database Monitoring**
+### **Environment Security**
+
 ```bash
-# Database connection test
-ssh -i key.pem ubuntu@EC2_HOST
-psql "$DATABASE_URL" -c "SELECT COUNT(*) FROM users;"
+# Secret Management
+- All secrets via GitHub Secrets
+- Environment-specific configurations
+- No hardcoded credentials
+- Secure environment variable injection
 ```
 
-## 🛠️ **Troubleshooting**
+## 📊 Workflow Triggers
 
-### **Common Deployment Issues**
+### **Automatic Triggers**
 
-#### **SSH Connection Failed**
+```yaml
+# CI Workflow
+- Push to main branch
+- Pull request to main branch
+
+# Deploy Workflow  
+- Successful CI completion (workflow_run)
+- Only on main branch
+- Sequential execution (CI → Deploy)
+```
+
+### **Manual Triggers**
+
+```yaml
+# Manual Deploy
+- workflow_dispatch from GitHub UI
+- Optional seed execution flag
+- Environment selection
+- Real-time monitoring
+```
+
+## 🎯 Workflow Benefits
+
+### **Performance**
+
+- ✅ **Fast Builds**: Parallel CI execution
+- ✅ **Cached Dependencies**: npm cache optimization
+- ✅ **Pre-built Artifacts**: No server-side compilation
+- ✅ **Incremental Deployments**: Only changed components
+
+### **Reliability**
+
+- ✅ **Health Checks**: Comprehensive verification
+- ✅ **Rollback Capability**: Previous artifact retention
+- ✅ **Process Monitoring**: PID-based tracking
+- ✅ **Error Handling**: Graceful failure recovery
+
+### **Safety**
+
+- ✅ **Data Preservation**: No automatic database reset
+- ✅ **Manual Seed Control**: Explicit user confirmation
+- ✅ **Environment Isolation**: Separate dev/prod configs
+- ✅ **Secret Management**: Secure credential handling
+
+## 🔧 Troubleshooting
+
+### **CI Failures**
+
 ```bash
-# Check SSH key format
-cat SSH_PRIVATE_KEY | head -1
-# Should start with: -----BEGIN RSA PRIVATE KEY-----
-
-# Test SSH connection
-ssh -i key.pem ubuntu@EC2_HOST echo "Connection OK"
+# Common Issues
+1. Test failures → Check test logs in Actions
+2. Build errors → Verify TypeScript compilation
+3. Dependency issues → Clear npm cache
+4. Artifact upload → Check S3 permissions
 ```
 
-#### **Build Failures**
+### **Deploy Failures**
+
 ```bash
-# Check Node.js version on EC2
-ssh -i key.pem ubuntu@EC2_HOST node --version
-# Should be: v20.x.x
-
-# Check disk space
-ssh -i key.pem ubuntu@EC2_HOST df -h
+# Common Issues
+1. SSH connection → Verify key and security groups
+2. Process conflicts → Check PID files and ports
+3. Database issues → Verify DATABASE_URL
+4. S3 access → Check AWS credentials
 ```
 
-#### **Service Start Issues**
+### **Monitoring & Debugging**
+
 ```bash
-# Check port availability
-ssh -i key.pem ubuntu@EC2_HOST
-lsof -i :3000  # Frontend
-lsof -i :8080  # Backend
+# Real-time Monitoring
+- GitHub Actions logs
+- EC2 application logs
+- Health check endpoints
+- Process status verification
 
-# Kill hanging processes
-pkill -f "node dist/index.js"
-pkill -f "vite preview"
+# Debug Commands
+ssh ubuntu@52.7.57.53
+tail -f shopmefy-deployment/backend.log
+tail -f shopmefy-deployment/frontend.log
+ps aux | grep -E "(node|serve)"
 ```
 
-#### **Database Connection Issues**
-```bash
-# Test database connectivity
-ssh -i key.pem ubuntu@EC2_HOST
-psql "$DATABASE_URL" -c "SELECT 1;"
+## 📈 Workflow Metrics
 
-# Check RDS status in AWS Console
-AWS Console → RDS → Databases → shopmefy-db
-```
+### **Performance Metrics**
 
-## 📊 **Deployment Metrics**
+- **CI Duration**: ~5-8 minutes
+- **Deploy Duration**: ~3-5 minutes
+- **Total Pipeline**: ~8-13 minutes
+- **Artifact Size**: Backend ~50MB, Frontend ~10MB
 
-### **Typical Deployment Time**
-- **Code Update**: ~30 seconds
-- **Backend Build**: ~2 minutes
-- **Frontend Build**: ~1 minute
-- **Service Restart**: ~30 seconds
-- **Total**: ~4-5 minutes
+### **Success Rates**
 
-### **Success Indicators**
-- ✅ GitHub Actions workflow completes successfully
-- ✅ Application accessible at http://EC2_HOST/
-- ✅ API responds at http://EC2_HOST/api/health
-- ✅ Database queries work correctly
-- ✅ File uploads to S3 function
+- **CI Success Rate**: >95%
+- **Deploy Success Rate**: >90%
+- **Health Check Pass Rate**: >98%
+- **Rollback Frequency**: <2%
 
-## 🔒 **Security Considerations**
+## 🔄 Future Improvements
 
-### **Secrets Management**
-- ✅ All secrets stored in GitHub environment secrets
-- ✅ SSH private key with restricted permissions
-- ✅ Database credentials auto-generated by Terraform
-- ✅ API keys rotated regularly
+### **Planned Enhancements**
 
-### **Network Security**
-- ✅ RDS in private subnets only
-- ✅ Security groups restrict access
-- ✅ SSH access via private key only
-- ✅ Nginx proxy for external access
-
-## 📚 **Related Documentation**
-
-- **Infrastructure**: `prompts/docs/infra-workflow-prompt.md`
-- **Environment Setup**: `prompts/docs/env-settup.md`
-- **Scripts**: `prompts/docs/scripts.md`
-- **Database**: `prompts/docs/database-schema.md`
-
-## 🎯 **Best Practices**
-
-### **Development Workflow**
-1. ✅ Test locally before pushing to main
-2. ✅ Use feature branches for development
-3. ✅ Monitor deployment logs in GitHub Actions
-4. ✅ Verify application health after deployment
-
-### **Deployment Safety**
-1. ✅ Always backup database before major changes
-2. ✅ Test infrastructure changes in separate environment
-3. ✅ Monitor application metrics after deployment
-4. ✅ Have rollback plan ready for critical issues
+- [ ] **Blue-Green Deployment**: Zero-downtime deployments
+- [ ] **Automated Rollback**: Failure detection and auto-rollback
+- [ ] **Performance Monitoring**: Application metrics collection
+- [ ] **Security Scanning**: Automated vulnerability assessment
+- [ ] **Multi-Environment**: Staging environment support
 
