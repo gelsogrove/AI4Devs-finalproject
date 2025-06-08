@@ -1,9 +1,20 @@
-# Infrastructure Management Documentation
+# Infrastructure Management Workflow
 
-## 🏗️ **IMPROVED INFRASTRUCTURE SETUP**
+## Overview
 
-### **ShopMefy AWS Infrastructure**
-The application uses an **enhanced AWS infrastructure management** with intelligent workflows and comprehensive monitoring.
+The ShopMefy infrastructure management system provides comprehensive control over AWS resources with advanced cost optimization features. The system includes both GitHub Actions workflows and local management scripts for maximum flexibility.
+
+## 🏗️ Enhanced Infrastructure Control Features
+
+### **New Capabilities (2024 Update)**
+- ✅ **RDS Database Management**: Start/stop PostgreSQL database independently
+- ✅ **Safety Pre-checks**: Prevent accidental destructive operations
+- ✅ **Cost Calculation**: Real-time monthly cost analysis and savings tracking
+- ✅ **Start-and-Deploy**: Single action to start infrastructure and deploy application
+- ✅ **Status Reporting**: Comprehensive infrastructure status with access URLs
+- ✅ **Local Management Script**: Terminal-based infrastructure control
+- ✅ **Force Override**: Skip safety checks when needed
+- ✅ **Smart Warnings**: Alert users about database downtime implications
 
 ## Enhanced Workflow Architecture
 
@@ -147,34 +158,43 @@ chmod +x scripts/infra-manager.sh
 ./scripts/infra-manager.sh github-start-deploy
 ```
 
-## Cost Optimization Strategy
+## 💰 Advanced Cost Optimization Strategy
 
 ### **Monthly Cost Breakdown:**
 ```
-Infrastructure Running:
+Full Infrastructure Running:
 ├── EC2 t3.small: ~$15.00/month
-├── RDS db.t3.micro: ~$12.50/month
-├── Elastic IP (associated): ~$0.00/month
+├── RDS db.t3.micro: ~$13.00/month
 ├── EBS 20GB: ~$2.00/month
-└── S3 + Data Transfer: ~$1.50/month
-Total: ~$31.00/month
+├── S3 + Data Transfer: ~$1.50/month
+└── Elastic IP: ~$0.00/month (when associated)
+Total: ~$31.50/month
 
-Infrastructure Stopped:
+EC2 Stopped (Database Running):
 ├── EC2 t3.small: ~$0.00/month (SAVED)
-├── RDS db.t3.micro: ~$12.50/month (always running)
-├── Elastic IP (preserved): ~$3.60/month
+├── RDS db.t3.micro: ~$13.00/month
 ├── EBS 20GB: ~$2.00/month
-└── S3 + Data Transfer: ~$1.50/month
-Total: ~$19.60/month
+├── S3 + Data Transfer: ~$1.50/month
+└── Elastic IP: ~$3.60/month (when unassociated)
+Total: ~$20.10/month
+Savings: ~$11.40/month (36% reduction)
 
-Monthly Savings: ~$11.40 (37% reduction)
+Full Infrastructure Stopped:
+├── EC2 t3.small: ~$0.00/month (SAVED)
+├── RDS db.t3.micro: ~$0.00/month (SAVED)
+├── EBS 20GB: ~$2.00/month
+├── S3 + Data Transfer: ~$1.50/month
+└── Elastic IP: ~$3.60/month
+Total: ~$7.10/month
+Savings: ~$24.40/month (77% reduction)
 ```
 
-### **Smart Cost Management:**
-- ✅ **Auto-stop**: Use GitHub Actions to stop when not needed
-- ✅ **Fixed IP**: Preserved during stop/start cycles
-- ✅ **RDS Always-On**: Database remains available (cannot be stopped)
-- ✅ **Quick Restart**: Infrastructure ready in ~2 minutes
+### **Smart Cost Management Strategies:**
+- ✅ **Daily Development**: Stop EC2 only (save $11.40/month, database available)
+- ✅ **Weekend/Vacation**: Stop both EC2+RDS (save $24.40/month, full shutdown)
+- ✅ **Demo/Presentation**: Use start-and-deploy for quick activation
+- ✅ **Fixed IP Preservation**: Maintained during stop/start cycles
+- ✅ **Quick Restart**: Infrastructure ready in 2-3 minutes (EC2 only) or 5-10 minutes (with RDS)
 
 ## Health Monitoring & Diagnostics
 

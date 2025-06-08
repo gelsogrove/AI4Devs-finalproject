@@ -8,11 +8,6 @@ on:
         required: false
         default: false
         type: boolean
-  workflow_run:
-    workflows: ["🧪 01 - CI - Continuous Integration"]
-    types:
-      - completed
-    branches: [main]
 
 env:
   AWS_REGION: us-east-1
@@ -24,7 +19,7 @@ jobs:
     name: 🔍 Pre-Deploy Infrastructure Check
     runs-on: ubuntu-latest
     environment: dev
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    if: github.event_name == 'workflow_dispatch'
     outputs:
       ec2_state: ${{ steps.check.outputs.EC2_STATE }}
       fixed_ip: ${{ steps.check.outputs.FIXED_IP }}
@@ -411,6 +406,7 @@ jobs:
           server {
               listen 80;
               server_name _;
+              client_max_body_size 50M;
               
               location / {
                   proxy_pass http://localhost:3000;
@@ -420,14 +416,15 @@ jobs:
                   proxy_set_header X-Forwarded-Proto $scheme;
               }
               
-                          location /api {
-                proxy_pass http://localhost:8080;
-                proxy_set_header Host $host;
-                proxy_set_header X-Real-IP $remote_addr;
-                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                proxy_set_header X-Forwarded-Proto $scheme;
-                proxy_set_header Authorization $http_authorization;
-            }
+              location /api {
+                  client_max_body_size 50M;
+                  proxy_pass http://localhost:8080;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+                  proxy_set_header Authorization $http_authorization;
+              }
           }
           NGINX_CONFIG
             
