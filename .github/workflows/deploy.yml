@@ -348,9 +348,13 @@ jobs:
             
             echo "🔧 Running Prisma migrate..."
             npx prisma migrate deploy || {
-              echo "❌ Prisma migrate failed, trying to push schema..."
-              npx prisma db push --force-reset || {
-                echo "❌ Prisma db push also failed"
+              echo "❌ Prisma migrate failed"
+              echo "⚠️ Database schema might need manual intervention"
+              echo "💡 Check if migrations are needed or schema is out of sync"
+              # DO NOT use --force-reset as it deletes all data!
+              # Only generate client to ensure Prisma works
+              npx prisma generate || {
+                echo "❌ Prisma generate failed"
                 exit 1
               }
             }
@@ -364,14 +368,18 @@ jobs:
               echo "⚠️ PDF file not found in prisma/temp/"
             fi
             
-            # Conditional seed execution
+            # Conditional seed execution - EXTREMELY DANGEROUS!
             if [ "${{ github.event.inputs.run_seed }}" = "true" ]; then
-              echo "🌱 Running Prisma seed (ATTENZIONE: Cancella tutti i dati esistenti!)..."
+              echo "🚨 WARNING: About to run database seed - THIS WILL DELETE ALL DATA!"
+              echo "🚨 Waiting 10 seconds for safety..."
+              sleep 10
+              echo "🌱 Running Prisma seed (DELETING ALL EXISTING DATA!)..."
               npx prisma db seed
-              echo "✅ Database seeded successfully"
+              echo "✅ Database seeded successfully (ALL PREVIOUS DATA LOST)"
             else
-              echo "⏭️ Skipping database seed (preserving existing data)"
+              echo "✅ Skipping database seed (preserving existing data)"
               echo "💡 To run seed, use 'Run workflow' with 'Run database seed' checked"
+              echo "⚠️ REMEMBER: Seed execution DELETES ALL DATA!"
             fi
             
             # Start backend
