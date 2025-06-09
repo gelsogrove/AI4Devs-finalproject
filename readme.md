@@ -212,7 +212,7 @@ npm run test:e2e
 - **Password**: password123
 
 #### Swagger API Documentation
-- **URL**: http://34.225.214.21/api-docs
+- **URL**: http://52.7.57.21/api-docs
 - **Username**: admin
 - **Password**: admin123
 
