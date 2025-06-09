@@ -144,7 +144,11 @@ export function setupServer() {
   };
   
   // Swagger Documentation with authentication and rate limiting
-  app.use('/api-docs', apiRateLimiter, swaggerAuth, swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  // Disable CSP for Swagger UI routes to allow proper functionality
+  app.use('/api-docs', (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    res.removeHeader('Content-Security-Policy');
+    next();
+  }, apiRateLimiter, swaggerAuth, swaggerUi.serve, swaggerUi.setup(swaggerSpec));
   
   // Serve Swagger specification as JSON (also protected)
   app.get('/api-docs.json', apiRateLimiter, swaggerAuth, (_req, res) => {
