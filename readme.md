@@ -199,7 +199,7 @@ npm run test:e2e
 
 ### Production Deployment
 
-**🌐 Live Application**: http://34.225.214.21
+**🌐 Live Application**: http://52.7.57.53/login
 
 #### AWS Infrastructure
 - **EC2 Instance**: t3.small (Ubuntu 22.04)
@@ -214,7 +214,7 @@ npm run test:e2e
 #### Swagger API Documentation
 - **URL**: http://34.225.214.21/api-docs
 - **Username**: admin
-- **Password**: ShopMefy2024
+- **Password**: admin123
 
 #### Manual Deployment
 The application uses manual deployment to save AWS resources:
