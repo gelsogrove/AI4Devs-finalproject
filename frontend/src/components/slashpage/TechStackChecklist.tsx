@@ -57,7 +57,7 @@ const techStack: TechItem[] = [
   {
     name: " S3 Upload ",
     description: "",
-    completed: false
+    completed: true
   },
   {
     name: "WhatsApp Integration",
@@ -82,7 +82,7 @@ const techStack: TechItem[] = [
   {
     name: "Terraform",
     description: "AWS Deployment",
-    completed: false
+    completed: true
   },
   {
     name: "Monitoring and alerts",
